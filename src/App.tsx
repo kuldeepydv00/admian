@@ -178,22 +178,10 @@ function App() {
   });
 
   const fetchAdminEndpoint = async (endpoint: string) => {
-    for (const base of ['https://matka-r6mz.onrender.com', 'http://localhost:5001']) {
-      try {
-        const res = await fetch(`${base}${endpoint}`);
-        if (res.ok) return res;
-      } catch (e) {}
-    }
     return fetch(`https://matka-r6mz.onrender.com${endpoint}`);
   };
 
   const postAdminEndpoint = async (endpoint: string, options: any = {}) => {
-    for (const base of ['https://matka-r6mz.onrender.com', 'http://localhost:5001']) {
-      try {
-        const res = await fetch(`${base}${endpoint}`, options);
-        if (res.ok) return res;
-      } catch (e) {}
-    }
     return fetch(`https://matka-r6mz.onrender.com${endpoint}`, options);
   };
 
