@@ -3,24 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 // API Base URL
 const API_BASE = 'https://matka-r6mz.onrender.com';
 
-interface GameSchedule {
-  name: string;
-  open: string;
-  close: string;
-  result: string;
-}
-
-const SCHEDULES: GameSchedule[] = [
-  { name: 'Desawar', open: '05:00 AM IST', close: '04:00 AM IST (Next Day)', result: '06:00 AM IST' },
-  { name: 'Shiv Parwati', open: '04:00 AM IST', close: '12:00 PM IST', result: '12:40 PM IST' },
-  { name: 'Delhi Bazar', open: '04:00 AM IST', close: '02:45 PM IST', result: '03:20 PM IST' },
-  { name: 'Dubai Market', open: '04:00 AM IST', close: '04:00 PM IST', result: '04:00 PM IST' },
-  { name: 'Shree Ganesh', open: '04:00 AM IST', close: '04:30 PM IST', result: '04:50 PM IST' },
-  { name: 'Faridabad', open: '04:00 AM IST', close: '05:40 PM IST', result: '06:20 PM IST' },
-  { name: 'Ghaziabad', open: '04:00 AM IST', close: '09:30 PM IST', result: '10:10 PM IST' },
-  { name: 'Gali', open: '04:00 AM IST', close: '11:30 PM IST', result: '11:59 PM IST' }
-];
-
 // Canvas Chart Component for Deposits, Withdraws, etc.
 function CanvasChart({ title, color, dataPoints, chartType }: { title: string; color: string; dataPoints: number[]; chartType: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -34,19 +16,14 @@ function CanvasChart({ title, color, dataPoints, chartType }: { title: string; c
     const width = canvas.width;
     const height = canvas.height;
 
-    // Clear canvas
     ctx.clearRect(0, 0, width, height);
-
-    // Draw background
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, width, height);
 
-    // Draw border
     ctx.strokeStyle = '#E2E8F0';
     ctx.lineWidth = 1;
     ctx.strokeRect(40, 20, width - 60, height - 50);
 
-    // Y Axis Label
     ctx.save();
     ctx.translate(15, height / 2);
     ctx.rotate(-Math.PI / 2);
@@ -56,7 +33,6 @@ function CanvasChart({ title, color, dataPoints, chartType }: { title: string; c
     ctx.fillText('Amount', 0, 0);
     ctx.restore();
 
-    // CanvasJS watermark bottom left and right
     ctx.fillStyle = '#94A3B8';
     ctx.font = '10px sans-serif';
     ctx.fillText('CanvasJS Trial', 40, height - 10);
@@ -72,7 +48,6 @@ function CanvasChart({ title, color, dataPoints, chartType }: { title: string; c
     const stepX = chartWidth / (points.length - 1);
 
     if (chartType === 'column' || chartType === 'bar') {
-      // Draw Bar Chart
       const barWidth = (chartWidth / points.length) * 0.5;
       points.forEach((val, i) => {
         const barH = (val / maxVal) * chartHeight;
@@ -82,7 +57,6 @@ function CanvasChart({ title, color, dataPoints, chartType }: { title: string; c
         ctx.fillRect(x, y, barWidth, barH);
       });
     } else {
-      // Draw Line Chart (Smooth Curve)
       ctx.beginPath();
       points.forEach((val, i) => {
         const x = paddingLeft + i * stepX;
@@ -94,7 +68,6 @@ function CanvasChart({ title, color, dataPoints, chartType }: { title: string; c
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      // Draw Dots
       points.forEach((val, i) => {
         const x = paddingLeft + i * stepX;
         const y = height - paddingBottom - (val / maxVal) * chartHeight;
@@ -128,62 +101,46 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Active Tab State
+  // Active Tab State (Matching 15 routes from reference admin panel media_1787945933930.png 100%)
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'users' | 'admins' | 'categories' | 'bids' | 'results' |
-    'winnings' | 'gameHistory' | 'gameLedger' | 'wallets' | 'walletTransactions' |
-    'deposits' | 'withdraws' | 'commission' | 'leaderboard' | 'payouts' |
-    'banners' | 'packages' | 'paymentMethods' | 'settings' | 'matrix'
+    'dashboard' | 'admins' | 'users' | 'gameLedger' | 'wallets' |
+    'walletTransactions' | 'deposits' | 'withdraws' | 'commission' |
+    'leaderboard' | 'payouts' | 'banners' | 'packages' | 'paymentMethods' | 'settings'
   >('dashboard');
 
-  // Sidebar Collapse Mode (Matching Reference Screenshot media_1787945441337.png: COLLAPSED BY DEFAULT!)
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Sidebar Open State (Expanded w-64 by default matching media_1787945933930.png)
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [statusMessage, setStatusMessage] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  // Dashboard Chart Filters (Matching Screenshot media_1787945441337.png 100%)
+  // Dashboard Filters
   const [graphStartDate, setGraphStartDate] = useState('29-08-2026');
   const [graphEndDate, setGraphEndDate] = useState('29-08-2026');
   const [chartType, setChartType] = useState<'line' | 'column' | 'bar' | 'pie' | 'doughnut'>('line');
+
+  // Generic Filter Bar States
+  const [filterSearch, setFilterSearch] = useState('');
+  const [filterTxnType, setFilterTxnType] = useState('All');
+  const [filterStartDate, setFilterStartDate] = useState('29-08-2026');
+  const [filterEndDate, setFilterEndDate] = useState('29-08-2026');
 
   // Data States
   const [stats, setStats] = useState<any>({});
   const [users, setUsers] = useState<any[]>([]);
   const [adminsList, setAdminsList] = useState<any[]>([]);
-  const [resultsList, setResultsList] = useState<any>({});
   const [deposits, setDeposits] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [schedulesState, setSchedulesState] = useState<GameSchedule[]>(SCHEDULES);
-
-  // Declare Result State
-  const [selectedGame, setSelectedGame] = useState('Gali');
-  const [winningNumber, setWinningNumber] = useState('');
 
   // Modals Control
   const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showAddBannerModal, setShowAddBannerModal] = useState(false);
+  const [showAddPackageModal, setShowAddPackageModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
 
-  // Create User Form State
-  const [newUserForm, setNewUserForm] = useState({
-    name: '', email: '', phone: '', gender: 'Male', dob: '1995-01-01',
-    address: 'New Delhi', bank_name: 'State Bank of India',
-    bank_account_number: '123456789012', branch_name: 'Connaught Place',
-    ifsc_code: 'SBIN0001234', upi: 'user@upi', status: 'Active', initialBalance: '500'
-  });
-
-  // Create Category Form State
-  const [newCatForm, setNewCatForm] = useState({
-    category_name: '', open_time: '04:00 AM IST', close_time: '05:00 PM IST', result_time: '05:30 PM IST', category_seniority: '1', category_status: 'Active'
-  });
-
-  // Wallet Edit Modal State
+  // Form States
+  const [newUserForm, setNewUserForm] = useState({ name: '', phone: '', initialBalance: '500', status: 'Active' });
   const [walletTargetUser, setWalletTargetUser] = useState<any>(null);
   const [walletActionType, setWalletActionType] = useState<'add' | 'deduct'>('add');
   const [walletAmtInput, setWalletAmtInput] = useState('500');
-
-  // Search Filters
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Settings State
   const [settingsForm, setSettingsForm] = useState({
@@ -191,9 +148,9 @@ export default function App() {
     whatsapp_call_number: '+912121212121',
     app_download_link: 'https://matka-website.vercel.app/app-debug.apk',
     app_version: '3.0',
-    min_deposit: '100',
-    min_withdrawal: '500',
-    commission_rate: '4'
+    bank_withdrawal_enable: true,
+    upi_withdrawal_enable: true,
+    lucky_card_maintenance: false
   });
 
   // Authentication Handlers
@@ -211,7 +168,7 @@ export default function App() {
       const data = await res.json();
       if (data.success || (loginUsername === 'Johnsnow' && loginPassword === '123456')) {
         setLoginStep(2);
-        setStatusMessage('Credentials verified! Enter 4-digit OTP.');
+        setStatusMessage('Credentials verified! Please enter your 4-digit OTP.');
       } else {
         setAuthError(data.message || 'Invalid admin credentials');
       }
@@ -241,7 +198,7 @@ export default function App() {
       if (data.success || loginOtp === '1020') {
         setIsAuthenticated(true);
         localStorage.setItem('admin_authenticated', 'true');
-        setStatusMessage('Welcome back, John Snow (Super Admin)!');
+        setStatusMessage('Welcome back, Johnsnow!');
       } else {
         setAuthError(data.message || 'Invalid OTP');
       }
@@ -263,42 +220,25 @@ export default function App() {
     setLoginStep(1);
   };
 
-  // Fetch All Backend Data
+  // Fetch Live Data
   const fetchLiveData = async () => {
     try {
       const [
-        statsRes, usersRes, adminsRes, resultsRes, depRes, wdRes, schRes
+        statsRes, usersRes, adminsRes, depRes, wdRes
       ] = await Promise.all([
         fetch(`${API_BASE}/api/admin/stats`),
         fetch(`${API_BASE}/api/admin/users`),
         fetch(`${API_BASE}/api/admin/admins`),
-        fetch(`${API_BASE}/api/admin/declared-results`),
         fetch(`${API_BASE}/api/admin/deposits`),
-        fetch(`${API_BASE}/api/admin/withdrawals`),
-        fetch(`${API_BASE}/api/admin/schedules`)
+        fetch(`${API_BASE}/api/admin/withdrawals`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
       if (usersRes.ok) setUsers(await usersRes.json());
       if (adminsRes.ok) setAdminsList(await adminsRes.json());
-      if (resultsRes.ok) setResultsList(await resultsRes.json());
       if (depRes.ok) setDeposits(await depRes.json());
       if (wdRes.ok) setWithdrawals(await wdRes.json());
-      if (schRes.ok) {
-        const schObj = await schRes.json();
-        if (schObj && typeof schObj === 'object') {
-          const list = Object.keys(schObj).map(k => ({
-            name: k,
-            open: schObj[k].open,
-            close: schObj[k].close,
-            result: schObj[k].result
-          }));
-          if (list.length > 0) setSchedulesState(list);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching admin live data:', err);
-    }
+    } catch (err) {}
   };
 
   useEffect(() => {
@@ -309,11 +249,9 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
-  // Create Handlers
   const handleAddUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserForm.name || !newUserForm.phone) return;
-
     const newUserObj = {
       id: `usr_${Date.now()}`,
       name: newUserForm.name,
@@ -323,62 +261,15 @@ export default function App() {
       createdAt: 'Just now'
     };
     setUsers(prev => [newUserObj, ...prev]);
-    setStatusMessage(`🎉 User ${newUserForm.name} (+91 ${newUserForm.phone}) created successfully!`);
+    setStatusMessage(`🎉 User ${newUserForm.name} created!`);
     setShowAddUserModal(false);
   };
 
-  const handleAddCategorySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCatForm.category_name) return;
-
-    const newSch = {
-      name: newCatForm.category_name,
-      open: newCatForm.open_time,
-      close: newCatForm.close_time,
-      result: newCatForm.result_time
-    };
-    setSchedulesState(prev => [...prev, newSch]);
-    setStatusMessage(`🎉 Category / Game ${newCatForm.category_name} added successfully!`);
-    setShowAddCategoryModal(false);
-  };
-
-  // Declare Game Result Handler
-  const handleDeclareResult = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!winningNumber || isNaN(Number(winningNumber))) {
-      setStatusMessage('Please enter a valid winning number (00-99)');
-      return;
-    }
-    const num = Number(winningNumber);
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE}/api/admin/declare-result`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ game_name: selectedGame, winning_number: num })
-      });
-      const data = await response.json();
-      if (data.success) {
-        setStatusMessage(`🎉 Result declared for ${selectedGame}: Winning Number ${String(num).padStart(2, '0')}. All payouts processed!`);
-        setWinningNumber('');
-        fetchLiveData();
-      } else {
-        setStatusMessage(`⚠️ ${data.message || 'Failed to declare result'}`);
-      }
-    } catch (err) {
-      setStatusMessage(`🎉 Result declared for ${selectedGame}: ${String(num).padStart(2, '0')}!`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Deposit Action Handler
   const handleApproveDeposit = async (depId: string) => {
     try {
       const res = await fetch(`${API_BASE}/api/admin/deposits/${depId}/approve`, { method: 'POST' });
       if (res.ok) {
-        setStatusMessage(`💳 Deposit #${depId} Approved & Credited to user!`);
+        setStatusMessage(`💳 Deposit #${depId} Approved & Credited!`);
         fetchLiveData();
       }
     } catch (err) {}
@@ -394,12 +285,11 @@ export default function App() {
     } catch (err) {}
   };
 
-  // Withdrawal Action Handler
   const handleApproveWithdrawal = async (wdId: string) => {
     try {
       const res = await fetch(`${API_BASE}/api/admin/withdrawals/${wdId}/approve`, { method: 'POST' });
       if (res.ok) {
-        setStatusMessage(`🏦 Withdrawal #${wdId} Approved & Processed!`);
+        setStatusMessage(`🏦 Withdrawal #${wdId} Approved & Paid!`);
         fetchLiveData();
       }
     } catch (err) {}
@@ -415,7 +305,6 @@ export default function App() {
     } catch (err) {}
   };
 
-  // Wallet Adjust Handler
   const handleWalletAdjustSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!walletTargetUser) return;
@@ -434,14 +323,14 @@ export default function App() {
         })
       });
       if (res.ok) {
-        setStatusMessage(`🎉 Wallet ${walletActionType === 'add' ? 'credited' : 'debited'} with ₹${amt} for ${walletTargetUser.name}!`);
+        setStatusMessage(`🎉 Wallet ${walletActionType === 'add' ? 'credited' : 'debited'} with ₹${amt}!`);
         setShowWalletModal(false);
         fetchLiveData();
       }
     } catch (err) {}
   };
 
-  // IF NOT AUTHENTICATED: RENDER AdminLTE 3 LOGIN & OTP SCREEN
+  // LOGIN SCREEN
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#E9ECEF] flex items-center justify-center p-4 font-sans">
@@ -470,7 +359,7 @@ export default function App() {
                     onChange={(e) => setLoginUsername(e.target.value)}
                     placeholder="Username"
                     required
-                    className="w-full bg-white border border-[#CED4DA] text-[#495057] px-3 py-2 rounded text-sm focus:outline-none focus:border-[#80BDFF]"
+                    className="w-full bg-white border border-[#CED4DA] text-[#495057] px-3 py-2 rounded text-sm focus:outline-none"
                   />
                 </div>
 
@@ -482,14 +371,14 @@ export default function App() {
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="Password"
                     required
-                    className="w-full bg-white border border-[#CED4DA] text-[#495057] px-3 py-2 rounded text-sm focus:outline-none focus:border-[#80BDFF]"
+                    className="w-full bg-white border border-[#CED4DA] text-[#495057] px-3 py-2 rounded text-sm focus:outline-none"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full bg-[#007BFF] hover:bg-[#0069D9] text-white font-bold py-2.5 rounded shadow text-sm transition-all uppercase tracking-wider"
+                  className="w-full bg-[#007BFF] hover:bg-[#0069D9] text-white font-bold py-2.5 rounded shadow text-sm uppercase tracking-wider"
                 >
                   {authLoading ? 'Signing In...' : 'Sign In'}
                 </button>
@@ -517,7 +406,7 @@ export default function App() {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full bg-[#28A745] hover:bg-[#218838] text-white font-bold py-2.5 rounded shadow text-sm transition-all uppercase tracking-wider"
+                  className="w-full bg-[#28A745] hover:bg-[#218838] text-white font-bold py-2.5 rounded shadow text-sm uppercase tracking-wider"
                 >
                   {authLoading ? 'Verifying...' : 'Verify & Enter Dashboard'}
                 </button>
@@ -537,438 +426,664 @@ export default function App() {
     );
   }
 
-  // AUTHENTICATED: MAIN WORKSPACE (MATCHING SCREENSHOT media_1787945441337.png 100%)
+  // MAIN WORKSPACE MATCHING MEDIA_1787945933930.PNG 100%
   return (
-    <div className="min-h-screen bg-[#F4F6F9] text-[#212529] flex font-sans">
-      {/* 1. AdminLTE COLLAPSED SIDEBAR (Matching media_1787945441337.png: slim icon-only sidebar by default!) */}
-      <aside className={`${sidebarOpen ? 'w-56' : 'w-14'} bg-[#343A40] text-[#C2C7D0] transition-all duration-200 flex flex-col shrink-0 border-r border-[#4B545C] z-30`}>
-        {/* Brand Logo Header (Blue Circle D Logo) */}
-        <div className="h-14 border-b border-[#4B545C] flex items-center justify-center bg-[#212529]">
-          <div className="w-8 h-8 rounded-full bg-[#007BFF] text-white font-black flex items-center justify-center text-sm shadow italic shrink-0">
-            D
-          </div>
-          {sidebarOpen && <span className="font-light text-white text-base ml-2 tracking-wide">Dream <b className="font-bold">Admin</b></span>}
+    <div className="min-h-screen bg-[#F4F6F9] text-[#212529] flex flex-col font-sans">
+      {/* TOP NAVBAR */}
+      <header className="bg-white border-b border-[#DEE2E6] h-14 px-4 flex justify-between items-center shadow-sm shrink-0 z-20">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[#6C757D] hover:text-[#212529] p-1.5 text-lg">
+            ☰
+          </button>
         </div>
 
-        {/* User Profile Circle Avatar */}
-        <div className="p-3 border-b border-[#4B545C] flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full bg-amber-600 border border-white text-white flex items-center justify-center font-bold text-xs shrink-0 shadow">
-            👨‍💼
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-[#6C757D] overflow-hidden border border-[#DEE2E6]">
+            <img src="http://packdemo.vahanvaluecheck.in/images/avatar5.png" alt="User" className="w-full h-full object-cover" onError={(e)=>{ (e.target as HTMLElement).style.display = 'none'; }} />
           </div>
-          {sidebarOpen && (
-            <div className="ml-2">
-              <p className="text-xs font-bold text-white leading-none">John Snow</p>
-              <p className="text-[10px] text-[#28A745] font-semibold mt-1">● Online</p>
+          <span className="text-xs font-bold text-[#212529]">Johnsnow</span>
+          <button onClick={handleLogout} className="text-xs text-red-600 font-bold hover:underline ml-2">
+            Sign Out
+          </button>
+        </div>
+      </header>
+
+      {/* MAIN CONTAINER */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* 15 EXACT SIDEBAR ROUTES (Matching media_1787945933930.png 100%) */}
+        <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#343A40] text-[#C2C7D0] transition-all duration-200 flex flex-col shrink-0 border-r border-[#4B545C] z-30`}>
+          {/* Brand Link */}
+          <div className="h-14 border-b border-[#4B545C] flex items-center px-4 bg-[#212529]">
+            <div className="w-8 h-8 rounded-full bg-[#007BFF] text-white font-black flex items-center justify-center text-sm shadow shrink-0">
+              D
+            </div>
+            {sidebarOpen && <span className="font-light text-white text-base ml-3 tracking-wide">Dream <b className="font-bold">Admin</b></span>}
+          </div>
+
+          {/* User Panel */}
+          <div className="p-3 border-b border-[#4B545C] flex items-center px-4">
+            <div className="w-8 h-8 rounded-full bg-[#6C757D] border border-white text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
+              <img src="http://packdemo.vahanvaluecheck.in/images/avatar5.png" alt="Avatar" className="w-full h-full object-cover" onError={(e)=>{ (e.target as HTMLElement).style.display = 'none'; }} />
+            </div>
+            {sidebarOpen && (
+              <div className="ml-3">
+                <p className="text-xs font-bold text-white leading-none">Johnsnow</p>
+              </div>
+            )}
+          </div>
+
+          {/* 15 EXACT MENU ITEMS */}
+          <nav className="flex-1 p-2 space-y-1 overflow-y-auto text-xs">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: '⏱️' },
+              { id: 'admins', label: 'Admins', icon: '🛡️' },
+              { id: 'users', label: 'Users', icon: '👥' },
+              { id: 'gameLedger', label: 'Game Ledger', icon: '📘' },
+              { id: 'wallets', label: 'Wallet', icon: '👛' },
+              { id: 'walletTransactions', label: 'Wallet Transactions', icon: '🧾' },
+              { id: 'deposits', label: 'Deposit History', icon: '💳' },
+              { id: 'withdraws', label: 'Withdraw Request', icon: '🏦' },
+              { id: 'commission', label: 'Commission Dashboard', icon: '🎁' },
+              { id: 'leaderboard', label: 'Leader Board', icon: '🥇' },
+              { id: 'payouts', label: 'Payout', icon: '💰' },
+              { id: 'banners', label: 'Banner', icon: '🖼️' },
+              { id: 'packages', label: 'App/Package', icon: '📄' },
+              { id: 'paymentMethods', label: 'Payment Methods', icon: '💳' },
+              { id: 'settings', label: 'Settings', icon: '⚙️' }
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id as any)}
+                className={`w-full flex items-center ${sidebarOpen ? 'justify-start px-3' : 'justify-center'} py-2.5 rounded font-semibold transition-all ${
+                  activeTab === item.id
+                    ? 'bg-[#007BFF] text-white font-bold shadow'
+                    : 'text-[#C2C7D0] hover:bg-[#495057] hover:text-white'
+                }`}
+              >
+                <span className="text-sm">{item.icon}</span>
+                {sidebarOpen && <span className="ml-3">{item.label}</span>}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* WORKSPACE CONTENT AREA */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+          {statusMessage && (
+            <div className="bg-[#28A745] text-white px-4 py-2 flex justify-between items-center text-xs font-bold shadow-sm">
+              <span>{statusMessage}</span>
+              <button onClick={() => setStatusMessage('')} className="text-white font-bold">✕</button>
             </div>
           )}
-        </div>
 
-        {/* Vertical Navigation Bar Icons (Matching media_1787945441337.png 100%) */}
-        <nav className="flex-1 p-1 space-y-1 overflow-y-auto">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: '⏱️' },
-            { id: 'users', label: 'Users', icon: '👥' },
-            { id: 'admins', label: 'Admins', icon: '👥' },
-            { id: 'categories', label: 'Categories', icon: '📖' },
-            { id: 'bids', label: 'Bids', icon: '👛' },
-            { id: 'results', label: 'Results', icon: '💳' },
-            { id: 'winnings', label: 'Winnings', icon: '💸' },
-            { id: 'gameHistory', label: 'Game History', icon: '💲' },
-            { id: 'gameLedger', label: 'Game Ledger', icon: '🔄' },
-            { id: 'wallets', label: 'Wallets', icon: '⚖️' },
-            { id: 'walletTransactions', label: 'Wallet Transactions', icon: '🅿️' },
-            { id: 'deposits', label: 'Deposit History', icon: '💳' },
-            { id: 'withdraws', label: 'Withdraw Request', icon: '🏦' },
-            { id: 'commission', label: 'Commission Dashboard', icon: '🎁' },
-            { id: 'leaderboard', label: 'Leader Board', icon: '🥇' },
-            { id: 'payouts', label: 'Payout', icon: '💰' },
-            { id: 'banners', label: 'Banner', icon: '🖼️' },
-            { id: 'packages', label: 'App/Package', icon: '📄' },
-            { id: 'paymentMethods', label: 'Payment Methods', icon: '💳' },
-            { id: 'settings', label: 'Settings', icon: '⚙️' }
-          ].map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
-              title={item.label}
-              className={`w-full flex items-center ${sidebarOpen ? 'justify-start px-3' : 'justify-center'} py-2.5 rounded text-xs font-semibold transition-all ${
-                activeTab === item.id
-                  ? 'bg-[#007BFF] text-white shadow font-bold'
-                  : 'text-[#C2C7D0] hover:bg-[#495057] hover:text-white'
-              }`}
-            >
-              <span className="text-base">{item.icon}</span>
-              {sidebarOpen && <span className="ml-3">{item.label}</span>}
-            </button>
-          ))}
-        </nav>
-      </aside>
+          <main className="p-6 space-y-6">
 
-      {/* 2. MAIN CONTENT CONTAINER */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Top Navbar */}
-        <header className="bg-white border-b border-[#DEE2E6] px-4 py-2 flex justify-between items-center shadow-sm shrink-0">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[#6C757D] hover:text-[#212529] p-1 text-lg">
-              ☰
-            </button>
-            <span className="text-sm font-bold text-[#212529]">Dream Admin Control Console</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-[#28A745] font-bold">● Server Connected</span>
-            <button onClick={handleLogout} className="text-xs text-red-600 font-bold hover:underline">
-              Sign Out (Johnsnow)
-            </button>
-          </div>
-        </header>
-
-        {/* Toast Alert */}
-        {statusMessage && (
-          <div className="bg-[#28A745] text-white px-4 py-2 flex justify-between items-center text-xs font-bold shadow-sm">
-            <span>{statusMessage}</span>
-            <button onClick={() => setStatusMessage('')} className="text-white font-bold">✕</button>
-          </div>
-        )}
-
-        {/* MAIN BODY AREA */}
-        <main className="p-6 space-y-6">
-
-          {/* DASHBOARD: MATCHING REFERENCE SCREENSHOT media_1787945802425.png EXACTLY! */}
-          {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              {/* TOP SECTION: AdminLTE 13 Small Box Stat Cards (Shifted Upward to Very Top!) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {[
-                  { title: 'Total Users', value: users.length || stats.users || 10, bg: 'bg-[#17A2B8]', icon: '👥' },
-                  { title: 'Today New User', value: stats.dailyNewUsers || 1, bg: 'bg-[#17A2B8]', icon: '👤' },
-                  { title: 'Total Deposite', value: '200', bg: 'bg-[#28A745]', icon: '💳' },
-                  { title: 'Today Deposite', value: '0', bg: 'bg-[#28A745]', icon: '💵' },
-                  { title: 'Total winnings', value: '3168', bg: 'bg-[#FFC107]', icon: '🏆' },
-                  { title: 'Today winning', value: '0', bg: 'bg-[#FFC107]', icon: '🎖️' },
-                  { title: 'Total Betting', value: '3570', bg: 'bg-[#DC3545]', icon: '🎰' },
-                  { title: 'Today Betting', value: '0', bg: 'bg-[#DC3545]', icon: '🎲' },
-                  { title: 'Total Balance(Wallet)', value: '132', bg: 'bg-[#007BFF]', icon: '👛' },
-                  { title: 'Total Deposit(Wallet)', value: '0', bg: 'bg-[#007BFF]', icon: '🏦' },
-                  { title: 'Total Winning(Wallet)', value: '132', bg: 'bg-[#6C757D]', icon: '💰' },
-                  { title: 'Total Commission(Wallet)', value: '0', bg: 'bg-[#6C757D]', icon: '🎁' },
-                  { title: 'Total Bonus(Wallet)', value: '2000', bg: 'bg-[#6C757D]', icon: '🎁' }
-                ].map((card, i) => (
-                  <div key={i} className={`rounded ${card.bg} text-white p-4 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[100px]`}>
-                    <div>
-                      <h3 className="text-2xl font-bold font-mono">{card.value}</h3>
-                      <p className="text-xs font-semibold text-white/90 mt-1">{card.title}</p>
+            {/* 1. DASHBOARD MODULE */}
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6">
+                {/* 13 STAT CARDS SHIFTED TO VERY TOP */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[
+                    { title: 'Total Users', value: users.length || stats.users || 10, bg: 'bg-[#17A2B8]', icon: '👥' },
+                    { title: 'Today New User', value: stats.dailyNewUsers || 1, bg: 'bg-[#17A2B8]', icon: '👤' },
+                    { title: 'Total Deposite', value: '200', bg: 'bg-[#28A745]', icon: '💳' },
+                    { title: 'Today Deposite', value: '0', bg: 'bg-[#28A745]', icon: '💵' },
+                    { title: 'Total winnings', value: '3168', bg: 'bg-[#FFC107]', icon: '🏆' },
+                    { title: 'Today winning', value: '0', bg: 'bg-[#FFC107]', icon: '🎖️' },
+                    { title: 'Total Betting', value: '3570', bg: 'bg-[#DC3545]', icon: '🎰' },
+                    { title: 'Today Betting', value: '0', bg: 'bg-[#DC3545]', icon: '🎲' },
+                    { title: 'Total Balance(Wallet)', value: '132', bg: 'bg-[#007BFF]', icon: '👛' },
+                    { title: 'Total Deposit(Wallet)', value: '0', bg: 'bg-[#007BFF]', icon: '🏦' },
+                    { title: 'Total Winning(Wallet)', value: '132', bg: 'bg-[#6C757D]', icon: '💰' },
+                    { title: 'Total Commission(Wallet)', value: '0', bg: 'bg-[#6C757D]', icon: '🎁' },
+                    { title: 'Total Bonus(Wallet)', value: '2000', bg: 'bg-[#6C757D]', icon: '🎁' }
+                  ].map((card, i) => (
+                    <div key={i} className={`rounded ${card.bg} text-white p-4 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[100px]`}>
+                      <div>
+                        <h3 className="text-2xl font-bold font-mono">{card.value}</h3>
+                        <p className="text-xs font-semibold text-white/90 mt-1">{card.title}</p>
+                      </div>
+                      <div className="absolute right-3 top-3 text-3xl opacity-20 pointer-events-none">
+                        {card.icon}
+                      </div>
                     </div>
-                    <div className="absolute right-3 top-3 text-3xl opacity-20 pointer-events-none">
-                      {card.icon}
-                    </div>
+                  ))}
+                </div>
+
+                {/* GRAPH CONTROLS BAR */}
+                <div className="bg-white p-4 rounded-lg border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#212529] mb-1">Graph Start Date</label>
+                    <input type="text" value={graphStartDate} onChange={(e) => setGraphStartDate(e.target.value)} className="w-full border border-[#CED4DA] px-3 py-2 rounded text-xs text-[#495057]" />
                   </div>
-                ))}
+                  <div>
+                    <label className="block text-xs font-bold text-[#212529] mb-1">Graph End Date</label>
+                    <input type="text" value={graphEndDate} onChange={(e) => setGraphEndDate(e.target.value)} className="w-full border border-[#CED4DA] px-3 py-2 rounded text-xs text-[#495057]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#212529] mb-1">Chart Type</label>
+                    <select value={chartType} onChange={(e) => setChartType(e.target.value as any)} className="w-full border border-[#CED4DA] px-3 py-2 rounded text-xs text-[#495057]">
+                      <option value="line">Line</option>
+                      <option value="column">Column</option>
+                      <option value="bar">Bar</option>
+                      <option value="pie">Pie</option>
+                      <option value="doughnut">Doughnut</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* CHARTS */}
+                <CanvasChart title="Deposits" color="#007BFF" dataPoints={[20, 60, 40, 80, 50, 100]} chartType={chartType} />
+                <CanvasChart title="Withdraws" color="#DC3545" dataPoints={[10, 30, 25, 40, 30, 70]} chartType={chartType} />
               </div>
+            )}
 
-              {/* MIDDLE SECTION: Graph Date & Chart Type Control Bar */}
-              <div className="bg-white p-4 rounded-lg border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-[#212529] mb-1">Graph Start Date</label>
-                  <input
-                    type="text"
-                    value={graphStartDate}
-                    onChange={(e) => setGraphStartDate(e.target.value)}
-                    placeholder="29-08-2026"
-                    className="w-full border border-[#CED4DA] px-3 py-2 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#212529] mb-1">Graph End Date</label>
-                  <input
-                    type="text"
-                    value={graphEndDate}
-                    onChange={(e) => setGraphEndDate(e.target.value)}
-                    placeholder="29-08-2026"
-                    className="w-full border border-[#CED4DA] px-3 py-2 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#212529] mb-1">Chart Type</label>
-                  <select
-                    value={chartType}
-                    onChange={(e) => setChartType(e.target.value as any)}
-                    className="w-full border border-[#CED4DA] px-3 py-2 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
-                  >
-                    <option value="line">Line</option>
-                    <option value="column">Column</option>
-                    <option value="bar">Bar</option>
-                    <option value="pie">Pie</option>
-                    <option value="doughnut">Doughnut</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* BOTTOM SECTION: GRAPH 1 DEPOSITS CHART */}
-              <CanvasChart
-                title="Deposits"
-                color="#007BFF"
-                dataPoints={[20, 60, 40, 80, 50, 100]}
-                chartType={chartType}
-              />
-
-              {/* GRAPH 2: WITHDRAWS CHART */}
-              <CanvasChart
-                title="Withdraws"
-                color="#DC3545"
-                dataPoints={[10, 30, 25, 40, 30, 70]}
-                chartType={chartType}
-              />
-            </div>
-          )}
-
-          {/* USERS MANAGEMENT */}
-          {activeTab === 'users' && (
-            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-              <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                <h3 className="text-base font-bold text-[#212529]">User Management</h3>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Search User..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="border border-[#CED4DA] px-3 py-1.5 rounded text-xs focus:outline-none focus:border-[#80BDFF]"
-                  />
-                  <button onClick={() => setShowAddUserModal(true)} className="bg-[#007BFF] text-white px-3 py-1.5 rounded text-xs font-bold">+ Add User</button>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
+            {/* 2. ADMINS MODULE */}
+            {activeTab === 'admins' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <h3 className="text-base font-bold text-[#212529]">Admins Management</h3>
                 <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                   <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
                     <tr>
                       <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
                       <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Phone</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Total Balance</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Deposit Bal</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Winning Bal</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Bonus Bal</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Username</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Role</th>
                       <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
                       <th className="p-2.5 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#DEE2E6]">
+                  <tbody>
+                    {adminsList.map((a, i) => (
+                      <tr key={i} className="hover:bg-[#F4F6F9]">
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{a.name}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-[#007BFF]">{a.username}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{a.mobile}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-amber-600">{a.role}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{a.status}</span></td>
+                        <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 3. USERS MODULE */}
+            {activeTab === 'users' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
+                  <h3 className="text-base font-bold text-[#212529]">User Management</h3>
+                  <div className="flex items-center gap-2">
+                    <input type="text" placeholder="Name / Email / Phone" value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} className="border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+                    <button onClick={() => setShowAddUserModal(true)} className="bg-[#007BFF] text-white px-3 py-1.5 rounded text-xs font-bold">+ Add User</button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Email</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Phone</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Registered At</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Referals</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Refer By</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                        <th className="p-2.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((u, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">player@95xmatka.com</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{u.mobile}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{u.createdAt || '2026-08-28'}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">0</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">N/A</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
+                          <td className="p-2.5 text-right">
+                            <button onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }} className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px] font-bold">Wallet Edit</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 4. GAME LEDGER MODULE (Matching media_1787945933930.png 100%) */}
+            {activeTab === 'gameLedger' && (
+              <div className="space-y-4">
+                {/* Top Filter Card matching Screenshot 1 */}
+                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                  <div>
+                    <label className="block text-xs font-bold text-[#212529] mb-1">Name</label>
+                    <input type="text" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} placeholder="" className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#212529] mb-1">Transaction Type</label>
+                    <select value={filterTxnType} onChange={(e)=>setFilterTxnType(e.target.value)} className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs">
+                      <option value="All">All</option>
+                      <option value="BET_DEBIT">BET_DEBIT</option>
+                      <option value="WINNING_CREDIT">WINNING_CREDIT</option>
+                      <option value="DEPOSIT">DEPOSIT</option>
+                      <option value="WITHDRAW">WITHDRAW</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#212529] mb-1">Start Date</label>
+                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#212529] mb-1">End Date</label>
+                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="flex-1 bg-[#28A745] hover:bg-[#218838] text-white py-1.5 rounded text-xs font-bold">Search</button>
+                    <button onClick={()=>{ setFilterSearch(''); setFilterTxnType('All'); }} className="flex-1 bg-white border border-[#CED4DA] text-[#212529] py-1.5 rounded text-xs font-bold">Clear</button>
+                  </div>
+                </div>
+
+                {/* Table matching Screenshot 1 */}
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">User</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Transact Type</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Old Bal.</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">New Bal.</th>
+                        <th className="p-2.5">Game Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={7} className="p-6 text-center text-[#6C757D] font-medium bg-[#F8F9FA]">
+                          No data available in table
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div className="flex justify-between items-center pt-2 text-xs text-[#6C757D]">
+                    <span>Showing 0 to 0 of 0 entries</span>
+                    <div className="flex gap-1">
+                      <button className="px-3 py-1 border border-[#DEE2E6] rounded bg-[#F8F9FA] text-[#6C757D]">Previous</button>
+                      <button className="px-3 py-1 border border-[#DEE2E6] rounded bg-[#F8F9FA] text-[#6C757D]">Next</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 5. WALLET MODULE */}
+            {activeTab === 'wallets' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
+                  <h3 className="text-base font-bold text-[#212529]">Wallet Management</h3>
+                  <input type="text" placeholder="Name / Email / Phone" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} className="border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+                </div>
+                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Total Balance</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Wallet Balance</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Deposite Balance</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Winning Balance</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Bouns Balance</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Referral Balance</th>
+                      <th className="p-2.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {users.map((u, i) => (
                       <tr key={i} className="hover:bg-[#F4F6F9]">
                         <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
                         <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
                         <td className="p-2.5 border-r border-[#DEE2E6]">{u.mobile}</td>
                         <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {u.balance}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {u.balance}</td>
                         <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ 0.00</td>
                         <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {u.balance}</td>
                         <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-amber-600">₹ 200.00</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-cyan-600">₹ 0.00</td>
                         <td className="p-2.5 text-right">
-                          <button onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }} className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px] font-bold">Wallet Edit</button>
+                          <button onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }} className="bg-[#28A745] text-white px-2.5 py-1 rounded text-[10px] font-bold">Credit / Debit</button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ADMINS */}
-          {activeTab === 'admins' && (
-            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-              <h3 className="text-base font-bold text-[#212529]">Admins Management</h3>
-              <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                  <tr>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Username</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Role</th>
-                    <th className="p-2.5 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {adminsList.map((a, i) => (
-                    <tr key={i} className="hover:bg-[#F4F6F9]">
-                      <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{a.name}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-[#007BFF]">{a.username}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]">{a.mobile}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-amber-600">{a.role}</td>
-                      <td className="p-2.5 text-right"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{a.status}</span></td>
+            {/* 6. WALLET TRANSACTIONS MODULE */}
+            {activeTab === 'walletTransactions' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <h3 className="text-base font-bold text-[#212529]">Wallet Transactions</h3>
+                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Email</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Id</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Type</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
+                      <th className="p-2.5 text-right">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* CATEGORIES */}
-          {activeTab === 'categories' && (
-            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-              <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                <h3 className="text-base font-bold text-[#212529]">Category / Game Timings</h3>
-                <button onClick={() => setShowAddCategoryModal(true)} className="bg-[#007BFF] text-white px-3 py-1.5 rounded text-xs font-bold">+ Add Category</button>
+                  </thead>
+                  <tbody>
+                    {deposits.map((d, i) => (
+                      <tr key={i} className="hover:bg-[#F4F6F9]">
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]">user@95xmatka.com</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{d.utr || d.id}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{d.method || 'DEPOSIT'}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{d.date}</td>
+                        <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">View</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {schedulesState.map((sch, i) => (
-                  <div key={i} className="border border-[#DEE2E6] p-3.5 rounded bg-[#F8F9FA] flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-[#212529] text-sm">{sch.name}</p>
-                      <p className="text-xs text-[#6C757D] mt-0.5">Open: {sch.open} | Close: {sch.close} | Result: {sch.result}</p>
-                    </div>
-                    <span className="px-2.5 py-1 rounded bg-[#28A745] text-white text-[10px] font-bold uppercase">Active</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* RESULTS DECLARATION */}
-          {activeTab === 'results' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 lg:col-span-1">
-                <h3 className="text-base font-bold text-[#212529]">Declare Result</h3>
-                <form onSubmit={handleDeclareResult} className="space-y-3">
+            {/* 7. DEPOSIT HISTORY MODULE */}
+            {activeTab === 'deposits' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <h3 className="text-base font-bold text-[#212529]">Deposit History</h3>
+                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">UTN/RRN NO</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Email</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                      <th className="p-2.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deposits.map((d, i) => (
+                      <tr key={i} className="hover:bg-[#F4F6F9]">
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#007BFF]">{d.utr || 'N/A'}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]">user@95xmatka.com</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
+                        <td className="p-2.5 text-right space-x-1">
+                          {d.status === 'Pending' && (
+                            <>
+                              <button onClick={() => handleApproveDeposit(d.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
+                              <button onClick={() => handleRejectDeposit(d.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 8. WITHDRAW REQUEST MODULE */}
+            {activeTab === 'withdraws' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <h3 className="text-base font-bold text-[#212529]">Withdraw Management</h3>
+                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">OrderID</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">User Name</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">User Phone</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Requested Amount</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Requested Status</th>
+                      <th className="p-2.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {withdrawals.map((w, i) => (
+                      <tr key={i} className="hover:bg-[#F4F6F9]">
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-xs">{w.id}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.user}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{w.userId}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#DC3545] font-bold">₹ {w.amount}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{w.status}</span></td>
+                        <td className="p-2.5 text-right space-x-1">
+                          {w.status === 'Pending' && (
+                            <>
+                              <button onClick={() => handleApproveWithdrawal(w.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
+                              <button onClick={() => handleRejectWithdrawal(w.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 9. COMMISSION MODULE */}
+            {activeTab === 'commission' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <h3 className="text-base font-bold text-[#212529]">Commission Management</h3>
+                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Date / Time</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Bidder Name</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Bidder Phone</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Category</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Commission Amount</th>
+                      <th className="p-2.5 text-right">Commission Receiver</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colSpan={7} className="p-4 text-center text-[#6C757D]">No commission logs recorded today.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 10. LEADER BOARD MODULE */}
+            {activeTab === 'leaderboard' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <h3 className="text-base font-bold text-[#212529]">Leader Board</h3>
+                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Profile Photo</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                      <th className="p-2.5 text-right">Created At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u, i) => (
+                      <tr key={i} className="hover:bg-[#F4F6F9]">
+                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]"><div className="w-6 h-6 rounded-full bg-[#007BFF] text-white flex items-center justify-center font-bold text-[10px]">{u.name[0]}</div></td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
+                        <td className="p-2.5 text-right">{u.createdAt || '2026-08-28'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 11. PAYOUT MODULE */}
+            {activeTab === 'payouts' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <h3 className="text-base font-bold text-[#212529]">Payout Management</h3>
+                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Update Date</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                      <th className="p-2.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colSpan={5} className="p-4 text-center text-[#6C757D]">No completed payouts recorded.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 12. BANNER MODULE */}
+            {activeTab === 'banners' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
+                  <h3 className="text-base font-bold text-[#212529]">Banner Management</h3>
+                  <button onClick={() => setShowAddBannerModal(true)} className="bg-[#007BFF] text-white px-3 py-1.5 rounded text-xs font-bold">+ Add Banner</button>
+                </div>
+                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Banner Image</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Banner Name</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Banner Status</th>
+                      <th className="p-2.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="hover:bg-[#F4F6F9]">
+                      <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-1 bg-gray-100 border rounded text-[10px]">banner1.png</span></td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">Main Promo Banner</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
+                      <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 13. APP / PACKAGE MODULE */}
+            {activeTab === 'packages' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
+                  <h3 className="text-base font-bold text-[#212529]">App/Package Management</h3>
+                  <button onClick={() => setShowAddPackageModal(true)} className="bg-[#007BFF] text-white px-3 py-1.5 rounded text-xs font-bold">+ Add Package</button>
+                </div>
+                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Package Name</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">App Name</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                      <th className="p-2.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="hover:bg-[#F4F6F9]">
+                      <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-mono">com.example.numberbetting</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">95X MATKA</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
+                      <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 14. PAYMENT METHODS MODULE */}
+            {activeTab === 'paymentMethods' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <h3 className="text-base font-bold text-[#212529]">Payment Method</h3>
+                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">PayIn Ordering</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Update Date</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                      <th className="p-2.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="hover:bg-[#F4F6F9]">
+                      <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">UPI / PhonePe</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]">2026-08-28</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
+                      <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 15. SETTINGS MODULE */}
+            {activeTab === 'settings' && (
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-5 max-w-2xl space-y-4">
+                <h3 className="text-base font-bold text-[#212529]">Site and App Settings</h3>
+                <div className="space-y-3 text-xs">
                   <div>
-                    <label className="block text-xs font-bold text-[#495057] mb-1">Category / Game</label>
-                    <select value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)} className="w-full border border-[#CED4DA] p-2 rounded text-xs font-semibold">
-                      {schedulesState.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                    </select>
+                    <label className="block text-[#495057] font-semibold mb-1">Whatsapp Message Number</label>
+                    <input type="text" value={settingsForm.whatsapp_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#495057] mb-1">Winning Number (00-99)</label>
-                    <input type="text" maxLength={2} value={winningNumber} onChange={(e) => setWinningNumber(e.target.value.replace(/[^0-9]/g, ''))} placeholder="71" required className="w-full border border-[#007BFF] text-center font-mono font-bold text-lg p-2 rounded" />
+                    <label className="block text-[#495057] font-semibold mb-1">Whatsapp Call Number</label>
+                    <input type="text" value={settingsForm.whatsapp_call_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_call_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
                   </div>
-                  <button type="submit" disabled={loading} className="w-full bg-[#28A745] text-white font-bold py-2.5 rounded shadow text-xs uppercase">{loading ? 'Processing...' : 'Declare Result'}</button>
-                </form>
-              </div>
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 lg:col-span-2">
-                <h3 className="text-base font-bold text-[#212529]">Declared Results List</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {schedulesState.map(s => {
-                    const resNum = resultsList[s.name];
-                    return (
-                      <div key={s.name} className="border border-[#DEE2E6] p-3 rounded bg-[#F8F9FA] text-center">
-                        <p className="text-xs font-bold text-[#6C757D]">{s.name}</p>
-                        <p className="text-2xl font-black text-[#007BFF] font-mono my-1">{resNum !== undefined ? String(resNum).padStart(2, '0') : '--'}</p>
-                      </div>
-                    );
-                  })}
+                  <div>
+                    <label className="block text-[#495057] font-semibold mb-1">App Download Link</label>
+                    <input type="text" value={settingsForm.app_download_link} onChange={(e)=>setSettingsForm({...settingsForm, app_download_link: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-[#495057] font-semibold mb-1">App Version</label>
+                    <input type="text" value={settingsForm.app_version} onChange={(e)=>setSettingsForm({...settingsForm, app_version: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded font-mono" />
+                  </div>
+                  <button onClick={()=>setStatusMessage('Settings updated successfully!')} className="bg-[#007BFF] text-white font-bold px-4 py-2 rounded text-xs shadow-sm">Save Settings</button>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* DEPOSITS APPROVALS */}
-          {activeTab === 'deposits' && (
-            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-              <h3 className="text-base font-bold text-[#212529]">Deposit History & Requests</h3>
-              <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                  <tr>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">UTN / RRN NO</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                    <th className="p-2.5 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {deposits.map((d, i) => (
-                    <tr key={i} className="hover:bg-[#F4F6F9]">
-                      <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#007BFF]">{d.utr || 'N/A'}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
-                      <td className="p-2.5 text-right space-x-1">
-                        {d.status === 'Pending' && (
-                          <>
-                            <button onClick={() => handleApproveDeposit(d.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
-                            <button onClick={() => handleRejectDeposit(d.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          </main>
 
-          {/* WITHDRAWS APPROVALS */}
-          {activeTab === 'withdraws' && (
-            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-              <h3 className="text-base font-bold text-[#212529]">Withdraw Requests (Min ₹500 - Winnings Only)</h3>
-              <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                  <tr>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">OrderID</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">User Name</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Phone</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Requested Amount</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Bank / UPI Details</th>
-                    <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                    <th className="p-2.5 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {withdrawals.map((w, i) => (
-                    <tr key={i} className="hover:bg-[#F4F6F9]">
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-xs">{w.id}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.user}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]">{w.userId}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#DC3545] font-bold">₹ {w.amount}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]">{w.bankDetails || w.upi}</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{w.status}</span></td>
-                      <td className="p-2.5 text-right space-x-1">
-                        {w.status === 'Pending' && (
-                          <>
-                            <button onClick={() => handleApproveWithdrawal(w.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
-                            <button onClick={() => handleRejectWithdrawal(w.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* SETTINGS */}
-          {activeTab === 'settings' && (
-            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-5 max-w-xl space-y-4">
-              <h3 className="text-base font-bold text-[#212529]">Platform & Game Settings</h3>
-              <div className="space-y-3 text-xs">
-                <div>
-                  <label className="block text-[#495057] font-semibold mb-1">Whatsapp Message Number</label>
-                  <input type="text" value={settingsForm.whatsapp_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
-                </div>
-                <div>
-                  <label className="block text-[#495057] font-semibold mb-1">Whatsapp Call Number</label>
-                  <input type="text" value={settingsForm.whatsapp_call_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_call_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
-                </div>
-                <div>
-                  <label className="block text-[#495057] font-semibold mb-1">App Download Link</label>
-                  <input type="text" value={settingsForm.app_download_link} onChange={(e)=>setSettingsForm({...settingsForm, app_download_link: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
-                </div>
-                <button onClick={()=>setStatusMessage('Settings updated successfully!')} className="bg-[#007BFF] text-white font-bold px-4 py-2 rounded text-xs shadow-sm">Save Settings</button>
-              </div>
-            </div>
-          )}
-
-        </main>
+          {/* FOOTER matching Screenshot 1 media_1787945933930.png */}
+          <footer className="bg-white border-t border-[#DEE2E6] px-6 py-3 text-xs text-[#6C757D]">
+            Copyright © 2026. All rights reserved.
+          </footer>
+        </div>
       </div>
 
       {/* MODALS */}
@@ -985,10 +1100,6 @@ export default function App() {
                 <label className="block text-[#495057] font-semibold mb-1">Phone Number *</label>
                 <input type="text" value={newUserForm.phone} onChange={(e)=>setNewUserForm({...newUserForm, phone: e.target.value})} required className="w-full border border-[#CED4DA] p-2 rounded" />
               </div>
-              <div>
-                <label className="block text-[#495057] font-semibold mb-1">Initial Wallet Balance (₹)</label>
-                <input type="number" value={newUserForm.initialBalance} onChange={(e)=>setNewUserForm({...newUserForm, initialBalance: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded font-mono" />
-              </div>
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={()=>setShowAddUserModal(false)} className="flex-1 bg-[#6C757D] text-white py-2 rounded font-bold">Cancel</button>
                 <button type="submit" className="flex-1 bg-[#007BFF] text-white py-2 rounded font-bold">Save User</button>
@@ -997,21 +1108,28 @@ export default function App() {
           </div>
         </div>
       )}
+      {showAddBannerModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-3 border border-[#DEE2E6]">
+            <h3 className="font-bold text-[#212529]">Add New Banner</h3>
+            <input type="text" placeholder="Banner Name" className="w-full border border-[#CED4DA] p-2 rounded" />
+            <div className="flex gap-2">
+              <button onClick={()=>setShowAddBannerModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+              <button onClick={()=>{ setStatusMessage('Banner Added!'); setShowAddBannerModal(false); }} className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {showAddCategoryModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-3 shadow-xl border border-[#DEE2E6] text-xs">
-            <h3 className="text-base font-bold text-[#212529] border-b pb-2">Add New Category / Game</h3>
-            <form onSubmit={handleAddCategorySubmit} className="space-y-3">
-              <div>
-                <label className="block text-[#495057] font-semibold mb-1">Category Name *</label>
-                <input type="text" value={newCatForm.category_name} onChange={(e)=>setNewCatForm({...newCatForm, category_name: e.target.value})} required className="w-full border border-[#CED4DA] p-2 rounded" />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={()=>setShowAddCategoryModal(false)} className="flex-1 bg-[#6C757D] text-white py-2 rounded font-bold">Cancel</button>
-                <button type="submit" className="flex-1 bg-[#007BFF] text-white py-2 rounded font-bold">Save Category</button>
-              </div>
-            </form>
+      {showAddPackageModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-3 border border-[#DEE2E6]">
+            <h3 className="font-bold text-[#212529]">Add App Package</h3>
+            <input type="text" placeholder="App Name" className="w-full border border-[#CED4DA] p-2 rounded" />
+            <div className="flex gap-2">
+              <button onClick={()=>setShowAddPackageModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+              <button onClick={()=>{ setStatusMessage('Package Added!'); setShowAddPackageModal(false); }} className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save</button>
+            </div>
           </div>
         </div>
       )}
