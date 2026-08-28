@@ -101,14 +101,19 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Active Tab State (Matching 15 routes from reference admin panel media_1787946389975.png 100%)
+  // Active Tab State (Matching 15 routes from reference admin panel media_1787946816190.png & media_1787946831166.png 100%)
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'admins' | 'users' | 'gameLedger' | 'wallets' |
     'walletTransactions' | 'deposits' | 'withdraws' | 'commission' |
-    'leaderboard' | 'payouts' | 'banners' | 'packages' | 'paymentMethods' | 'settings'
+    'leaderboard' | 'payouts' | 'banners' | 'packages' | 'paymentMethods' | 'settings' |
+    'userDetails' | 'userEdit'
   >('users');
 
-  // Sidebar Open State (Collapsed icon-only mode w-14 by default matching media_1787946389975.png!)
+  // User View/Edit Navigation State
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [userDetailsTab, setUserDetailsTab] = useState<'profile' | 'bankDetails' | 'walletTransaction' | 'gameHistory' | 'referHistory' | 'gameLedger'>('profile');
+
+  // Sidebar Open State (Collapsed icon-only mode w-14 by default matching reference screenshots!)
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
 
@@ -130,7 +135,7 @@ export default function App() {
   const [stats, setStats] = useState<any>({});
   const [users, setUsers] = useState<any[]>([
     {
-      id: '1',
+      id: '8113',
       name: 'Udgam',
       email: 'abc@pk.com',
       mobile: '1212121212',
@@ -140,7 +145,22 @@ export default function App() {
       deactiveReason: '',
       status: 'Active',
       source: 'Play Store',
-      balance: 1000
+      balance: 132,
+      totalDeposit: 200,
+      totalWinning: 3168,
+      totalWithdrawal: 0,
+      referralCode: '66a24031439e4',
+      gender: 'Male',
+      dob: '1998-05-15',
+      address: 'Mumbai, India',
+      bankName: 'sate bank',
+      accountNumber: '0000000000',
+      branchName: 'Main Branch',
+      ifscCode: '000000000',
+      upi: 'udgam@upi',
+      multipleWithdraw: 'No',
+      lastLoginOtp: '2025-05-20 19:20:04',
+      apiCall: 'laravelNEW'
     }
   ]);
   const [adminsList, setAdminsList] = useState<any[]>([]);
@@ -154,11 +174,10 @@ export default function App() {
   const [showAddPackageModal, setShowAddPackageModal] = useState(false);
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
-  const [showViewUserModal, setShowViewUserModal] = useState(false);
-  const [viewingUser, setViewingUser] = useState<any>(null);
 
   // Form States
   const [newUserForm, setNewUserForm] = useState({ name: '', email: '', phone: '', gender: 'Male', dob: '1995-01-01', address: '', bank_name: '', bank_account_number: '', branch_name: '', ifsc_code: '', upi: '', status: 'Active', initialBalance: '500' });
+  const [editUserForm, setEditUserForm] = useState<any>({});
   const [walletTargetUser, setWalletTargetUser] = useState<any>(null);
   const [walletActionType, setWalletActionType] = useState<'add' | 'deduct'>('add');
   const [walletAmtInput, setWalletAmtInput] = useState('500');
@@ -287,11 +306,33 @@ export default function App() {
       deactiveReason: '',
       status: newUserForm.status,
       source: 'Play Store',
-      balance: parseFloat(newUserForm.initialBalance) || 500
+      balance: parseFloat(newUserForm.initialBalance) || 500,
+      totalDeposit: 0,
+      totalWinning: 0,
+      totalWithdrawal: 0,
+      referralCode: `ref_${Date.now()}`,
+      gender: newUserForm.gender,
+      dob: newUserForm.dob,
+      address: newUserForm.address,
+      bankName: newUserForm.bank_name,
+      accountNumber: newUserForm.bank_account_number,
+      branchName: newUserForm.branch_name,
+      ifscCode: newUserForm.ifsc_code,
+      upi: newUserForm.upi,
+      multipleWithdraw: 'No',
+      lastLoginOtp: '2026-08-29 01:20:00',
+      apiCall: 'laravelNEW'
     };
     setUsers(prev => [newUserObj, ...prev]);
     setStatusMessage(`🎉 User ${newUserForm.name} created!`);
     setShowAddUserModal(false);
+  };
+
+  const handleSaveUserEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setUsers(users.map(u => u.id === editUserForm.id ? { ...u, ...editUserForm } : u));
+    setStatusMessage(`🎉 User ${editUserForm.name} updated successfully!`);
+    setActiveTab('users');
   };
 
   const handleApproveDeposit = async (depId: string) => {
@@ -455,10 +496,10 @@ export default function App() {
     );
   }
 
-  // MAIN WORKSPACE MATCHING MEDIA_1787946389975.PNG 100%
+  // MAIN WORKSPACE MATCHING MEDIA_1787946816190.PNG & MEDIA_1787946831166.PNG 100%
   return (
     <div className="min-h-screen bg-[#F4F6F9] text-[#212529] flex flex-col font-sans">
-      {/* TOP NAVBAR (Matching media_1787946389975.png: Left ☰ + Matka Game ▾ dropdown, Right User Avatar!) */}
+      {/* TOP NAVBAR (Matching reference screenshots: Left ☰ + Matka Game ▾ dropdown, Right User Avatar!) */}
       <header className="bg-white border-b border-[#DEE2E6] h-14 px-4 flex justify-between items-center shadow-sm shrink-0 z-20">
         <div className="flex items-center gap-4">
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[#6C757D] hover:text-[#212529] p-1.5 text-base font-bold">
@@ -481,7 +522,7 @@ export default function App() {
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 flex overflow-hidden">
-        {/* 15 EXACT SIDEBAR ROUTES (Matching media_1787946389975.png: Collapsed Icon Sidebar w-14 by default!) */}
+        {/* 15 EXACT SIDEBAR ROUTES */}
         <aside className={`${sidebarOpen ? 'w-64' : 'w-14'} bg-[#343A40] text-[#C2C7D0] transition-all duration-200 flex flex-col shrink-0 border-r border-[#4B545C] z-30`}>
           {/* Brand Link (Blue circle D logo + Dream Admin text) */}
           <div className="h-14 border-b border-[#4B545C] flex items-center justify-center bg-[#212529]">
@@ -527,7 +568,7 @@ export default function App() {
                 onClick={() => setActiveTab(item.id as any)}
                 title={item.label}
                 className={`w-full flex items-center ${sidebarOpen ? 'justify-start px-3' : 'justify-center'} py-2.5 rounded font-semibold transition-all ${
-                  activeTab === item.id
+                  (activeTab === item.id || (item.id === 'users' && (activeTab === 'userDetails' || activeTab === 'userEdit')))
                     ? 'bg-[#007BFF] text-white font-bold shadow'
                     : 'text-[#C2C7D0] hover:bg-[#495057] hover:text-white'
                 }`}
@@ -553,12 +594,10 @@ export default function App() {
             {/* 1. DASHBOARD MODULE */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
-                {/* PAGE TITLE HEADER ROW */}
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Dashboard</h1>
                 </div>
 
-                {/* 13 STAT CARDS SHIFTED TO VERY TOP */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {[
                     { title: 'Total Users', value: users.length || stats.users || 10, bg: 'bg-[#17A2B8]', icon: '👥' },
@@ -587,7 +626,6 @@ export default function App() {
                   ))}
                 </div>
 
-                {/* GRAPH CONTROLS BAR */}
                 <div className="bg-white p-4 rounded-lg border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-[#212529] mb-1">Graph Start Date</label>
@@ -609,7 +647,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* CHARTS */}
                 <CanvasChart title="Deposits" color="#007BFF" dataPoints={[20, 60, 40, 80, 50, 100]} chartType={chartType} />
                 <CanvasChart title="Withdraws" color="#DC3545" dataPoints={[10, 30, 25, 40, 30, 70]} chartType={chartType} />
               </div>
@@ -653,16 +690,14 @@ export default function App() {
               </div>
             )}
 
-            {/* 3. USERS MODULE (Matching media_1787946389975.png 100%) */}
+            {/* 3. USERS MODULE */}
             {activeTab === 'users' && (
               <div className="space-y-4">
-                {/* PAGE TITLE HEADER ROW matching media_1787946389975.png */}
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">User Management</h1>
                   <button onClick={() => setShowAddUserModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
 
-                {/* FILTER CARD matching media_1787946389975.png */}
                 <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm">
                   <label className="block text-xs font-bold text-[#212529] mb-1">Name / Email / Phone</label>
                   <div className="flex items-center gap-3">
@@ -677,9 +712,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* TABLE CARD matching media_1787946389975.png */}
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                  {/* Show 10 entries dropdown */}
                   <div className="flex justify-between items-center text-xs text-[#6C757D]">
                     <div className="flex items-center gap-1.5">
                       <span>Show</span>
@@ -725,9 +758,14 @@ export default function App() {
                               <span className="px-2 py-0.5 rounded bg-[#DC3545] text-white text-[10px] font-bold">Play Store</span>
                             </td>
                             <td className="p-2.5 text-center space-x-1">
-                              <button onClick={() => { setViewingUser(u); setShowViewUserModal(true); }} className="bg-[#FFC107] text-[#212529] px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="View Details">👁️</button>
-                              <button onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }} className="bg-[#17A2B8] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Wallet Edit">✏️</button>
-                              <button onClick={() => setUsers(users.filter(x => x.id !== u.id))} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Delete">🗑️</button>
+                              {/* 👁️ OPENS FULL USER DETAILS PAGE matching media_1787946816190.png 100%! */}
+                              <button onClick={() => { setSelectedUser(u); setActiveTab('userDetails'); }} className="bg-[#FFC107] hover:bg-[#E0A800] text-[#212529] px-2.5 py-1 rounded text-[10px] font-bold shadow-sm" title="View User Details">👁️</button>
+                              
+                              {/* ✏️ OPENS FULL USER EDIT PAGE matching media_1787946831166.png 100%! */}
+                              <button onClick={() => { setSelectedUser(u); setEditUserForm(u); setActiveTab('userEdit'); }} className="bg-[#17A2B8] hover:bg-[#138496] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm" title="Edit User">✏️</button>
+                              
+                              {/* 🗑️ DELETE USER ACTION */}
+                              <button onClick={() => setUsers(users.filter(x => x.id !== u.id))} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm" title="Delete User">🗑️</button>
                             </td>
                           </tr>
                         ))}
@@ -735,7 +773,6 @@ export default function App() {
                     </table>
                   </div>
 
-                  {/* Footer matching media_1787946389975.png */}
                   <div className="flex justify-between items-center pt-2 text-xs text-[#6C757D]">
                     <span>Showing 1 to {users.length} of {users.length} entries</span>
                     <div className="flex items-center gap-1">
@@ -744,6 +781,207 @@ export default function App() {
                       <button className="px-3 py-1 border border-[#DEE2E6] rounded bg-[#F8F9FA] text-[#6C757D]">Next</button>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ACTION 1 PAGE: USER DETAILS (Matching media_1787946816190.png 100%) */}
+            {activeTab === 'userDetails' && selectedUser && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">User Details</h1>
+                  <button onClick={() => setActiveTab('users')} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm">← Back</button>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm overflow-hidden">
+                  {/* 6 SUB-TABS matching media_1787946816190.png */}
+                  <div className="flex border-b border-[#DEE2E6] px-4 pt-3 gap-2 text-xs font-bold bg-[#FFFFFF]">
+                    {[
+                      { id: 'profile', label: 'Profile' },
+                      { id: 'bankDetails', label: 'Bank Details' },
+                      { id: 'walletTransaction', label: 'Wallet Transaction' },
+                      { id: 'gameHistory', label: 'Game History' },
+                      { id: 'referHistory', label: 'Refer History' },
+                      { id: 'gameLedger', label: 'Game Ledger' }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setUserDetailsTab(tab.id as any)}
+                        className={`px-4 py-2 rounded-t font-semibold transition-all ${
+                          userDetailsTab === tab.id
+                            ? 'bg-[#007BFF] text-white font-bold'
+                            : 'text-[#6C757D] hover:text-[#212529]'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* TAB 1: PROFILE CONTENT matching media_1787946816190.png 100% */}
+                  {userDetailsTab === 'profile' && (
+                    <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                      {/* Left Side User Card */}
+                      <div className="flex flex-col items-center justify-center space-y-3 border-r border-[#DEE2E6] pr-6">
+                        <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-xl font-bold text-gray-600">
+                          👤
+                        </div>
+                        <h2 className="text-xl font-bold text-[#212529]">{selectedUser.name}</h2>
+                        <span className="px-2.5 py-0.5 bg-[#007BFF] text-white rounded text-[11px] font-bold">Active</span>
+
+                        <div className="text-center space-y-1.5 pt-4 text-base text-[#212529]">
+                          <p className="font-semibold">Total Deposit: <strong className="font-bold">{selectedUser.totalDeposit || 200}</strong></p>
+                          <p className="font-semibold">Total Winning: <strong className="font-bold">{selectedUser.totalWinning || 3168}</strong></p>
+                          <p className="font-semibold">Total Withdrawl: <strong className="font-bold">{selectedUser.totalWithdrawal || 0}</strong></p>
+                        </div>
+                      </div>
+
+                      {/* Right Side Info List with Icons */}
+                      <div className="space-y-4 text-base text-[#212529]">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">✉️</span>
+                          <span className="font-semibold">{selectedUser.email}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">📞</span>
+                          <span className="font-semibold">{selectedUser.mobile}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">🎂</span>
+                          <span className="font-semibold">{selectedUser.dob || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">📍</span>
+                          <span className="font-semibold">{selectedUser.address || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">💰</span>
+                          <span className="font-semibold">My Wallet:- {selectedUser.balance}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">🎁</span>
+                          <span className="font-semibold">My Referal Code:- {selectedUser.referralCode || '66a24031439e4'}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">🚻</span>
+                          <span className="font-semibold">{selectedUser.gender || 'Male'}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl text-red-500 font-bold">❌</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OTHER SUB-TABS */}
+                  {userDetailsTab !== 'profile' && (
+                    <div className="p-6 text-center text-xs text-[#6C757D]">
+                      No recorded {userDetailsTab} entries for {selectedUser.name}.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ACTION 2 PAGE: USER EDIT (Matching media_1787946831166.png 100%) */}
+            {activeTab === 'userEdit' && selectedUser && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">User Edit</h1>
+                  <button onClick={() => setActiveTab('users')} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm">← Back</button>
+                </div>
+
+                {/* 19 FORM FIELDS 2-COLUMN GRID matching media_1787946831166.png */}
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-6">
+                  <form onSubmit={handleSaveUserEdit} className="space-y-5 text-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Full Name *</label>
+                        <input type="text" value={editUserForm.name || ''} onChange={(e)=>setEditUserForm({...editUserForm, name: e.target.value})} required className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Email Address</label>
+                        <input type="email" value={editUserForm.email || ''} onChange={(e)=>setEditUserForm({...editUserForm, email: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                        <p className="text-[10px] text-[#6C757D] mt-0.5">Once you add your Email-id than it will never Change</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Phone</label>
+                        <input type="text" value={editUserForm.mobile || ''} onChange={(e)=>setEditUserForm({...editUserForm, mobile: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Gender</label>
+                        <select value={editUserForm.gender || 'Male'} onChange={(e)=>setEditUserForm({...editUserForm, gender: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs">
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Date of Birth</label>
+                        <input type="text" value={editUserForm.dob || ''} onChange={(e)=>setEditUserForm({...editUserForm, dob: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Address</label>
+                        <input type="text" value={editUserForm.address || ''} onChange={(e)=>setEditUserForm({...editUserForm, address: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Bank Name</label>
+                        <input type="text" value={editUserForm.bankName || 'sate bank'} onChange={(e)=>setEditUserForm({...editUserForm, bankName: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Bank Account Number</label>
+                        <input type="text" value={editUserForm.accountNumber || '0000000000'} onChange={(e)=>setEditUserForm({...editUserForm, accountNumber: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs font-mono" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Branch Name</label>
+                        <input type="text" value={editUserForm.branchName || ''} onChange={(e)=>setEditUserForm({...editUserForm, branchName: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Ifsc Code</label>
+                        <input type="text" value={editUserForm.ifscCode || '000000000'} onChange={(e)=>setEditUserForm({...editUserForm, ifscCode: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs font-mono" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">UPI</label>
+                        <input type="text" value={editUserForm.upi || ''} onChange={(e)=>setEditUserForm({...editUserForm, upi: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Status</label>
+                        <select value={editUserForm.status || 'Active'} onChange={(e)=>setEditUserForm({...editUserForm, status: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs">
+                          <option value="Active">Active</option>
+                          <option value="Deactive">Deactive</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">Multiple Account Withdraw Enabled</label>
+                        <select value={editUserForm.multipleWithdraw || 'No'} onChange={(e)=>setEditUserForm({...editUserForm, multipleWithdraw: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs">
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#212529] mb-1">LAST LOGIN OTP DATETIME: {editUserForm.lastLoginOtp || '2025-05-20 19:20:04'}</label>
+                        <label className="block text-xs font-bold text-[#212529] mt-2 mb-1">API CALL</label>
+                        <input type="text" value={editUserForm.apiCall || 'laravelNEW'} readOnly className="w-full border border-[#CED4DA] p-2 rounded text-xs bg-gray-50 text-[#6C757D]" />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4 border-t border-[#DEE2E6]">
+                      <button type="submit" className="bg-[#28A745] hover:bg-[#218838] text-white px-5 py-2 rounded font-bold text-xs shadow-sm">Update</button>
+                      <button type="button" onClick={()=>setActiveTab('users')} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-5 py-2 rounded font-bold text-xs shadow-sm">Cancel</button>
+                    </div>
+                  </form>
                 </div>
               </div>
             )}
@@ -1222,7 +1460,7 @@ export default function App() {
 
           </main>
 
-          {/* FOOTER matching media_1787946389975.png */}
+          {/* FOOTER */}
           <footer className="bg-white border-t border-[#DEE2E6] px-6 py-3 text-xs text-[#6C757D]">
             Copyright © 2026 . All rights reserved.
           </footer>
@@ -1248,23 +1486,6 @@ export default function App() {
                 <button type="submit" className="flex-1 bg-[#007BFF] text-white py-2 rounded font-bold">Save User</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {showViewUserModal && viewingUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4 shadow-xl border border-[#DEE2E6] text-xs">
-            <h3 className="text-base font-bold text-[#212529] border-b pb-2">User Profile & Wallet Overview</h3>
-            <div className="space-y-2">
-              <p><strong>Name:</strong> {viewingUser.name}</p>
-              <p><strong>Email:</strong> {viewingUser.email}</p>
-              <p><strong>Phone:</strong> {viewingUser.mobile}</p>
-              <p><strong>Registered At:</strong> {viewingUser.createdAt}</p>
-              <p><strong>Total Balance:</strong> ₹ {viewingUser.balance}</p>
-              <p><strong>Status:</strong> <span className="px-2 py-0.5 bg-green-500 text-white rounded font-bold">Active</span></p>
-            </div>
-            <button onClick={()=>setShowViewUserModal(false)} className="w-full bg-[#6C757D] text-white py-2 rounded font-bold">Close</button>
           </div>
         </div>
       )}
