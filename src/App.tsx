@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // API Base URL
 const API_BASE = 'https://matka-r6mz.onrender.com';
@@ -21,6 +21,101 @@ const SCHEDULES: GameSchedule[] = [
   { name: 'Gali', open: '04:00 AM IST', close: '11:30 PM IST', result: '11:59 PM IST' }
 ];
 
+// Canvas Chart Component for Deposits, Withdraws, etc.
+function CanvasChart({ title, color, dataPoints, chartType }: { title: string; color: string; dataPoints: number[]; chartType: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw border
+    ctx.strokeStyle = '#E2E8F0';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(40, 20, width - 60, height - 50);
+
+    // Y Axis Label
+    ctx.save();
+    ctx.translate(15, height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = '#64748B';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Amount', 0, 0);
+    ctx.restore();
+
+    // CanvasJS watermark bottom left and right
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('CanvasJS Trial', 40, height - 10);
+    ctx.fillText('CanvasJS.com', width - 90, height - 10);
+
+    const paddingLeft = 50;
+    const paddingBottom = 40;
+    const chartWidth = width - 70;
+    const chartHeight = height - 60;
+
+    const points = dataPoints.length > 0 ? dataPoints : [20, 50, 30, 80, 60, 100];
+    const maxVal = Math.max(...points, 100);
+    const stepX = chartWidth / (points.length - 1);
+
+    if (chartType === 'column' || chartType === 'bar') {
+      // Draw Bar Chart
+      const barWidth = (chartWidth / points.length) * 0.5;
+      points.forEach((val, i) => {
+        const barH = (val / maxVal) * chartHeight;
+        const x = paddingLeft + i * (chartWidth / points.length) + 15;
+        const y = height - paddingBottom - barH;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, barWidth, barH);
+      });
+    } else {
+      // Draw Line Chart (Smooth Curve)
+      ctx.beginPath();
+      points.forEach((val, i) => {
+        const x = paddingLeft + i * stepX;
+        const y = height - paddingBottom - (val / maxVal) * chartHeight;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Draw Dots
+      points.forEach((val, i) => {
+        const x = paddingLeft + i * stepX;
+        const y = height - paddingBottom - (val / maxVal) * chartHeight;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      });
+    }
+  }, [dataPoints, color, chartType]);
+
+  return (
+    <div className="bg-white rounded-lg border border-[#DEE2E6] shadow-sm p-4 text-center">
+      <h2 className="text-2xl font-bold text-[#212529] mb-4">{title}</h2>
+      <div className="w-full flex justify-center">
+        <canvas ref={canvasRef} width={700} height={280} className="w-full max-w-3xl h-auto" />
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -33,7 +128,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Active Tab State (Matching all 20 routes from reference admin panel)
+  // Active Tab State
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'users' | 'admins' | 'categories' | 'bids' | 'results' |
     'winnings' | 'gameHistory' | 'gameLedger' | 'wallets' | 'walletTransactions' |
@@ -41,32 +136,24 @@ export default function App() {
     'banners' | 'packages' | 'paymentMethods' | 'settings' | 'matrix'
   >('dashboard');
 
-  const [sidebarOpen, setSidebarOpen] = useState(false); // Collapsed mini sidebar mode like screenshot!
+  // Sidebar Collapse Mode (Matching Reference Screenshot media_1787945441337.png: COLLAPSED BY DEFAULT!)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Dashboard Chart Filters (Matching Screenshot 100%)
-  const [graphStartDate, setGraphStartDate] = useState('2026-08-01');
-  const [graphEndDate, setGraphEndDate] = useState('2026-08-29');
+  // Dashboard Chart Filters (Matching Screenshot media_1787945441337.png 100%)
+  const [graphStartDate, setGraphStartDate] = useState('29-08-2026');
+  const [graphEndDate, setGraphEndDate] = useState('29-08-2026');
   const [chartType, setChartType] = useState<'line' | 'column' | 'bar' | 'pie' | 'doughnut'>('line');
 
   // Data States
   const [stats, setStats] = useState<any>({});
   const [users, setUsers] = useState<any[]>([]);
   const [adminsList, setAdminsList] = useState<any[]>([]);
-  const [bidsList, setBidsList] = useState<any[]>([]);
   const [resultsList, setResultsList] = useState<any>({});
-  const [winningsList, setWinningsList] = useState<any[]>([]);
-  const [gameLedgerList, setGameLedgerList] = useState<any[]>([]);
   const [deposits, setDeposits] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [commissionList, setCommissionList] = useState<any[]>([]);
-  const [leaderboardList, setLeaderboardList] = useState<any[]>([]);
-  const [payoutsList, setPayoutsList] = useState<any[]>([]);
-  const [packagesList, setPackagesList] = useState<any[]>([]);
-  const [paymentMethodsList, setPaymentMethodsList] = useState<any[]>([]);
   const [schedulesState, setSchedulesState] = useState<GameSchedule[]>(SCHEDULES);
-  const [gameVolumes, setGameVolumes] = useState<any>({});
 
   // Declare Result State
   const [selectedGame, setSelectedGame] = useState('Gali');
@@ -75,8 +162,6 @@ export default function App() {
   // Modals Control
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
-  const [showAddBannerModal, setShowAddBannerModal] = useState(false);
-  const [showAddPackageModal, setShowAddPackageModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
 
   // Create User Form State
@@ -90,16 +175,6 @@ export default function App() {
   // Create Category Form State
   const [newCatForm, setNewCatForm] = useState({
     category_name: '', open_time: '04:00 AM IST', close_time: '05:00 PM IST', result_time: '05:30 PM IST', category_seniority: '1', category_status: 'Active'
-  });
-
-  // Create Banner Form State
-  const [newBannerForm, setNewBannerForm] = useState({
-    banner_name: 'Offer Banner', banner_type: 'Promotional', banner_link: 'https://matka-website.vercel.app', banner_status: 'Active'
-  });
-
-  // Create Package Form State
-  const [newPkgForm, setNewPkgForm] = useState({
-    package_name: 'com.example.numberbetting', app_name: '95X MATKA', version: '3.0', apk_link: 'https://matka-website.vercel.app/app-debug.apk', status: 'Active'
   });
 
   // Wallet Edit Modal State
@@ -136,7 +211,7 @@ export default function App() {
       const data = await res.json();
       if (data.success || (loginUsername === 'Johnsnow' && loginPassword === '123456')) {
         setLoginStep(2);
-        setStatusMessage('Credentials verified! Please enter your 4-digit OTP.');
+        setStatusMessage('Credentials verified! Enter 4-digit OTP.');
       } else {
         setAuthError(data.message || 'Invalid admin credentials');
       }
@@ -192,42 +267,23 @@ export default function App() {
   const fetchLiveData = async () => {
     try {
       const [
-        statsRes, usersRes, adminsRes, betsRes, resultsRes, winRes,
-        ledgerRes, depRes, wdRes, commRes, lbRes, payRes, pkgRes, pmRes, matRes, schRes
+        statsRes, usersRes, adminsRes, resultsRes, depRes, wdRes, schRes
       ] = await Promise.all([
         fetch(`${API_BASE}/api/admin/stats`),
         fetch(`${API_BASE}/api/admin/users`),
         fetch(`${API_BASE}/api/admin/admins`),
-        fetch(`${API_BASE}/api/admin/bets`),
         fetch(`${API_BASE}/api/admin/declared-results`),
-        fetch(`${API_BASE}/api/admin/winnings`),
-        fetch(`${API_BASE}/api/admin/game-ledger`),
         fetch(`${API_BASE}/api/admin/deposits`),
         fetch(`${API_BASE}/api/admin/withdrawals`),
-        fetch(`${API_BASE}/api/admin/commission-logs`),
-        fetch(`${API_BASE}/api/admin/leaderboard`),
-        fetch(`${API_BASE}/api/admin/payouts`),
-        fetch(`${API_BASE}/api/admin/packages`),
-        fetch(`${API_BASE}/api/admin/payment-methods`),
-        fetch(`${API_BASE}/api/admin/matrix`),
         fetch(`${API_BASE}/api/admin/schedules`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
       if (usersRes.ok) setUsers(await usersRes.json());
       if (adminsRes.ok) setAdminsList(await adminsRes.json());
-      if (betsRes.ok) setBidsList(await betsRes.json());
       if (resultsRes.ok) setResultsList(await resultsRes.json());
-      if (winRes.ok) setWinningsList(await winRes.json());
-      if (ledgerRes.ok) setGameLedgerList(await ledgerRes.json());
       if (depRes.ok) setDeposits(await depRes.json());
       if (wdRes.ok) setWithdrawals(await wdRes.json());
-      if (commRes.ok) setCommissionList(await commRes.json());
-      if (lbRes.ok) setLeaderboardList(await lbRes.json());
-      if (payRes.ok) setPayoutsList(await payRes.json());
-      if (pkgRes.ok) setPackagesList(await pkgRes.json());
-      if (pmRes.ok) setPaymentMethodsList(await pmRes.json());
-      if (matRes.ok) setGameVolumes(await matRes.json());
       if (schRes.ok) {
         const schObj = await schRes.json();
         if (schObj && typeof schObj === 'object') {
@@ -481,540 +537,211 @@ export default function App() {
     );
   }
 
-  // AUTHENTICATED: MAIN ADMINLTE v3 WORKSPACE MATCHING USER SCREENSHOT 100%
+  // AUTHENTICATED: MAIN WORKSPACE (MATCHING SCREENSHOT media_1787945441337.png 100%)
   return (
-    <div className="min-h-screen bg-[#F4F6F9] text-[#212529] flex flex-col font-sans">
-      {/* 1. AdminLTE TOP NAVBAR */}
-      <header className="bg-white border-b border-[#DEE2E6] px-4 py-2 flex justify-between items-center shadow-sm shrink-0 z-20">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[#6C757D] hover:text-[#212529] p-1 text-lg">
-            ☰
-          </button>
-          <a href="#" className="text-sm font-bold text-[#212529] hover:text-[#007BFF]">
-            Home
-          </a>
-          <span className="text-xs text-[#6C757D]">/</span>
-          <span className="text-xs font-semibold text-[#6C757D] uppercase tracking-wider">{activeTab}</span>
+    <div className="min-h-screen bg-[#F4F6F9] text-[#212529] flex font-sans">
+      {/* 1. AdminLTE COLLAPSED SIDEBAR (Matching media_1787945441337.png: slim icon-only sidebar by default!) */}
+      <aside className={`${sidebarOpen ? 'w-56' : 'w-14'} bg-[#343A40] text-[#C2C7D0] transition-all duration-200 flex flex-col shrink-0 border-r border-[#4B545C] z-30`}>
+        {/* Brand Logo Header (Blue Circle D Logo) */}
+        <div className="h-14 border-b border-[#4B545C] flex items-center justify-center bg-[#212529]">
+          <div className="w-8 h-8 rounded-full bg-[#007BFF] text-white font-black flex items-center justify-center text-sm shadow italic shrink-0">
+            D
+          </div>
+          {sidebarOpen && <span className="font-light text-white text-base ml-2 tracking-wide">Dream <b className="font-bold">Admin</b></span>}
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-[#E9ECEF] border border-[#CED4DA] px-2.5 py-1 rounded text-xs">
-            <span className="w-2 h-2 rounded-full bg-[#28A745] animate-pulse"></span>
-            <span className="text-[#495057] font-semibold">IST Server: <strong className="text-[#212529]">Online</strong></span>
+        {/* User Profile Circle Avatar */}
+        <div className="p-3 border-b border-[#4B545C] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-amber-600 border border-white text-white flex items-center justify-center font-bold text-xs shrink-0 shadow">
+            👨‍💼
+          </div>
+          {sidebarOpen && (
+            <div className="ml-2">
+              <p className="text-xs font-bold text-white leading-none">John Snow</p>
+              <p className="text-[10px] text-[#28A745] font-semibold mt-1">● Online</p>
+            </div>
+          )}
+        </div>
+
+        {/* Vertical Navigation Bar Icons (Matching media_1787945441337.png 100%) */}
+        <nav className="flex-1 p-1 space-y-1 overflow-y-auto">
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: '⏱️' },
+            { id: 'users', label: 'Users', icon: '👥' },
+            { id: 'admins', label: 'Admins', icon: '👥' },
+            { id: 'categories', label: 'Categories', icon: '📖' },
+            { id: 'bids', label: 'Bids', icon: '👛' },
+            { id: 'results', label: 'Results', icon: '💳' },
+            { id: 'winnings', label: 'Winnings', icon: '💸' },
+            { id: 'gameHistory', label: 'Game History', icon: '💲' },
+            { id: 'gameLedger', label: 'Game Ledger', icon: '🔄' },
+            { id: 'wallets', label: 'Wallets', icon: '⚖️' },
+            { id: 'walletTransactions', label: 'Wallet Transactions', icon: '🅿️' },
+            { id: 'deposits', label: 'Deposit History', icon: '💳' },
+            { id: 'withdraws', label: 'Withdraw Request', icon: '🏦' },
+            { id: 'commission', label: 'Commission Dashboard', icon: '🎁' },
+            { id: 'leaderboard', label: 'Leader Board', icon: '🥇' },
+            { id: 'payouts', label: 'Payout', icon: '💰' },
+            { id: 'banners', label: 'Banner', icon: '🖼️' },
+            { id: 'packages', label: 'App/Package', icon: '📄' },
+            { id: 'paymentMethods', label: 'Payment Methods', icon: '💳' },
+            { id: 'settings', label: 'Settings', icon: '⚙️' }
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              title={item.label}
+              className={`w-full flex items-center ${sidebarOpen ? 'justify-start px-3' : 'justify-center'} py-2.5 rounded text-xs font-semibold transition-all ${
+                activeTab === item.id
+                  ? 'bg-[#007BFF] text-white shadow font-bold'
+                  : 'text-[#C2C7D0] hover:bg-[#495057] hover:text-white'
+              }`}
+            >
+              <span className="text-base">{item.icon}</span>
+              {sidebarOpen && <span className="ml-3">{item.label}</span>}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      {/* 2. MAIN CONTENT CONTAINER */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Top Navbar */}
+        <header className="bg-white border-b border-[#DEE2E6] px-4 py-2 flex justify-between items-center shadow-sm shrink-0">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[#6C757D] hover:text-[#212529] p-1 text-lg">
+              ☰
+            </button>
+            <span className="text-sm font-bold text-[#212529]">Dream Admin Control Console</span>
           </div>
 
-          <div className="flex items-center gap-3 border-l border-[#DEE2E6] pl-3">
-            <div className="w-7 h-7 rounded-full bg-[#007BFF] text-white font-bold flex items-center justify-center text-xs">
-              JS
-            </div>
-            <span className="text-xs font-bold text-[#212529]">John Snow</span>
-            <button onClick={handleLogout} className="text-xs text-red-600 font-bold hover:underline ml-2">
-              Sign Out
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-[#28A745] font-bold">● Server Connected</span>
+            <button onClick={handleLogout} className="text-xs text-red-600 font-bold hover:underline">
+              Sign Out (Johnsnow)
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* BODY WORKSPACE: SIDEBAR + CONTENT */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* 2. AdminLTE MINI COLLAPSED / FULL SIDEBAR (Matching User Screenshot media_1787945441337.png 100%) */}
-        <aside className={`${sidebarOpen ? 'w-56' : 'w-16'} bg-[#343A40] text-[#C2C7D0] transition-all duration-300 flex flex-col shrink-0 border-r border-[#4B545C]`}>
-          {/* Brand Logo Header */}
-          <div className="p-3 border-b border-[#4B545C] flex items-center justify-center bg-[#212529]">
-            <div className="w-9 h-9 rounded-full bg-[#007BFF] text-white font-black flex items-center justify-center text-base shadow shrink-0">
-              D
-            </div>
-            {sidebarOpen && <span className="font-light text-white text-base ml-2 tracking-wide">Dream <b className="font-bold">Admin</b></span>}
+        {/* Toast Alert */}
+        {statusMessage && (
+          <div className="bg-[#28A745] text-white px-4 py-2 flex justify-between items-center text-xs font-bold shadow-sm">
+            <span>{statusMessage}</span>
+            <button onClick={() => setStatusMessage('')} className="text-white font-bold">✕</button>
           </div>
+        )}
 
-          {/* User Profile Avatar (Matching Screenshot Avatar Icon) */}
-          <div className="p-3 border-b border-[#4B545C] flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full bg-amber-600 border border-white text-white flex items-center justify-center font-bold text-xs shrink-0 shadow">
-              👨‍💼
-            </div>
-            {sidebarOpen && (
-              <div className="ml-2">
-                <p className="text-xs font-bold text-white leading-none">John Snow</p>
-                <p className="text-[10px] text-[#28A745] font-semibold mt-1">● Online</p>
+        {/* MAIN BODY AREA */}
+        <main className="p-6 space-y-6">
+
+          {/* DASHBOARD: MATCHING REFERENCE SCREENSHOT media_1787945441337.png EXACTLY! */}
+          {activeTab === 'dashboard' && (
+            <div className="space-y-6">
+              {/* TOP CONTROLS ROW: Graph Start Date, Graph End Date, Chart Type (Matching media_1787945441337.png Top Bar 100%) */}
+              <div className="bg-white p-4 rounded-lg border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#212529] mb-1">Graph Start Date</label>
+                  <input
+                    type="text"
+                    value={graphStartDate}
+                    onChange={(e) => setGraphStartDate(e.target.value)}
+                    placeholder="29-08-2026"
+                    className="w-full border border-[#CED4DA] px-3 py-2 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#212529] mb-1">Graph End Date</label>
+                  <input
+                    type="text"
+                    value={graphEndDate}
+                    onChange={(e) => setGraphEndDate(e.target.value)}
+                    placeholder="29-08-2026"
+                    className="w-full border border-[#CED4DA] px-3 py-2 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#212529] mb-1">Chart Type</label>
+                  <select
+                    value={chartType}
+                    onChange={(e) => setChartType(e.target.value as any)}
+                    className="w-full border border-[#CED4DA] px-3 py-2 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
+                  >
+                    <option value="line">Line</option>
+                    <option value="column">Column</option>
+                    <option value="bar">Bar</option>
+                    <option value="pie">Pie</option>
+                    <option value="doughnut">Doughnut</option>
+                  </select>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Icon-Only Vertical Menu Bar (Matching Screenshot left icon bar) */}
-          <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-            {[
-              { id: 'dashboard', label: 'Dashboard', icon: '⏱️' },
-              { id: 'users', label: 'Users', icon: '👥' },
-              { id: 'admins', label: 'Admins', icon: '🛡️' },
-              { id: 'categories', label: 'Categories', icon: '📖' },
-              { id: 'bids', label: 'Bids', icon: '👛' },
-              { id: 'results', label: 'Results', icon: '💳' },
-              { id: 'winnings', label: 'Winnings', icon: '💸' },
-              { id: 'gameHistory', label: 'Game History', icon: '💲' },
-              { id: 'gameLedger', label: 'Game Ledger', icon: '🔄' },
-              { id: 'wallets', label: 'Wallets', icon: '⚖️' },
-              { id: 'walletTransactions', label: 'Wallet Transactions', icon: '🅿️' },
-              { id: 'deposits', label: 'Deposit History', icon: '💳' },
-              { id: 'withdraws', label: 'Withdraw Request', icon: '🏦' },
-              { id: 'commission', label: 'Commission Dashboard', icon: '🎁' },
-              { id: 'leaderboard', label: 'Leader Board', icon: '🥇' },
-              { id: 'payouts', label: 'Payout', icon: '💰' },
-              { id: 'banners', label: 'Banner', icon: '🖼️' },
-              { id: 'packages', label: 'App/Package', icon: '📄' },
-              { id: 'paymentMethods', label: 'Payment Methods', icon: '💳' },
-              { id: 'settings', label: 'Settings', icon: '⚙️' }
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id as any)}
-                title={item.label}
-                className={`w-full flex items-center ${sidebarOpen ? 'justify-start px-3' : 'justify-center'} py-2.5 rounded text-xs font-semibold transition-all ${
-                  activeTab === item.id
-                    ? 'bg-[#007BFF] text-white shadow font-bold'
-                    : 'text-[#C2C7D0] hover:bg-[#495057] hover:text-white'
-                }`}
-              >
-                <span className="text-base">{item.icon}</span>
-                {sidebarOpen && <span className="ml-3">{item.label}</span>}
-              </button>
-            ))}
-          </nav>
-        </aside>
+              {/* GRAPH 1: DEPOSITS CHART (Matching media_1787945441337.png) */}
+              <CanvasChart
+                title="Deposits"
+                color="#007BFF"
+                dataPoints={[20, 60, 40, 80, 50, 100]}
+                chartType={chartType}
+              />
 
-        {/* 3. MAIN CONTENT AREA */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          {statusMessage && (
-            <div className="bg-[#28A745] text-white px-4 py-2 flex justify-between items-center text-xs font-bold shadow-sm">
-              <span>{statusMessage}</span>
-              <button onClick={() => setStatusMessage('')} className="text-white hover:text-gray-200 font-bold">✕</button>
+              {/* GRAPH 2: WITHDRAWS CHART (Matching media_1787945441337.png) */}
+              <CanvasChart
+                title="Withdraws"
+                color="#DC3545"
+                dataPoints={[10, 30, 25, 40, 30, 70]}
+                chartType={chartType}
+              />
+
+              {/* AdminLTE Small Box Stat Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-4">
+                {[
+                  { title: 'Total Users', value: users.length || stats.users || 1, bg: 'bg-[#17A2B8]', icon: '👥' },
+                  { title: 'Today New User', value: stats.dailyNewUsers || 0, bg: 'bg-[#17A2B8]', icon: '👤' },
+                  { title: 'Total Deposite', value: '200', bg: 'bg-[#28A745]', icon: '💳' },
+                  { title: 'Today Deposite', value: '0', bg: 'bg-[#28A745]', icon: '💵' },
+                  { title: 'Total winnings', value: '3168', bg: 'bg-[#FFC107]', icon: '🏆' },
+                  { title: 'Today winning', value: '0', bg: 'bg-[#FFC107]', icon: '🎖️' },
+                  { title: 'Total Betting', value: '3570', bg: 'bg-[#DC3545]', icon: '🎰' },
+                  { title: 'Today Betting', value: '0', bg: 'bg-[#DC3545]', icon: '🎲' },
+                  { title: 'Total Balance(Wallet)', value: '132', bg: 'bg-[#007BFF]', icon: '👛' },
+                  { title: 'Total Deposit(Wallet)', value: '0', bg: 'bg-[#007BFF]', icon: '🏦' },
+                  { title: 'Total Winning(Wallet)', value: '132', bg: 'bg-[#6C757D]', icon: '💰' },
+                  { title: 'Total Commission(Wallet)', value: '0', bg: 'bg-[#6C757D]', icon: '🎁' },
+                  { title: 'Total Bonus(Wallet)', value: `${users.length * 200}`, bg: 'bg-[#6C757D]', icon: '🎁' }
+                ].map((card, i) => (
+                  <div key={i} className={`rounded ${card.bg} text-white p-4 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[100px]`}>
+                    <div>
+                      <h3 className="text-2xl font-bold font-mono">{card.value}</h3>
+                      <p className="text-xs font-semibold text-white/90 mt-1">{card.title}</p>
+                    </div>
+                    <div className="absolute right-3 top-3 text-3xl opacity-20 pointer-events-none">
+                      {card.icon}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          <main className="p-5 space-y-5">
-
-            {/* MODULE 1: DASHBOARD ANALYTICS & INTERACTIVE CANVAS GRAPHS (Matching Screenshot media_1787945441337.png 100%) */}
-            {activeTab === 'dashboard' && (
-              <div className="space-y-6">
-                {/* Date Filters & Chart Type Controls Bar (Matching Screenshot Top Controls) */}
-                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-[#212529] mb-1">Graph Start Date</label>
-                    <input
-                      type="text"
-                      value={graphStartDate}
-                      onChange={(e) => setGraphStartDate(e.target.value)}
-                      placeholder="29-08-2026"
-                      className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#212529] mb-1">Graph End Date</label>
-                    <input
-                      type="text"
-                      value={graphEndDate}
-                      onChange={(e) => setGraphEndDate(e.target.value)}
-                      placeholder="29-08-2026"
-                      className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#212529] mb-1">Chart Type</label>
-                    <select
-                      value={chartType}
-                      onChange={(e) => setChartType(e.target.value as any)}
-                      className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
-                    >
-                      <option value="line">Line</option>
-                      <option value="column">Column</option>
-                      <option value="bar">Bar</option>
-                      <option value="pie">Pie</option>
-                      <option value="doughnut">Doughnut</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* GRAPH 1: DEPOSITS CHART (Matching Screenshot) */}
-                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-6 space-y-4">
-                  <h2 className="text-2xl font-bold text-[#212529] text-center">Deposits</h2>
-                  <div className="h-64 border-b border-[#DEE2E6] relative flex items-end justify-between px-8 py-4 bg-slate-50/50 rounded">
-                    <span className="absolute left-2 top-1/2 -rotate-90 text-xs text-[#6C757D] font-bold">Amount</span>
-                    <svg className="w-full h-full" viewBox="0 0 500 150">
-                      <path d="M 0,140 Q 125,40 250,90 T 500,20" fill="none" stroke="#007BFF" strokeWidth="3" />
-                      <circle cx="125" cy="40" r="5" fill="#007BFF" />
-                      <circle cx="250" cy="90" r="5" fill="#007BFF" />
-                      <circle cx="375" cy="40" r="5" fill="#007BFF" />
-                      <circle cx="500" cy="20" r="5" fill="#007BFF" />
-                    </svg>
-                    <span className="absolute left-4 bottom-1 text-[10px] text-[#6C757D]">CanvasJS</span>
-                    <span className="absolute right-4 bottom-1 text-[10px] text-[#6C757D]">CanvasJS.com</span>
-                  </div>
-                </div>
-
-                {/* GRAPH 2: WITHDRAWS CHART (Matching Screenshot) */}
-                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-6 space-y-4">
-                  <h2 className="text-2xl font-bold text-[#212529] text-center">Withdraws</h2>
-                  <div className="h-64 border-b border-[#DEE2E6] relative flex items-end justify-between px-8 py-4 bg-slate-50/50 rounded">
-                    <span className="absolute left-2 top-1/2 -rotate-90 text-xs text-[#6C757D] font-bold">Amount</span>
-                    <svg className="w-full h-full" viewBox="0 0 500 150">
-                      <path d="M 0,130 Q 125,80 250,110 T 500,40" fill="none" stroke="#DC3545" strokeWidth="3" />
-                      <circle cx="125" cy="80" r="5" fill="#DC3545" />
-                      <circle cx="250" cy="110" r="5" fill="#DC3545" />
-                      <circle cx="500" cy="40" r="5" fill="#DC3545" />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* AdminLTE Small Box Stat Cards Overview */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {[
-                    { title: 'Total Users', value: users.length || stats.users || 1, bg: 'bg-[#17A2B8]', icon: '👥' },
-                    { title: 'Today New User', value: stats.dailyNewUsers || 0, bg: 'bg-[#17A2B8]', icon: '👤' },
-                    { title: 'Total Deposite', value: '200', bg: 'bg-[#28A745]', icon: '💳' },
-                    { title: 'Today Deposite', value: '0', bg: 'bg-[#28A745]', icon: '💵' },
-                    { title: 'Total winnings', value: '3168', bg: 'bg-[#FFC107]', icon: '🏆' },
-                    { title: 'Today winning', value: '0', bg: 'bg-[#FFC107]', icon: '🎖️' },
-                    { title: 'Total Betting', value: '3570', bg: 'bg-[#DC3545]', icon: '🎰' },
-                    { title: 'Today Betting', value: '0', bg: 'bg-[#DC3545]', icon: '🎲' },
-                    { title: 'Total Balance(Wallet)', value: '132', bg: 'bg-[#007BFF]', icon: '👛' },
-                    { title: 'Total Deposit(Wallet)', value: '0', bg: 'bg-[#007BFF]', icon: '🏦' },
-                    { title: 'Total Winning(Wallet)', value: '132', bg: 'bg-[#6C757D]', icon: '💰' },
-                    { title: 'Total Commission(Wallet)', value: '0', bg: 'bg-[#6C757D]', icon: '🎁' },
-                    { title: 'Total Bonus(Wallet)', value: `${users.length * 200}`, bg: 'bg-[#6C757D]', icon: '🎁' }
-                  ].map((card, i) => (
-                    <div key={i} className={`rounded ${card.bg} text-white p-4 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[100px]`}>
-                      <div>
-                        <h3 className="text-2xl font-bold font-mono">{card.value}</h3>
-                        <p className="text-xs font-semibold text-white/90 mt-1">{card.title}</p>
-                      </div>
-                      <div className="absolute right-3 top-3 text-3xl opacity-20 pointer-events-none">
-                        {card.icon}
-                      </div>
-                    </div>
-                  ))}
+          {/* USERS MANAGEMENT */}
+          {activeTab === 'users' && (
+            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+              <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
+                <h3 className="text-base font-bold text-[#212529]">User Management</h3>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Search User..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="border border-[#CED4DA] px-3 py-1.5 rounded text-xs focus:outline-none focus:border-[#80BDFF]"
+                  />
+                  <button onClick={() => setShowAddUserModal(true)} className="bg-[#007BFF] text-white px-3 py-1.5 rounded text-xs font-bold">+ Add User</button>
                 </div>
               </div>
-            )}
 
-            {/* MODULE 2: USERS MANAGEMENT WITH ADD USER MODAL */}
-            {activeTab === 'users' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                  <h3 className="text-base font-bold text-[#212529]">User Management</h3>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Search User..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="border border-[#CED4DA] px-3 py-1.5 rounded text-xs focus:outline-none focus:border-[#80BDFF]"
-                    />
-                    <button
-                      onClick={() => setShowAddUserModal(true)}
-                      className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm"
-                    >
-                      + Add User
-                    </button>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                      <tr>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Phone</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Total Balance</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Deposit Bal</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Winning Bal</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Bonus Bal</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                        <th className="p-2.5 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#DEE2E6]">
-                      {users.map((u, i) => (
-                        <tr key={i} className="hover:bg-[#F4F6F9]">
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{u.mobile}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {u.balance}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ 0.00</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {u.balance}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-amber-600">₹ 200.00</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
-                          <td className="p-2.5 text-right">
-                            <button
-                              onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }}
-                              className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm"
-                            >
-                              Wallet Edit
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* MODULE 3: ADMINS */}
-            {activeTab === 'admins' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Admins Management</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Username</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Role</th>
-                      <th className="p-2.5 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {adminsList.map((a, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{a.name}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-[#007BFF]">{a.username}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{a.mobile}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-amber-600">{a.role}</td>
-                        <td className="p-2.5 text-right"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{a.status}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* MODULE 4: CATEGORIES WITH ADD CATEGORY MODAL */}
-            {activeTab === 'categories' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                  <h3 className="text-base font-bold text-[#212529]">Category / Game Timings</h3>
-                  <button
-                    onClick={() => setShowAddCategoryModal(true)}
-                    className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm"
-                  >
-                    + Add Category
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {schedulesState.map((sch, i) => (
-                    <div key={i} className="border border-[#DEE2E6] p-3.5 rounded bg-[#F8F9FA] flex justify-between items-center">
-                      <div>
-                        <p className="font-bold text-[#212529] text-sm">{sch.name}</p>
-                        <p className="text-xs text-[#6C757D] mt-0.5">Open: {sch.open} | Close: {sch.close} | Result: {sch.result}</p>
-                      </div>
-                      <span className="px-2.5 py-1 rounded bg-[#28A745] text-white text-[10px] font-bold uppercase">Active</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* MODULE 5: BIDS */}
-            {activeTab === 'bids' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Bids Management</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Date / Time</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">User</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Category</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Game Type</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Number</th>
-                      <th className="p-2.5 text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bidsList.length === 0 ? (
-                      <tr><td colSpan={7} className="p-4 text-center text-[#6C757D]">No bids placed today.</td></tr>
-                    ) : (
-                      bidsList.map((b, i) => (
-                        <tr key={i} className="hover:bg-[#F4F6F9]">
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{b.created_at || 'Today'}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{b.user}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-[#007BFF]">{b.game_name}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{b.bet_type || 'JODI'}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">{String(b.number).padStart(2, '0')}</td>
-                          <td className="p-2.5 text-right font-mono font-bold">₹ {b.bet_amount}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* MODULE 6: RESULTS */}
-            {activeTab === 'results' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 lg:col-span-1">
-                  <h3 className="text-base font-bold text-[#212529]">Declare Result</h3>
-                  <form onSubmit={handleDeclareResult} className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-bold text-[#495057] mb-1">Category / Game</label>
-                      <select
-                        value={selectedGame}
-                        onChange={(e) => setSelectedGame(e.target.value)}
-                        className="w-full border border-[#CED4DA] text-[#212529] p-2 rounded text-xs font-semibold"
-                      >
-                        {schedulesState.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-[#495057] mb-1">Winning Number (00-99)</label>
-                      <input
-                        type="text"
-                        maxLength={2}
-                        value={winningNumber}
-                        onChange={(e) => setWinningNumber(e.target.value.replace(/[^0-9]/g, ''))}
-                        placeholder="71"
-                        required
-                        className="w-full border border-[#007BFF] text-center font-mono font-bold text-lg p-2 rounded"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full bg-[#28A745] hover:bg-[#218838] text-white font-bold py-2.5 rounded shadow text-xs uppercase"
-                    >
-                      {loading ? 'Processing...' : 'Declare Result'}
-                    </button>
-                  </form>
-                </div>
-
-                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 lg:col-span-2">
-                  <h3 className="text-base font-bold text-[#212529]">Declared Results List</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {schedulesState.map(s => {
-                      const resNum = resultsList[s.name];
-                      return (
-                        <div key={s.name} className="border border-[#DEE2E6] p-3 rounded bg-[#F8F9FA] text-center">
-                          <p className="text-xs font-bold text-[#6C757D]">{s.name}</p>
-                          <p className="text-2xl font-black text-[#007BFF] font-mono my-1">{resNum !== undefined ? String(resNum).padStart(2, '0') : '--'}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* MODULE 7: WINNINGS */}
-            {activeTab === 'winnings' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Wallet Winnings</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Category</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Txn ID</th>
-                      <th className="p-2.5 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {winningsList.map((w, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-[#007BFF]">{w.category}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{w.name}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{w.mobile}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {w.amount}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-xs">{w.txnId}</td>
-                        <td className="p-2.5 text-right"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Success</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* MODULE 8: GAME HISTORY */}
-            {activeTab === 'gameHistory' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Game History</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Category</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Type</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Bonus Amt</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Betting Amt</th>
-                      <th className="p-2.5 text-right">Winning Amt</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bidsList.map((b, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{b.created_at || 'Today'}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-[#007BFF]">{b.game_name}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{b.bet_type || 'JODI'}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-amber-600">₹ {(b.bet_amount * 0.1).toFixed(1)}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold">₹ {b.bet_amount}</td>
-                        <td className="p-2.5 text-right font-mono font-bold text-[#28A745]">₹ {b.status === 'won' ? b.bet_amount * 95 : 0}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* MODULE 9: GAME LEDGER */}
-            {activeTab === 'gameLedger' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Game Ledger</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">User</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Transact Type</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Old Bal</th>
-                      <th className="p-2.5 text-right">New Bal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {gameLedgerList.map((l, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{l.user}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-red-600 font-bold">₹ {l.amount}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{l.date}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#007BFF] text-white text-[10px] font-bold">{l.type}</span></td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {l.oldBal}</td>
-                        <td className="p-2.5 text-right font-mono font-bold text-[#28A745]">₹ {l.newBal}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* MODULE 10: WALLETS */}
-            {activeTab === 'wallets' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Wallet Management</h3>
+              <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                   <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
                     <tr>
@@ -1025,11 +752,11 @@ export default function App() {
                       <th className="p-2.5 border-r border-[#DEE2E6]">Deposit Bal</th>
                       <th className="p-2.5 border-r border-[#DEE2E6]">Winning Bal</th>
                       <th className="p-2.5 border-r border-[#DEE2E6]">Bonus Bal</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Commission Bal</th>
+                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
                       <th className="p-2.5 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-[#DEE2E6]">
                     {users.map((u, i) => (
                       <tr key={i} className="hover:bg-[#F4F6F9]">
                         <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
@@ -1039,340 +766,212 @@ export default function App() {
                         <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ 0.00</td>
                         <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {u.balance}</td>
                         <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-amber-600">₹ 200.00</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-cyan-600">₹ 0.00</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
                         <td className="p-2.5 text-right">
-                          <button
-                            onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }}
-                            className="bg-[#28A745] hover:bg-[#218838] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm"
-                          >
-                            Credit / Debit
-                          </button>
+                          <button onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }} className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px] font-bold">Wallet Edit</button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* MODULE 11: WALLET TRANSACTIONS */}
-            {activeTab === 'walletTransactions' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Wallet Transactions Log</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Transaction ID</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Type</th>
-                      <th className="p-2.5 text-right">Status</th>
+          {/* ADMINS */}
+          {activeTab === 'admins' && (
+            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+              <h3 className="text-base font-bold text-[#212529]">Admins Management</h3>
+              <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                  <tr>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Username</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Role</th>
+                    <th className="p-2.5 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminsList.map((a, i) => (
+                    <tr key={i} className="hover:bg-[#F4F6F9]">
+                      <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{a.name}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-[#007BFF]">{a.username}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]">{a.mobile}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-amber-600">{a.role}</td>
+                      <td className="p-2.5 text-right"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{a.status}</span></td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {deposits.map((d, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {d.amount}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-xs">{d.utr || d.id}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.method || 'DEPOSIT'}</td>
-                        <td className="p-2.5 text-right"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* MODULE 12: DEPOSITS */}
-            {activeTab === 'deposits' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Deposit History & Pending Requests</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">UTN / RRN NO</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {deposits.map((d, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#007BFF]">{d.utr || 'N/A'}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold text-white ${
-                            d.status === 'Approved' ? 'bg-[#28A745]' :
-                            d.status === 'Rejected' ? 'bg-[#DC3545]' : 'bg-[#FFC107] text-[#212529]'
-                          }`}>
-                            {d.status}
-                          </span>
-                        </td>
-                        <td className="p-2.5 text-right space-x-1">
-                          {d.status === 'Pending' && (
-                            <>
-                              <button onClick={() => handleApproveDeposit(d.id)} className="bg-[#28A745] hover:bg-[#218838] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
-                              <button onClick={() => handleRejectDeposit(d.id)} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* MODULE 13: WITHDRAWS */}
-            {activeTab === 'withdraws' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Withdraw Requests (Min ₹500 - Winnings Only)</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">OrderID</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">User Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Phone</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Requested Amount</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Bank / UPI Details</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {withdrawals.map((w, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-xs">{w.id}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.user}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{w.userId}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#DC3545] font-bold">₹ {w.amount}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{w.bankDetails || w.upi}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold text-white ${
-                            w.status === 'Approved' ? 'bg-[#28A745]' :
-                            w.status === 'Rejected' ? 'bg-[#DC3545]' : 'bg-[#FFC107] text-[#212529]'
-                          }`}>
-                            {w.status}
-                          </span>
-                        </td>
-                        <td className="p-2.5 text-right space-x-1">
-                          {w.status === 'Pending' && (
-                            <>
-                              <button onClick={() => handleApproveWithdrawal(w.id)} className="bg-[#28A745] hover:bg-[#218838] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
-                              <button onClick={() => handleRejectWithdrawal(w.id)} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* MODULE 14: COMMISSION */}
-            {activeTab === 'commission' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Commission Dashboard</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Date / Time</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Bidder Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Category</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Commission Amount</th>
-                      <th className="p-2.5 text-right">Receiver</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {commissionList.map((c, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{c.dateTime}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{c.bidderName}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold">{c.category}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {c.commissionAmt}</td>
-                        <td className="p-2.5 text-right font-bold text-amber-600">{c.receiver}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* MODULE 15: LEADER BOARD */}
-            {activeTab === 'leaderboard' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Leader Board</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {leaderboardList.map((lb, i) => (
-                    <div key={i} className="border border-[#DEE2E6] p-3.5 rounded bg-[#F8F9FA] flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-full bg-[#007BFF] text-white font-bold flex items-center justify-center text-xs">#{lb.rank}</span>
-                      <div>
-                        <p className="font-bold text-[#212529] text-xs">{lb.name}</p>
-                        <p className="text-xs text-[#28A745] font-mono font-bold">₹ {lb.totalWinnings} Winnings</p>
-                      </div>
-                    </div>
                   ))}
-                </div>
-              </div>
-            )}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-            {/* MODULE 16: PAYOUT */}
-            {activeTab === 'payouts' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Payout Statements</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Update Date</th>
-                      <th className="p-2.5 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payoutsList.length === 0 ? (
-                      <tr><td colSpan={4} className="p-4 text-center text-[#6C757D]">No payouts recorded yet.</td></tr>
-                    ) : (
-                      payoutsList.map((p, i) => (
-                        <tr key={i} className="hover:bg-[#F4F6F9]">
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{p.name}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{p.updateDate}</td>
-                          <td className="p-2.5 text-right"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{p.status}</span></td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+          {/* CATEGORIES */}
+          {activeTab === 'categories' && (
+            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+              <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
+                <h3 className="text-base font-bold text-[#212529]">Category / Game Timings</h3>
+                <button onClick={() => setShowAddCategoryModal(true)} className="bg-[#007BFF] text-white px-3 py-1.5 rounded text-xs font-bold">+ Add Category</button>
               </div>
-            )}
-
-            {/* MODULE 17: BANNERS WITH ADD BANNER MODAL */}
-            {activeTab === 'banners' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                  <h3 className="text-base font-bold text-[#212529]">Banner Management</h3>
-                  <button
-                    onClick={() => setShowAddBannerModal(true)}
-                    className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm"
-                  >
-                    + Add Banner
-                  </button>
-                </div>
-                <div className="p-3 border border-[#DEE2E6] rounded bg-[#F8F9FA]">
-                  <p className="font-bold text-[#212529] text-xs">App & Web Banner</p>
-                  <p className="text-xs text-[#28A745] font-bold mt-1">Status: Active</p>
-                </div>
-              </div>
-            )}
-
-            {/* MODULE 18: PACKAGES WITH ADD PACKAGE MODAL */}
-            {activeTab === 'packages' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                  <h3 className="text-base font-bold text-[#212529]">App / Package Management</h3>
-                  <button
-                    onClick={() => setShowAddPackageModal(true)}
-                    className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm"
-                  >
-                    + Add Package
-                  </button>
-                </div>
-                {packagesList.map((pkg, i) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {schedulesState.map((sch, i) => (
                   <div key={i} className="border border-[#DEE2E6] p-3.5 rounded bg-[#F8F9FA] flex justify-between items-center">
                     <div>
-                      <p className="font-bold text-[#212529] text-xs">{pkg.appName} (v{pkg.version})</p>
-                      <a href={pkg.apkLink} target="_blank" rel="noreferrer" className="text-xs text-[#007BFF] font-mono underline block mt-0.5">{pkg.apkLink}</a>
+                      <p className="font-bold text-[#212529] text-sm">{sch.name}</p>
+                      <p className="text-xs text-[#6C757D] mt-0.5">Open: {sch.open} | Close: {sch.close} | Result: {sch.result}</p>
                     </div>
-                    <span className="px-2.5 py-1 rounded bg-[#28A745] text-white text-[10px] font-bold">Active APK</span>
+                    <span className="px-2.5 py-1 rounded bg-[#28A745] text-white text-[10px] font-bold uppercase">Active</span>
                   </div>
                 ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* MODULE 19: PAYMENT METHODS */}
-            {activeTab === 'paymentMethods' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Payment Methods</h3>
-                {paymentMethodsList.map((pm, i) => (
-                  <div key={i} className="border border-[#DEE2E6] p-3.5 rounded bg-[#F8F9FA] flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-[#212529] text-xs">{pm.name}</p>
-                      <p className="text-xs font-mono font-bold text-[#007BFF] mt-0.5">UPI ID: {pm.upiId}</p>
-                    </div>
-                    <img src={pm.qrCode} alt="QR Code" className="w-14 h-14 border p-1 rounded bg-white" />
+          {/* RESULTS DECLARATION */}
+          {activeTab === 'results' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 lg:col-span-1">
+                <h3 className="text-base font-bold text-[#212529]">Declare Result</h3>
+                <form onSubmit={handleDeclareResult} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#495057] mb-1">Category / Game</label>
+                    <select value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)} className="w-full border border-[#CED4DA] p-2 rounded text-xs font-semibold">
+                      {schedulesState.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                    </select>
                   </div>
-                ))}
+                  <div>
+                    <label className="block text-xs font-bold text-[#495057] mb-1">Winning Number (00-99)</label>
+                    <input type="text" maxLength={2} value={winningNumber} onChange={(e) => setWinningNumber(e.target.value.replace(/[^0-9]/g, ''))} placeholder="71" required className="w-full border border-[#007BFF] text-center font-mono font-bold text-lg p-2 rounded" />
+                  </div>
+                  <button type="submit" disabled={loading} className="w-full bg-[#28A745] text-white font-bold py-2.5 rounded shadow text-xs uppercase">{loading ? 'Processing...' : 'Declare Result'}</button>
+                </form>
               </div>
-            )}
-
-            {/* MODULE 20: SETTINGS */}
-            {activeTab === 'settings' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-5 max-w-xl space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Platform & Game Settings</h3>
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <label className="block text-[#495057] font-semibold mb-1">Whatsapp Message Number</label>
-                    <input type="text" value={settingsForm.whatsapp_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
-                  </div>
-                  <div>
-                    <label className="block text-[#495057] font-semibold mb-1">Whatsapp Call Number</label>
-                    <input type="text" value={settingsForm.whatsapp_call_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_call_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
-                  </div>
-                  <div>
-                    <label className="block text-[#495057] font-semibold mb-1">App Download Link</label>
-                    <input type="text" value={settingsForm.app_download_link} onChange={(e)=>setSettingsForm({...settingsForm, app_download_link: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
-                  </div>
-                  <button onClick={()=>setStatusMessage('Settings updated successfully!')} className="bg-[#007BFF] hover:bg-[#0069D9] text-white font-bold px-4 py-2 rounded text-xs shadow-sm">Save Settings</button>
-                </div>
-              </div>
-            )}
-
-            {/* MATRIX TAB */}
-            {activeTab === 'matrix' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-[#212529]">Live Real-Time Bet Volume Matrix (00 - 99)</h3>
-                  <select value={selectedGame} onChange={(e)=>setSelectedGame(e.target.value)} className="border border-[#CED4DA] px-3 py-1 rounded text-xs font-bold">
-                    {schedulesState.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-10 gap-1.5">
-                  {Array.from({ length: 100 }, (_, i) => {
-                    const numStr = String(i).padStart(2, '0');
-                    const vol = (gameVolumes[selectedGame] || {})[numStr] || 0;
+              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 lg:col-span-2">
+                <h3 className="text-base font-bold text-[#212529]">Declared Results List</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {schedulesState.map(s => {
+                    const resNum = resultsList[s.name];
                     return (
-                      <div key={i} className={`p-2 rounded text-center border text-xs font-mono font-bold ${vol > 0 ? 'bg-[#28A745] text-white border-[#28A745]' : 'bg-[#F8F9FA] border-[#DEE2E6] text-[#495057]'}`}>
-                        <div>{numStr}</div>
-                        <div className="text-[10px] font-normal opacity-90">₹{vol}</div>
+                      <div key={s.name} className="border border-[#DEE2E6] p-3 rounded bg-[#F8F9FA] text-center">
+                        <p className="text-xs font-bold text-[#6C757D]">{s.name}</p>
+                        <p className="text-2xl font-black text-[#007BFF] font-mono my-1">{resNum !== undefined ? String(resNum).padStart(2, '0') : '--'}</p>
                       </div>
                     );
                   })}
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-          </main>
-        </div>
+          {/* DEPOSITS APPROVALS */}
+          {activeTab === 'deposits' && (
+            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+              <h3 className="text-base font-bold text-[#212529]">Deposit History & Requests</h3>
+              <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                  <tr>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">UTN / RRN NO</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                    <th className="p-2.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deposits.map((d, i) => (
+                    <tr key={i} className="hover:bg-[#F4F6F9]">
+                      <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#007BFF]">{d.utr || 'N/A'}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
+                      <td className="p-2.5 text-right space-x-1">
+                        {d.status === 'Pending' && (
+                          <>
+                            <button onClick={() => handleApproveDeposit(d.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
+                            <button onClick={() => handleRejectDeposit(d.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* WITHDRAWS APPROVALS */}
+          {activeTab === 'withdraws' && (
+            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+              <h3 className="text-base font-bold text-[#212529]">Withdraw Requests (Min ₹500 - Winnings Only)</h3>
+              <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                  <tr>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">OrderID</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">User Name</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Phone</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Requested Amount</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Bank / UPI Details</th>
+                    <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                    <th className="p-2.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {withdrawals.map((w, i) => (
+                    <tr key={i} className="hover:bg-[#F4F6F9]">
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-xs">{w.id}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.user}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]">{w.userId}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#DC3545] font-bold">₹ {w.amount}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]">{w.bankDetails || w.upi}</td>
+                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{w.status}</span></td>
+                      <td className="p-2.5 text-right space-x-1">
+                        {w.status === 'Pending' && (
+                          <>
+                            <button onClick={() => handleApproveWithdrawal(w.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
+                            <button onClick={() => handleRejectWithdrawal(w.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* SETTINGS */}
+          {activeTab === 'settings' && (
+            <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-5 max-w-xl space-y-4">
+              <h3 className="text-base font-bold text-[#212529]">Platform & Game Settings</h3>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block text-[#495057] font-semibold mb-1">Whatsapp Message Number</label>
+                  <input type="text" value={settingsForm.whatsapp_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                </div>
+                <div>
+                  <label className="block text-[#495057] font-semibold mb-1">Whatsapp Call Number</label>
+                  <input type="text" value={settingsForm.whatsapp_call_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_call_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                </div>
+                <div>
+                  <label className="block text-[#495057] font-semibold mb-1">App Download Link</label>
+                  <input type="text" value={settingsForm.app_download_link} onChange={(e)=>setSettingsForm({...settingsForm, app_download_link: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded text-xs" />
+                </div>
+                <button onClick={()=>setStatusMessage('Settings updated successfully!')} className="bg-[#007BFF] text-white font-bold px-4 py-2 rounded text-xs shadow-sm">Save Settings</button>
+              </div>
+            </div>
+          )}
+
+        </main>
       </div>
 
-      {/* ADD USER MODAL */}
+      {/* MODALS */}
       {showAddUserModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-3 shadow-xl border border-[#DEE2E6] text-xs">
@@ -1399,7 +998,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ADD CATEGORY MODAL */}
       {showAddCategoryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-3 shadow-xl border border-[#DEE2E6] text-xs">
@@ -1408,20 +1006,6 @@ export default function App() {
               <div>
                 <label className="block text-[#495057] font-semibold mb-1">Category Name *</label>
                 <input type="text" value={newCatForm.category_name} onChange={(e)=>setNewCatForm({...newCatForm, category_name: e.target.value})} required className="w-full border border-[#CED4DA] p-2 rounded" />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[#495057] font-semibold mb-1">Open Time</label>
-                  <input type="text" value={newCatForm.open_time} onChange={(e)=>setNewCatForm({...newCatForm, open_time: e.target.value})} className="w-full border border-[#CED4DA] p-1.5 rounded" />
-                </div>
-                <div>
-                  <label className="block text-[#495057] font-semibold mb-1">Close Time</label>
-                  <input type="text" value={newCatForm.close_time} onChange={(e)=>setNewCatForm({...newCatForm, close_time: e.target.value})} className="w-full border border-[#CED4DA] p-1.5 rounded" />
-                </div>
-                <div>
-                  <label className="block text-[#495057] font-semibold mb-1">Result Time</label>
-                  <input type="text" value={newCatForm.result_time} onChange={(e)=>setNewCatForm({...newCatForm, result_time: e.target.value})} className="w-full border border-[#CED4DA] p-1.5 rounded" />
-                </div>
               </div>
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={()=>setShowAddCategoryModal(false)} className="flex-1 bg-[#6C757D] text-white py-2 rounded font-bold">Cancel</button>
@@ -1432,55 +1016,11 @@ export default function App() {
         </div>
       )}
 
-      {/* ADD BANNER MODAL */}
-      {showAddBannerModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-3 shadow-xl border border-[#DEE2E6] text-xs">
-            <h3 className="text-base font-bold text-[#212529] border-b pb-2">Add New Banner</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[#495057] font-semibold mb-1">Banner Name</label>
-                <input type="text" value={newBannerForm.banner_name} onChange={(e)=>setNewBannerForm({...newBannerForm, banner_name: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={()=>setShowAddBannerModal(false)} className="flex-1 bg-[#6C757D] text-white py-2 rounded font-bold">Cancel</button>
-                <button type="button" onClick={()=>{ setStatusMessage('Banner added!'); setShowAddBannerModal(false); }} className="flex-1 bg-[#007BFF] text-white py-2 rounded font-bold">Save Banner</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ADD PACKAGE MODAL */}
-      {showAddPackageModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-3 shadow-xl border border-[#DEE2E6] text-xs">
-            <h3 className="text-base font-bold text-[#212529] border-b pb-2">Add App Package</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[#495057] font-semibold mb-1">App Name</label>
-                <input type="text" value={newPkgForm.app_name} onChange={(e)=>setNewPkgForm({...newPkgForm, app_name: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
-              </div>
-              <div>
-                <label className="block text-[#495057] font-semibold mb-1">APK Link</label>
-                <input type="text" value={newPkgForm.apk_link} onChange={(e)=>setNewPkgForm({...newPkgForm, apk_link: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded font-mono text-[11px]" />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={()=>setShowAddPackageModal(false)} className="flex-1 bg-[#6C757D] text-white py-2 rounded font-bold">Cancel</button>
-                <button type="button" onClick={()=>{ setStatusMessage('Package updated!'); setShowAddPackageModal(false); }} className="flex-1 bg-[#007BFF] text-white py-2 rounded font-bold">Save Package</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* WALLET EDIT MODAL */}
       {showWalletModal && walletTargetUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-4 shadow-xl border border-[#DEE2E6]">
             <h3 className="text-base font-bold text-[#212529]">Credit / Debit User Wallet</h3>
             <p className="text-xs text-[#6C757D]">Target User: <strong className="text-[#212529]">{walletTargetUser.name} ({walletTargetUser.mobile})</strong></p>
-
             <form onSubmit={handleWalletAdjustSubmit} className="space-y-3 text-xs">
               <div>
                 <label className="block text-[#495057] font-semibold mb-1">Action Type</label>
@@ -1489,12 +1029,10 @@ export default function App() {
                   <button type="button" onClick={()=>setWalletActionType('deduct')} className={`flex-1 py-1.5 rounded font-bold border ${walletActionType==='deduct'?'bg-[#DC3545] text-white border-[#DC3545]':'bg-[#F8F9FA] text-[#212529] border-[#CED4DA]'}`}>- DEBIT CASH</button>
                 </div>
               </div>
-
               <div>
                 <label className="block text-[#495057] font-semibold mb-1">Amount (₹)</label>
                 <input type="number" value={walletAmtInput} onChange={(e)=>setWalletAmtInput(e.target.value)} required className="w-full border border-[#CED4DA] p-2 rounded font-mono font-bold text-sm" />
               </div>
-
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={()=>setShowWalletModal(false)} className="flex-1 bg-[#6C757D] text-white py-2 rounded font-bold">Cancel</button>
                 <button type="submit" className="flex-1 bg-[#007BFF] text-white py-2 rounded font-bold">Submit</button>
