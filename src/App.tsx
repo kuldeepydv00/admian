@@ -176,6 +176,7 @@ function App() {
     minWithdrawal: '300',
     imageUrl: ''
   });
+  const [stagedBannerImage, setStagedBannerImage] = useState<string>('');
 
   const fetchAdminEndpoint = async (endpoint: string) => {
     return fetch(`https://matka-r6mz.onrender.com${endpoint}`);
@@ -1281,20 +1282,30 @@ function App() {
 
                 <form onSubmit={async (e) => {
                   e.preventDefault();
+                  const targetImage = stagedBannerImage || bannerConfig.imageUrl;
+                  if (!targetImage) {
+                    setStatusMessage('⚠️ Please select an image file first!');
+                    return;
+                  }
+
+                  const newConfig = { ...bannerConfig, imageUrl: targetImage };
                   try {
                     const res = await postAdminEndpoint('/api/admin/update-banner', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(bannerConfig)
+                      body: JSON.stringify(newConfig)
                     });
                     if (res.ok) {
                       const data = await res.json();
                       if (data.bannerConfig) {
                         setBannerConfig(data.bannerConfig);
                       }
+                      setStagedBannerImage('');
                       setStatusMessage('🖼️ App Banner Image published successfully!');
                     }
-                  } catch (err) {}
+                  } catch (err) {
+                    setStatusMessage('⚠️ Network error uploading banner.');
+                  }
                 }} className="space-y-6">
 
                   <div className="border-2 border-dashed border-[#3B82F6]/50 hover:border-[#3B82F6] bg-[#0F172A] p-8 rounded-2xl text-center transition-all">
@@ -1310,11 +1321,11 @@ function App() {
                         if (file) {
                           try {
                             const resized = await resizeImageFile(file);
-                            setBannerConfig(prev => ({ ...prev, imageUrl: resized }));
+                            setStagedBannerImage(resized);
                           } catch (err) {
                             const reader = new FileReader();
                             reader.onloadend = () => {
-                              setBannerConfig(prev => ({ ...prev, imageUrl: reader.result as string }));
+                              setStagedBannerImage(reader.result as string);
                             };
                             reader.readAsDataURL(file);
                           }
@@ -1333,12 +1344,13 @@ function App() {
                       <span>🚀</span> Publish Banner Image to App
                     </button>
 
-                    {bannerConfig.imageUrl && (
+                    {(bannerConfig.imageUrl || stagedBannerImage) && (
                       <button
                         type="button"
                         onClick={async () => {
                           const newConfig = { ...bannerConfig, imageUrl: '' };
                           setBannerConfig(newConfig);
+                          setStagedBannerImage('');
                           await postAdminEndpoint('/api/admin/update-banner', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1364,7 +1376,14 @@ function App() {
                 <p className="text-xs text-[#94A3B8] mb-6">This preview shows your uploaded image auto-sized for mobile screens.</p>
 
                 <div className="relative overflow-hidden rounded-2xl border border-[#334155] bg-[#0F172A] p-4 min-h-[160px] flex items-center justify-center">
-                  {bannerConfig.imageUrl ? (
+                  {stagedBannerImage ? (
+                    <div className="space-y-2 text-center w-full">
+                      <div className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-full text-[10px] font-bold inline-block">
+                        ⚠️ New Selected Image (Click "Publish Banner Image to App" to save)
+                      </div>
+                      <img src={stagedBannerImage} alt="Selected Banner" className="w-full h-auto rounded-xl object-contain shadow-lg" />
+                    </div>
+                  ) : bannerConfig.imageUrl ? (
                     <img src={bannerConfig.imageUrl} alt="Uploaded Banner" className="w-full h-auto rounded-xl object-contain shadow-lg" />
                   ) : (
                     <div className="text-center text-[#64748B] py-8">
