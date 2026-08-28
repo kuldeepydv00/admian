@@ -90,7 +90,7 @@ const resizeImageFile = (file: File): Promise<string> => {
 };
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'deposits' | 'withdrawals' | 'matrix' | 'results' | 'dashboard' | 'users' | 'settings' | 'notifications' | 'audit' | 'banner'>('deposits');
+  const [activeTab, setActiveTab] = useState<'deposits' | 'withdrawals' | 'matrix' | 'results' | 'dashboard' | 'users' | 'settings' | 'notifications' | 'audit' | 'banner' | 'referral'>('deposits');
   const [selectedGame, setSelectedGame] = useState('Gali');
   const [matrixGame, setMatrixGame] = useState('Gali');
   const [winningNumber, setWinningNumber] = useState('');
@@ -99,6 +99,13 @@ function App() {
   const [searchMobile, setSearchMobile] = useState('');
   const [userFilter, setUserFilter] = useState<'all' | 'today' | 'month'>('all');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Referral Settings State
+  const [referralConfig, setReferralConfig] = useState({
+    enabled: true,
+    signupBonus: 50,
+    commissionPercentage: 4
+  });
 
   // Push Notification state
   const [notifTitle, setNotifTitle] = useState('🎉 Winner Announcement!');
@@ -167,7 +174,7 @@ function App() {
 
   const fetchLiveData = async () => {
     try {
-      const [matRes, depRes, wdRes, usrRes, decRes, schRes, statsRes, banRes] = await Promise.all([
+      const [matRes, depRes, wdRes, usrRes, decRes, schRes, statsRes, banRes, refRes] = await Promise.all([
         fetchAdminEndpoint('/api/admin/matrix'),
         fetchAdminEndpoint('/api/admin/deposits'),
         fetchAdminEndpoint('/api/admin/withdrawals'),
@@ -175,10 +182,12 @@ function App() {
         fetchAdminEndpoint('/api/admin/declared-results'),
         fetchAdminEndpoint('/api/admin/schedules'),
         fetchAdminEndpoint('/api/admin/stats'),
-        fetchAdminEndpoint('/api/admin/banner')
+        fetchAdminEndpoint('/api/admin/banner'),
+        fetchAdminEndpoint('/api/admin/referral-config')
       ]);
 
       if (banRes && banRes.ok) setBannerConfig(await banRes.json());
+      if (refRes && refRes.ok) setReferralConfig(await refRes.json());
 
       if (matRes.ok) setGameVolumes(await matRes.json());
       if (depRes.ok) {
@@ -537,6 +546,7 @@ function App() {
           {[
             { id: 'deposits', label: 'Deposit Requests', icon: '💳' },
             { id: 'withdrawals', label: 'Withdrawal Requests', icon: '🏦' },
+            { id: 'referral', label: 'Referral Control', icon: '🎁' },
             { id: 'banner', label: 'App Banner Control', icon: '🖼️' },
             { id: 'matrix', label: 'Number Bet Matrix', icon: '🎰' },
             { id: 'results', label: 'Declare Result', icon: '🎯' },
@@ -1399,6 +1409,122 @@ function App() {
                     <span className="text-xs text-[#64748B] font-mono">{log.time}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 10: REFERRAL CONTROL */}
+          {activeTab === 'referral' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Referral Settings Form */}
+                <div className="bg-[#1E293B] p-6 rounded-2xl border border-[#334155] shadow-xl">
+                  <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                    <span>🎁</span> Referral & Bet Commission Settings
+                  </h2>
+                  <p className="text-xs text-[#94A3B8] mb-6">Configure referral reward bonus and lifetime bet commission percentage for players.</p>
+
+                  <form 
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const res = await postAdminEndpoint('/api/admin/update-referral-config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(referralConfig)
+                      });
+                      if (res.ok) {
+                        setStatusMessage('✅ Referral Settings updated successfully!');
+                        fetchLiveData();
+                      }
+                    }} 
+                    className="space-y-5"
+                  >
+                    <div>
+                      <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2">Referral Bet Commission (%)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          max="50"
+                          value={referralConfig.commissionPercentage}
+                          onChange={(e) => setReferralConfig({ ...referralConfig, commissionPercentage: parseFloat(e.target.value) || 0 })}
+                          className="w-full bg-[#0F172A] border border-[#334155] rounded-xl p-3.5 text-lg text-white font-mono font-bold focus:outline-none focus:border-[#3B82F6] pr-10"
+                        />
+                        <span className="absolute right-4 top-3.5 text-[#94A3B8] font-bold">%</span>
+                      </div>
+                      <p className="text-[11px] text-[#64748B] mt-1.5">Percentage of every bet placed by a referred friend credited to the referrer's wallet.</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2">Instant Signup Referral Bonus (₹)</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-3.5 text-[#94A3B8] font-bold">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={referralConfig.signupBonus}
+                          onChange={(e) => setReferralConfig({ ...referralConfig, signupBonus: parseFloat(e.target.value) || 0 })}
+                          className="w-full bg-[#0F172A] border border-[#334155] rounded-xl p-3.5 text-lg text-white font-mono font-bold focus:outline-none focus:border-[#3B82F6] pl-9"
+                        />
+                      </div>
+                      <p className="text-[11px] text-[#64748B] mt-1.5">One-time instant wallet reward credited when a new player registers with a referral code.</p>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-[#0F172A] rounded-xl border border-[#334155]">
+                      <div>
+                        <p className="text-sm font-bold text-white">Enable Referral Program</p>
+                        <p className="text-xs text-[#64748B]">Toggle referral bonus and bet commission rewards on/off.</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={referralConfig.enabled}
+                        onChange={(e) => setReferralConfig({ ...referralConfig, enabled: e.target.checked })}
+                        className="w-5 h-5 accent-[#3B82F6] rounded cursor-pointer"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-[#F1F5F9] font-black py-4 rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-blue-500/20 text-sm tracking-wider uppercase flex items-center justify-center gap-2"
+                    >
+                      <span>🚀</span> Save Referral Settings
+                    </button>
+                  </form>
+                </div>
+
+                {/* Live Preview Card */}
+                <div className="bg-[#1E293B] p-6 rounded-2xl border border-[#334155] shadow-xl flex flex-col justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                      <span>📱</span> Referral Program Live Preview
+                    </h2>
+                    <p className="text-xs text-[#94A3B8] mb-6">Live summary of how your referral rewards are configured across the app and website.</p>
+
+                    <div className="bg-[#0F172A] p-5 rounded-2xl border border-[#334155] space-y-4">
+                      <div className="flex justify-between items-center pb-3 border-b border-[#1E293B]">
+                        <span className="text-xs font-semibold text-[#94A3B8]">Status</span>
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${referralConfig.enabled ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                          {referralConfig.enabled ? '🟢 Active' : '🔴 Disabled'}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center pb-3 border-b border-[#1E293B]">
+                        <span className="text-xs font-semibold text-[#94A3B8]">Bet Commission Rate</span>
+                        <span className="text-lg font-mono font-black text-[#22C55E]">{referralConfig.commissionPercentage}%</span>
+                      </div>
+
+                      <div className="flex justify-between items-center pb-3 border-b border-[#1E293B]">
+                        <span className="text-xs font-semibold text-[#94A3B8]">Signup Bonus Reward</span>
+                        <span className="text-lg font-mono font-black text-[#F3D079]">₹{referralConfig.signupBonus}</span>
+                      </div>
+
+                      <div className="p-3.5 bg-[#182234] rounded-xl border border-amber-400/30 text-xs text-[#FFE485]">
+                        💡 <strong>Example:</strong> If Player Y places a <strong>₹100 bet</strong>, Referrer X instantly earns <strong>₹{((100 * (referralConfig.commissionPercentage || 4)) / 100).toFixed(2)}</strong> ({referralConfig.commissionPercentage}% of ₹100)!
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
