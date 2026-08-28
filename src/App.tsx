@@ -202,7 +202,7 @@ function App() {
       ]);
 
       if (banRes && banRes.ok) setBannerConfig(await banRes.json());
-      if (refRes && refRes.ok) setReferralConfig(await refRes.json());
+      if (refRes && refRes.ok && activeTab !== 'referral') setReferralConfig(await refRes.json());
       if (refStatsRes && refStatsRes.ok) setReferralStats(await refStatsRes.json());
 
       if (matRes.ok) setGameVolumes(await matRes.json());
@@ -1490,21 +1490,6 @@ function App() {
                       <p className="text-[11px] text-[#64748B] mt-1.5">Percentage of every bet placed by a referred friend credited to the referrer's wallet.</p>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2">Instant Signup Referral Bonus (₹)</label>
-                      <div className="relative flex items-center">
-                        <span className="absolute left-4 text-[#94A3B8] font-bold">₹</span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={referralConfig.signupBonus}
-                          onChange={(e) => setReferralConfig({ ...referralConfig, signupBonus: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-[#0F172A] border border-[#334155] rounded-xl py-3.5 pl-10 pr-4 text-lg text-white font-mono font-bold focus:outline-none focus:border-[#3B82F6]"
-                        />
-                      </div>
-                      <p className="text-[11px] text-[#64748B] mt-1.5">One-time instant wallet reward credited when a new player registers with a referral code.</p>
-                    </div>
-
                     <div className="flex items-center justify-between p-4 bg-[#0F172A] rounded-xl border border-[#334155]">
                       <div>
                         <p className="text-sm font-bold text-white">Enable Referral Program</p>
@@ -1546,11 +1531,6 @@ function App() {
                       <div className="flex justify-between items-center pb-3 border-b border-[#1E293B]">
                         <span className="text-xs font-semibold text-[#94A3B8]">Bet Commission Rate</span>
                         <span className="text-lg font-mono font-black text-[#22C55E]">{referralConfig.commissionPercentage}%</span>
-                      </div>
-
-                      <div className="flex justify-between items-center pb-3 border-b border-[#1E293B]">
-                        <span className="text-xs font-semibold text-[#94A3B8]">Signup Bonus Reward</span>
-                        <span className="text-lg font-mono font-black text-[#F3D079]">₹{referralConfig.signupBonus}</span>
                       </div>
 
                       <div className="p-3.5 bg-[#182234] rounded-xl border border-amber-400/30 text-xs text-[#FFE485]">
