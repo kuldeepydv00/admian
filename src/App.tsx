@@ -634,10 +634,39 @@ export default function App() {
         {/* MAIN BODY AREA */}
         <main className="p-6 space-y-6">
 
-          {/* DASHBOARD: MATCHING REFERENCE SCREENSHOT media_1787945441337.png EXACTLY! */}
+          {/* DASHBOARD: MATCHING REFERENCE SCREENSHOT media_1787945802425.png EXACTLY! */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              {/* TOP CONTROLS ROW: Graph Start Date, Graph End Date, Chart Type (Matching media_1787945441337.png Top Bar 100%) */}
+              {/* TOP SECTION: AdminLTE 13 Small Box Stat Cards (Shifted Upward to Very Top!) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[
+                  { title: 'Total Users', value: users.length || stats.users || 10, bg: 'bg-[#17A2B8]', icon: '👥' },
+                  { title: 'Today New User', value: stats.dailyNewUsers || 1, bg: 'bg-[#17A2B8]', icon: '👤' },
+                  { title: 'Total Deposite', value: '200', bg: 'bg-[#28A745]', icon: '💳' },
+                  { title: 'Today Deposite', value: '0', bg: 'bg-[#28A745]', icon: '💵' },
+                  { title: 'Total winnings', value: '3168', bg: 'bg-[#FFC107]', icon: '🏆' },
+                  { title: 'Today winning', value: '0', bg: 'bg-[#FFC107]', icon: '🎖️' },
+                  { title: 'Total Betting', value: '3570', bg: 'bg-[#DC3545]', icon: '🎰' },
+                  { title: 'Today Betting', value: '0', bg: 'bg-[#DC3545]', icon: '🎲' },
+                  { title: 'Total Balance(Wallet)', value: '132', bg: 'bg-[#007BFF]', icon: '👛' },
+                  { title: 'Total Deposit(Wallet)', value: '0', bg: 'bg-[#007BFF]', icon: '🏦' },
+                  { title: 'Total Winning(Wallet)', value: '132', bg: 'bg-[#6C757D]', icon: '💰' },
+                  { title: 'Total Commission(Wallet)', value: '0', bg: 'bg-[#6C757D]', icon: '🎁' },
+                  { title: 'Total Bonus(Wallet)', value: '2000', bg: 'bg-[#6C757D]', icon: '🎁' }
+                ].map((card, i) => (
+                  <div key={i} className={`rounded ${card.bg} text-white p-4 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[100px]`}>
+                    <div>
+                      <h3 className="text-2xl font-bold font-mono">{card.value}</h3>
+                      <p className="text-xs font-semibold text-white/90 mt-1">{card.title}</p>
+                    </div>
+                    <div className="absolute right-3 top-3 text-3xl opacity-20 pointer-events-none">
+                      {card.icon}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* MIDDLE SECTION: Graph Date & Chart Type Control Bar */}
               <div className="bg-white p-4 rounded-lg border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[#212529] mb-1">Graph Start Date</label>
@@ -677,7 +706,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* GRAPH 1: DEPOSITS CHART (Matching media_1787945441337.png) */}
+              {/* BOTTOM SECTION: GRAPH 1 DEPOSITS CHART */}
               <CanvasChart
                 title="Deposits"
                 color="#007BFF"
@@ -685,42 +714,13 @@ export default function App() {
                 chartType={chartType}
               />
 
-              {/* GRAPH 2: WITHDRAWS CHART (Matching media_1787945441337.png) */}
+              {/* GRAPH 2: WITHDRAWS CHART */}
               <CanvasChart
                 title="Withdraws"
                 color="#DC3545"
                 dataPoints={[10, 30, 25, 40, 30, 70]}
                 chartType={chartType}
               />
-
-              {/* AdminLTE Small Box Stat Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-4">
-                {[
-                  { title: 'Total Users', value: users.length || stats.users || 1, bg: 'bg-[#17A2B8]', icon: '👥' },
-                  { title: 'Today New User', value: stats.dailyNewUsers || 0, bg: 'bg-[#17A2B8]', icon: '👤' },
-                  { title: 'Total Deposite', value: '200', bg: 'bg-[#28A745]', icon: '💳' },
-                  { title: 'Today Deposite', value: '0', bg: 'bg-[#28A745]', icon: '💵' },
-                  { title: 'Total winnings', value: '3168', bg: 'bg-[#FFC107]', icon: '🏆' },
-                  { title: 'Today winning', value: '0', bg: 'bg-[#FFC107]', icon: '🎖️' },
-                  { title: 'Total Betting', value: '3570', bg: 'bg-[#DC3545]', icon: '🎰' },
-                  { title: 'Today Betting', value: '0', bg: 'bg-[#DC3545]', icon: '🎲' },
-                  { title: 'Total Balance(Wallet)', value: '132', bg: 'bg-[#007BFF]', icon: '👛' },
-                  { title: 'Total Deposit(Wallet)', value: '0', bg: 'bg-[#007BFF]', icon: '🏦' },
-                  { title: 'Total Winning(Wallet)', value: '132', bg: 'bg-[#6C757D]', icon: '💰' },
-                  { title: 'Total Commission(Wallet)', value: '0', bg: 'bg-[#6C757D]', icon: '🎁' },
-                  { title: 'Total Bonus(Wallet)', value: `${users.length * 200}`, bg: 'bg-[#6C757D]', icon: '🎁' }
-                ].map((card, i) => (
-                  <div key={i} className={`rounded ${card.bg} text-white p-4 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[100px]`}>
-                    <div>
-                      <h3 className="text-2xl font-bold font-mono">{card.value}</h3>
-                      <p className="text-xs font-semibold text-white/90 mt-1">{card.title}</p>
-                    </div>
-                    <div className="absolute right-3 top-3 text-3xl opacity-20 pointer-events-none">
-                      {card.icon}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
