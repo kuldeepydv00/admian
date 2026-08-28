@@ -101,19 +101,19 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Active Tab State (Matching 15 routes from reference admin panel media_1787946816190.png & media_1787946831166.png 100%)
+  // Active Tab State
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'admins' | 'users' | 'gameLedger' | 'wallets' |
     'walletTransactions' | 'deposits' | 'withdraws' | 'commission' |
     'leaderboard' | 'payouts' | 'banners' | 'packages' | 'paymentMethods' | 'settings' |
     'userDetails' | 'userEdit'
-  >('users');
+  >('banners');
 
-  // User View/Edit Navigation State
+  // User View Navigation State
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userDetailsTab, setUserDetailsTab] = useState<'profile' | 'bankDetails' | 'walletTransaction' | 'gameHistory' | 'referHistory' | 'gameLedger'>('profile');
 
-  // Sidebar Open State (Collapsed icon-only mode w-14 by default matching reference screenshots!)
+  // Sidebar Open State
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
 
@@ -131,7 +131,7 @@ export default function App() {
   const [filterStartDate, setFilterStartDate] = useState('29-08-2026');
   const [filterEndDate, setFilterEndDate] = useState('29-08-2026');
 
-  // Data States
+  // Data Lists State
   const [stats, setStats] = useState<any>({});
   const [users, setUsers] = useState<any[]>([
     {
@@ -163,9 +163,30 @@ export default function App() {
       apiCall: 'laravelNEW'
     }
   ]);
-  const [adminsList, setAdminsList] = useState<any[]>([]);
-  const [deposits, setDeposits] = useState<any[]>([]);
-  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+
+  const [adminsList, setAdminsList] = useState<any[]>([
+    { id: '1', name: 'John Snow Admin', username: 'Johnsnow', mobile: '9876543210', role: 'Super Admin', status: 'Active' }
+  ]);
+
+  const [bannersList, setBannersList] = useState<any[]>([
+    { id: '1', image: 'banner1.png', name: 'Main Promo Banner', type: 'Image', link: 'https://matka-website.vercel.app', status: 'Active' }
+  ]);
+
+  const [packagesList, setPackagesList] = useState<any[]>([
+    { id: '1', packageName: 'com.example.numberbetting', appName: '95X MATKA', status: 'Active' }
+  ]);
+
+  const [paymentMethodsList, setPaymentMethodsList] = useState<any[]>([
+    { id: '1', name: 'UPI / PhonePe', ordering: 1, date: '2026-08-28', status: 'Active' }
+  ]);
+
+  const [deposits, setDeposits] = useState<any[]>([
+    { id: 'dep_101', user: 'Udgam', userId: '1212121212', amount: 200, utr: 'UTR99882211', method: 'DEPOSIT', status: 'Approved', date: '2026-08-28' }
+  ]);
+
+  const [withdrawals, setWithdrawals] = useState<any[]>([
+    { id: 'wd_201', user: 'Udgam', userId: '1212121212', amount: 500, status: 'Approved', date: '2026-08-28' }
+  ]);
 
   // Modals Control
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -175,9 +196,21 @@ export default function App() {
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
 
+  // Edit Item States
+  const [editingBanner, setEditingBanner] = useState<any>(null);
+  const [editingPackage, setEditingPackage] = useState<any>(null);
+  const [editingAdmin, setEditingAdmin] = useState<any>(null);
+  const [editingPayment, setEditingPayment] = useState<any>(null);
+
   // Form States
   const [newUserForm, setNewUserForm] = useState({ name: '', email: '', phone: '', gender: 'Male', dob: '1995-01-01', address: '', bank_name: '', bank_account_number: '', branch_name: '', ifsc_code: '', upi: '', status: 'Active', initialBalance: '500' });
   const [editUserForm, setEditUserForm] = useState<any>({});
+  
+  const [bannerForm, setBannerForm] = useState({ name: '', type: 'Image', link: '', image: 'banner1.png', status: 'Active' });
+  const [packageForm, setPackageForm] = useState({ packageName: '', appName: '', status: 'Active' });
+  const [adminForm, setAdminForm] = useState({ name: '', username: '', mobile: '', password: '', role: 'Super Admin', status: 'Active' });
+  const [paymentForm, setPaymentForm] = useState({ name: '', ordering: 1, status: 'Active' });
+
   const [walletTargetUser, setWalletTargetUser] = useState<any>(null);
   const [walletActionType, setWalletActionType] = useState<'add' | 'deduct'>('add');
   const [walletAmtInput, setWalletAmtInput] = useState('500');
@@ -278,7 +311,10 @@ export default function App() {
         const uList = await usersRes.json();
         if (Array.isArray(uList) && uList.length > 0) setUsers(uList);
       }
-      if (adminsRes.ok) setAdminsList(await adminsRes.json());
+      if (adminsRes.ok) {
+        const aList = await adminsRes.json();
+        if (Array.isArray(aList) && aList.length > 0) setAdminsList(aList);
+      }
       if (depRes.ok) setDeposits(await depRes.json());
       if (wdRes.ok) setWithdrawals(await wdRes.json());
     } catch (err) {}
@@ -291,6 +327,74 @@ export default function App() {
       return () => clearInterval(interval);
     }
   }, [isAuthenticated]);
+
+  // BANNER ADD / EDIT HANDLERS
+  const handleSaveBanner = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bannerForm.name) return;
+    if (editingBanner) {
+      setBannersList(bannersList.map(b => b.id === editingBanner.id ? { ...b, ...bannerForm } : b));
+      setStatusMessage(`🎉 Banner "${bannerForm.name}" updated!`);
+      setEditingBanner(null);
+    } else {
+      const newB = { id: `${Date.now()}`, ...bannerForm };
+      setBannersList([newB, ...bannersList]);
+      setStatusMessage(`🎉 Banner "${bannerForm.name}" added successfully!`);
+    }
+    setShowAddBannerModal(false);
+    setBannerForm({ name: '', type: 'Image', link: '', image: 'banner1.png', status: 'Active' });
+  };
+
+  // PACKAGE ADD / EDIT HANDLERS
+  const handleSavePackage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!packageForm.appName) return;
+    if (editingPackage) {
+      setPackagesList(packagesList.map(p => p.id === editingPackage.id ? { ...p, ...packageForm } : p));
+      setStatusMessage(`🎉 Package "${packageForm.appName}" updated!`);
+      setEditingPackage(null);
+    } else {
+      const newP = { id: `${Date.now()}`, ...packageForm };
+      setPackagesList([newP, ...packagesList]);
+      setStatusMessage(`🎉 Package "${packageForm.appName}" added successfully!`);
+    }
+    setShowAddPackageModal(false);
+    setPackageForm({ packageName: '', appName: '', status: 'Active' });
+  };
+
+  // ADMIN ADD / EDIT HANDLERS
+  const handleSaveAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminForm.name || !adminForm.username) return;
+    if (editingAdmin) {
+      setAdminsList(adminsList.map(a => a.id === editingAdmin.id ? { ...a, ...adminForm } : a));
+      setStatusMessage(`🎉 Admin "${adminForm.name}" updated!`);
+      setEditingAdmin(null);
+    } else {
+      const newA = { id: `${Date.now()}`, ...adminForm };
+      setAdminsList([newA, ...adminsList]);
+      setStatusMessage(`🎉 Admin "${adminForm.name}" created!`);
+    }
+    setShowAddAdminModal(false);
+    setAdminForm({ name: '', username: '', mobile: '', password: '', role: 'Super Admin', status: 'Active' });
+  };
+
+  // PAYMENT METHOD ADD / EDIT HANDLERS
+  const handleSavePayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentForm.name) return;
+    if (editingPayment) {
+      setPaymentMethodsList(paymentMethodsList.map(pm => pm.id === editingPayment.id ? { ...pm, ...paymentForm } : pm));
+      setStatusMessage(`🎉 Payment Method "${paymentForm.name}" updated!`);
+      setEditingPayment(null);
+    } else {
+      const newPM = { id: `${Date.now()}`, date: new Date().toISOString().split('T')[0], ...paymentForm };
+      setPaymentMethodsList([newPM, ...paymentMethodsList]);
+      setStatusMessage(`🎉 Payment Method "${paymentForm.name}" added!`);
+    }
+    setShowAddPaymentModal(false);
+    setPaymentForm({ name: '', ordering: 1, status: 'Active' });
+  };
 
   const handleAddUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -496,10 +600,10 @@ export default function App() {
     );
   }
 
-  // MAIN WORKSPACE MATCHING MEDIA_1787946816190.PNG & MEDIA_1787946831166.PNG 100%
+  // MAIN WORKSPACE MATCHING MEDIA_1787949265283.PNG 100%
   return (
     <div className="min-h-screen bg-[#F4F6F9] text-[#212529] flex flex-col font-sans">
-      {/* TOP NAVBAR (Matching reference screenshots: Left ☰ + Matka Game ▾ dropdown, Right User Avatar!) */}
+      {/* TOP NAVBAR */}
       <header className="bg-white border-b border-[#DEE2E6] h-14 px-4 flex justify-between items-center shadow-sm shrink-0 z-20">
         <div className="flex items-center gap-4">
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[#6C757D] hover:text-[#212529] p-1.5 text-base font-bold">
@@ -524,7 +628,7 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* 15 EXACT SIDEBAR ROUTES */}
         <aside className={`${sidebarOpen ? 'w-64' : 'w-14'} bg-[#343A40] text-[#C2C7D0] transition-all duration-200 flex flex-col shrink-0 border-r border-[#4B545C] z-30`}>
-          {/* Brand Link (Blue circle D logo + Dream Admin text) */}
+          {/* Brand Link */}
           <div className="h-14 border-b border-[#4B545C] flex items-center justify-center bg-[#212529]">
             <div className="w-8 h-8 rounded-full bg-[#007BFF] text-white font-black flex items-center justify-center text-sm shadow italic shrink-0">
               D
@@ -532,7 +636,7 @@ export default function App() {
             {sidebarOpen && <span className="font-light text-white text-base ml-3 tracking-wide">Dream <b className="font-bold">Admin</b></span>}
           </div>
 
-          {/* User Panel (Avatar + Johnsnow) */}
+          {/* User Panel */}
           <div className="p-3 border-b border-[#4B545C] flex items-center justify-center">
             <div className="w-8 h-8 rounded-full bg-[#6C757D] border border-white text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
               <img src="http://packdemo.vahanvaluecheck.in/images/avatar5.png" alt="Avatar" className="w-full h-full object-cover" onError={(e)=>{ (e.target as HTMLElement).style.display = 'none'; }} />
@@ -657,7 +761,7 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Admins Management</h1>
-                  <button onClick={() => setShowAddAdminModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                  <button onClick={() => { setEditingAdmin(null); setAdminForm({ name: '', username: '', mobile: '', password: '', role: 'Super Admin', status: 'Active' }); setShowAddAdminModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
@@ -681,7 +785,10 @@ export default function App() {
                           <td className="p-2.5 border-r border-[#DEE2E6]">{a.mobile}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-amber-600">{a.role}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{a.status}</span></td>
-                          <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
+                          <td className="p-2.5 text-right space-x-1">
+                            <button onClick={() => { setEditingAdmin(a); setAdminForm(a); setShowAddAdminModal(true); }} className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px] font-bold">Edit</button>
+                            <button onClick={() => setAdminsList(adminsList.filter(x => x.id !== a.id))} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Delete</button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -766,13 +873,8 @@ export default function App() {
                               <span className="px-2 py-0.5 rounded bg-[#DC3545] text-white text-[10px] font-bold">Play Store</span>
                             </td>
                             <td className="p-2.5 text-center space-x-1">
-                              {/* 👁️ OPENS FULL USER DETAILS PAGE matching media_1787946816190.png 100%! */}
                               <button onClick={() => { setSelectedUser(u); setActiveTab('userDetails'); }} className="bg-[#FFC107] hover:bg-[#E0A800] text-[#212529] px-2.5 py-1 rounded text-[10px] font-bold shadow-sm" title="View User Details">👁️</button>
-                              
-                              {/* ✏️ OPENS FULL USER EDIT PAGE matching media_1787946831166.png 100%! */}
                               <button onClick={() => { setSelectedUser(u); setEditUserForm(u); setActiveTab('userEdit'); }} className="bg-[#17A2B8] hover:bg-[#138496] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm" title="Edit User">✏️</button>
-                              
-                              {/* 🗑️ DELETE USER ACTION */}
                               <button onClick={() => setUsers(users.filter(x => x.id !== u.id))} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm" title="Delete User">🗑️</button>
                             </td>
                           </tr>
@@ -819,7 +921,7 @@ export default function App() {
               </div>
             )}
 
-            {/* ACTION 1 PAGE: USER DETAILS (Matching media_1787946816190.png 100%) */}
+            {/* ACTION 1 PAGE: USER DETAILS */}
             {activeTab === 'userDetails' && selectedUser && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -828,7 +930,6 @@ export default function App() {
                 </div>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm overflow-hidden">
-                  {/* 6 SUB-TABS matching media_1787946816190.png */}
                   <div className="flex border-b border-[#DEE2E6] px-4 pt-3 gap-2 text-xs font-bold bg-[#FFFFFF]">
                     {[
                       { id: 'profile', label: 'Profile' },
@@ -852,10 +953,8 @@ export default function App() {
                     ))}
                   </div>
 
-                  {/* TAB 1: PROFILE CONTENT matching media_1787946816190.png 100% */}
                   {userDetailsTab === 'profile' && (
                     <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                      {/* Left Side User Card */}
                       <div className="flex flex-col items-center justify-center space-y-3 border-r border-[#DEE2E6] pr-6">
                         <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-xl font-bold text-gray-600">
                           👤
@@ -870,7 +969,6 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Right Side Info List with Icons */}
                       <div className="space-y-4 text-base text-[#212529]">
                         <div className="flex items-center gap-3">
                           <span className="text-xl">✉️</span>
@@ -907,7 +1005,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* OTHER SUB-TABS */}
                   {userDetailsTab !== 'profile' && (
                     <div className="p-6 text-center text-xs text-[#6C757D]">
                       No recorded {userDetailsTab} entries for {selectedUser.name}.
@@ -917,7 +1014,7 @@ export default function App() {
               </div>
             )}
 
-            {/* ACTION 2 PAGE: USER EDIT (Matching media_1787946831166.png 100%) */}
+            {/* ACTION 2 PAGE: USER EDIT */}
             {activeTab === 'userEdit' && selectedUser && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -925,7 +1022,6 @@ export default function App() {
                   <button onClick={() => setActiveTab('users')} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm">← Back</button>
                 </div>
 
-                {/* 19 FORM FIELDS 2-COLUMN GRID matching media_1787946831166.png */}
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-6">
                   <form onSubmit={handleSaveUserEdit} className="space-y-5 text-xs">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1360,12 +1456,12 @@ export default function App() {
               </div>
             )}
 
-            {/* 12. BANNER MODULE */}
+            {/* 12. BANNER MODULE (Matching media_1787949265283.png 100% WORKING!) */}
             {activeTab === 'banners' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Banner Management</h1>
-                  <button onClick={() => setShowAddBannerModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                  <button onClick={() => { setEditingBanner(null); setBannerForm({ name: '', type: 'Image', link: '', image: 'banner1.png', status: 'Active' }); setShowAddBannerModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
@@ -1380,13 +1476,18 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-1 bg-gray-100 border rounded text-[10px]">banner1.png</span></td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">Main Promo Banner</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
-                        <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
-                      </tr>
+                      {bannersList.map((b, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-1 bg-gray-100 border rounded text-[10px] font-mono">{b.image}</span></td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{b.name}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{b.status}</span></td>
+                          <td className="p-2.5 text-right space-x-1">
+                            <button onClick={() => { setEditingBanner(b); setBannerForm(b); setShowAddBannerModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">Edit</button>
+                            <button onClick={() => setBannersList(bannersList.filter(x => x.id !== b.id))} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">Delete</button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -1398,7 +1499,7 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">App/Package Management</h1>
-                  <button onClick={() => setShowAddPackageModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                  <button onClick={() => { setEditingPackage(null); setPackageForm({ packageName: '', appName: '', status: 'Active' }); setShowAddPackageModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
@@ -1413,13 +1514,18 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono">com.example.numberbetting</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">95X MATKA</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
-                        <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
-                      </tr>
+                      {packagesList.map((p, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{p.packageName}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{p.appName}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{p.status}</span></td>
+                          <td className="p-2.5 text-right space-x-1">
+                            <button onClick={() => { setEditingPackage(p); setPackageForm(p); setShowAddPackageModal(true); }} className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px] font-bold">Edit</button>
+                            <button onClick={() => setPackagesList(packagesList.filter(x => x.id !== p.id))} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Delete</button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -1431,7 +1537,7 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Payment Method</h1>
-                  <button onClick={() => setShowAddPaymentModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                  <button onClick={() => { setEditingPayment(null); setPaymentForm({ name: '', ordering: 1, status: 'Active' }); setShowAddPaymentModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
@@ -1447,14 +1553,19 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">UPI / PhonePe</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">2026-08-28</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
-                        <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
-                      </tr>
+                      {paymentMethodsList.map((pm, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{pm.name}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{pm.ordering}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{pm.date}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{pm.status}</span></td>
+                          <td className="p-2.5 text-right space-x-1">
+                            <button onClick={() => { setEditingPayment(pm); setPaymentForm(pm); setShowAddPaymentModal(true); }} className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px] font-bold">Edit</button>
+                            <button onClick={() => setPaymentMethodsList(paymentMethodsList.filter(x => x.id !== pm.id))} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Delete</button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -1501,7 +1612,152 @@ export default function App() {
         </div>
       </div>
 
-      {/* MODALS */}
+      {/* WORKING MODALS */}
+      {/* 1. BANNER ADD/EDIT MODAL matching media_1787949265283.png 100%! */}
+      {showAddBannerModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
+            <h3 className="font-bold text-[#212529] text-base border-b pb-2">{editingBanner ? 'Edit Banner' : 'Add New Banner'}</h3>
+            <form onSubmit={handleSaveBanner} className="space-y-3">
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Banner Name *</label>
+                <input type="text" value={bannerForm.name} onChange={(e)=>setBannerForm({...bannerForm, name: e.target.value})} required placeholder="e.g. Main Promo Banner" className="w-full border border-[#CED4DA] p-2 rounded" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Type</label>
+                <select value={bannerForm.type} onChange={(e)=>setBannerForm({...bannerForm, type: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded">
+                  <option value="Image">Image</option>
+                  <option value="Link">Link</option>
+                  <option value="Text">Text</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Banner Link Or Text</label>
+                <input type="text" value={bannerForm.link} onChange={(e)=>setBannerForm({...bannerForm, link: e.target.value})} placeholder="https://matka-website.vercel.app" className="w-full border border-[#CED4DA] p-2 rounded" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Status</label>
+                <select value={bannerForm.status} onChange={(e)=>setBannerForm({...bannerForm, status: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded">
+                  <option value="Active">Active</option>
+                  <option value="Deactive">Deactive</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Image Name / URL</label>
+                <input type="text" value={bannerForm.image} onChange={(e)=>setBannerForm({...bannerForm, image: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded font-mono" />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={()=>setShowAddBannerModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+                <button type="submit" className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save Banner</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 2. PACKAGE ADD/EDIT MODAL */}
+      {showAddPackageModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
+            <h3 className="font-bold text-[#212529] text-base border-b pb-2">{editingPackage ? 'Edit Package' : 'Add Package'}</h3>
+            <form onSubmit={handleSavePackage} className="space-y-3">
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Package Name *</label>
+                <input type="text" value={packageForm.packageName} onChange={(e)=>setPackageForm({...packageForm, packageName: e.target.value})} required placeholder="com.example.numberbetting" className="w-full border border-[#CED4DA] p-2 rounded font-mono" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">App Name *</label>
+                <input type="text" value={packageForm.appName} onChange={(e)=>setPackageForm({...packageForm, appName: e.target.value})} required placeholder="95X MATKA" className="w-full border border-[#CED4DA] p-2 rounded" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Status</label>
+                <select value={packageForm.status} onChange={(e)=>setPackageForm({...packageForm, status: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded">
+                  <option value="Active">Active</option>
+                  <option value="Deactive">Deactive</option>
+                </select>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={()=>setShowAddPackageModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+                <button type="submit" className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save Package</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. ADMIN ADD/EDIT MODAL */}
+      {showAddAdminModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
+            <h3 className="font-bold text-[#212529] text-base border-b pb-2">{editingAdmin ? 'Edit Admin' : 'Add New Admin'}</h3>
+            <form onSubmit={handleSaveAdmin} className="space-y-3">
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Name *</label>
+                <input type="text" value={adminForm.name} onChange={(e)=>setAdminForm({...adminForm, name: e.target.value})} required placeholder="Full Name" className="w-full border border-[#CED4DA] p-2 rounded" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Username *</label>
+                <input type="text" value={adminForm.username} onChange={(e)=>setAdminForm({...adminForm, username: e.target.value})} required placeholder="Username" className="w-full border border-[#CED4DA] p-2 rounded font-bold text-[#007BFF]" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Mobile *</label>
+                <input type="text" value={adminForm.mobile} onChange={(e)=>setAdminForm({...adminForm, mobile: e.target.value})} required placeholder="Mobile Number" className="w-full border border-[#CED4DA] p-2 rounded" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Role</label>
+                <select value={adminForm.role} onChange={(e)=>setAdminForm({...adminForm, role: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded">
+                  <option value="Super Admin">Super Admin</option>
+                  <option value="Sub Admin">Sub Admin</option>
+                  <option value="Manager">Manager</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Status</label>
+                <select value={adminForm.status} onChange={(e)=>setAdminForm({...adminForm, status: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded">
+                  <option value="Active">Active</option>
+                  <option value="Deactive">Deactive</option>
+                </select>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={()=>setShowAddAdminModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+                <button type="submit" className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save Admin</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4. PAYMENT METHOD ADD/EDIT MODAL */}
+      {showAddPaymentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
+            <h3 className="font-bold text-[#212529] text-base border-b pb-2">{editingPayment ? 'Edit Payment Method' : 'Add Payment Method'}</h3>
+            <form onSubmit={handleSavePayment} className="space-y-3">
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Method Name *</label>
+                <input type="text" value={paymentForm.name} onChange={(e)=>setPaymentForm({...paymentForm, name: e.target.value})} required placeholder="UPI / PhonePe" className="w-full border border-[#CED4DA] p-2 rounded" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">PayIn Ordering</label>
+                <input type="number" value={paymentForm.ordering} onChange={(e)=>setPaymentForm({...paymentForm, ordering: parseInt(e.target.value)||1})} className="w-full border border-[#CED4DA] p-2 rounded" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Status</label>
+                <select value={paymentForm.status} onChange={(e)=>setPaymentForm({...paymentForm, status: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded">
+                  <option value="Active">Active</option>
+                  <option value="Deactive">Deactive</option>
+                </select>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={()=>setShowAddPaymentModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+                <button type="submit" className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save Method</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. USER ADD MODAL */}
       {showAddUserModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-3 shadow-xl border border-[#DEE2E6] text-xs">
@@ -1524,59 +1780,7 @@ export default function App() {
         </div>
       )}
 
-      {showAddAdminModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
-          <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-3 border border-[#DEE2E6]">
-            <h3 className="font-bold text-[#212529]">Add New Admin</h3>
-            <input type="text" placeholder="Admin Name" className="w-full border border-[#CED4DA] p-2 rounded" />
-            <input type="text" placeholder="Username" className="w-full border border-[#CED4DA] p-2 rounded" />
-            <div className="flex gap-2">
-              <button onClick={()=>setShowAddAdminModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
-              <button onClick={()=>{ setStatusMessage('Admin Added!'); setShowAddAdminModal(false); }} className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddBannerModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
-          <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-3 border border-[#DEE2E6]">
-            <h3 className="font-bold text-[#212529]">Add New Banner</h3>
-            <input type="text" placeholder="Banner Name" className="w-full border border-[#CED4DA] p-2 rounded" />
-            <div className="flex gap-2">
-              <button onClick={()=>setShowAddBannerModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
-              <button onClick={()=>{ setStatusMessage('Banner Added!'); setShowAddBannerModal(false); }} className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddPackageModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
-          <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-3 border border-[#DEE2E6]">
-            <h3 className="font-bold text-[#212529]">Add App Package</h3>
-            <input type="text" placeholder="App Name" className="w-full border border-[#CED4DA] p-2 rounded" />
-            <div className="flex gap-2">
-              <button onClick={()=>setShowAddPackageModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
-              <button onClick={()=>{ setStatusMessage('Package Added!'); setShowAddPackageModal(false); }} className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
-          <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-3 border border-[#DEE2E6]">
-            <h3 className="font-bold text-[#212529]">Add Payment Method</h3>
-            <input type="text" placeholder="Method Name (e.g. PhonePe UPI)" className="w-full border border-[#CED4DA] p-2 rounded" />
-            <div className="flex gap-2">
-              <button onClick={()=>setShowAddPaymentModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
-              <button onClick={()=>{ setStatusMessage('Payment Method Added!'); setShowAddPaymentModal(false); }} className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* 6. WALLET EDIT MODAL */}
       {showWalletModal && walletTargetUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-4 shadow-xl border border-[#DEE2E6]">
