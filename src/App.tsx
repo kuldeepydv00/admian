@@ -743,7 +743,15 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {users.map((u, i) => (
+                        {users.filter(u => {
+                          if (!filterSearch.trim()) return true;
+                          const q = filterSearch.toLowerCase().trim();
+                          return (
+                            (u.name && u.name.toLowerCase().includes(q)) ||
+                            (u.email && u.email.toLowerCase().includes(q)) ||
+                            (u.mobile && u.mobile.toString().includes(q))
+                          );
+                        }).map((u, i) => (
                           <tr key={i} className="hover:bg-[#F4F6F9]">
                             <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
                             <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
@@ -769,12 +777,38 @@ export default function App() {
                             </td>
                           </tr>
                         ))}
+                        {users.filter(u => {
+                          if (!filterSearch.trim()) return true;
+                          const q = filterSearch.toLowerCase().trim();
+                          return (
+                            (u.name && u.name.toLowerCase().includes(q)) ||
+                            (u.email && u.email.toLowerCase().includes(q)) ||
+                            (u.mobile && u.mobile.toString().includes(q))
+                          );
+                        }).length === 0 && (
+                          <tr>
+                            <td colSpan={10} className="p-6 text-center text-[#6C757D] font-medium bg-[#F8F9FA]">
+                              No matching users found for "{filterSearch}"
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
 
                   <div className="flex justify-between items-center pt-2 text-xs text-[#6C757D]">
-                    <span>Showing 1 to {users.length} of {users.length} entries</span>
+                    {(() => {
+                      const count = users.filter(u => {
+                        if (!filterSearch.trim()) return true;
+                        const q = filterSearch.toLowerCase().trim();
+                        return (
+                          (u.name && u.name.toLowerCase().includes(q)) ||
+                          (u.email && u.email.toLowerCase().includes(q)) ||
+                          (u.mobile && u.mobile.toString().includes(q))
+                        );
+                      }).length;
+                      return <span>Showing {count > 0 ? 1 : 0} to {count} of {count} entries</span>;
+                    })()}
                     <div className="flex items-center gap-1">
                       <button className="px-3 py-1 border border-[#DEE2E6] rounded bg-[#F8F9FA] text-[#6C757D]">Previous</button>
                       <button className="px-3 py-1 border border-[#007BFF] rounded bg-[#007BFF] text-white font-bold">1</button>
