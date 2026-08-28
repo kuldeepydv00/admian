@@ -100,12 +100,37 @@ function App() {
   const [userFilter, setUserFilter] = useState<'all' | 'today' | 'month'>('all');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Referral Settings State
+  // Referral Settings & Stats State
   const [referralConfig, setReferralConfig] = useState({
     enabled: true,
     signupBonus: 50,
     commissionPercentage: 4
   });
+  const [referralStats, setReferralStats] = useState<{
+    totalReferrersCount: number;
+    totalReferralPayout: number;
+    referrers: Array<{
+      id: string;
+      referrerName: string;
+      referrerMobile: string;
+      referralCode: string;
+      totalReferredCount: number;
+      totalCommissionEarned: number;
+      friends: Array<{
+        name: string;
+        mobile: string;
+        signupBonus: number;
+        totalBets: number;
+        betCommission: number;
+        totalEarned: number;
+      }>;
+    }>;
+  }>({
+    totalReferrersCount: 0,
+    totalReferralPayout: 0,
+    referrers: []
+  });
+  const [expandedReferrerId, setExpandedReferrerId] = useState<string | null>(null);
 
   // Push Notification state
   const [notifTitle, setNotifTitle] = useState('🎉 Winner Announcement!');
@@ -174,7 +199,7 @@ function App() {
 
   const fetchLiveData = async () => {
     try {
-      const [matRes, depRes, wdRes, usrRes, decRes, schRes, statsRes, banRes, refRes] = await Promise.all([
+      const [matRes, depRes, wdRes, usrRes, decRes, schRes, statsRes, banRes, refRes, refStatsRes] = await Promise.all([
         fetchAdminEndpoint('/api/admin/matrix'),
         fetchAdminEndpoint('/api/admin/deposits'),
         fetchAdminEndpoint('/api/admin/withdrawals'),
@@ -183,11 +208,13 @@ function App() {
         fetchAdminEndpoint('/api/admin/schedules'),
         fetchAdminEndpoint('/api/admin/stats'),
         fetchAdminEndpoint('/api/admin/banner'),
-        fetchAdminEndpoint('/api/admin/referral-config')
+        fetchAdminEndpoint('/api/admin/referral-config'),
+        fetchAdminEndpoint('/api/admin/referral-stats')
       ]);
 
       if (banRes && banRes.ok) setBannerConfig(await banRes.json());
       if (refRes && refRes.ok) setReferralConfig(await refRes.json());
+      if (refStatsRes && refStatsRes.ok) setReferralStats(await refStatsRes.json());
 
       if (matRes.ok) setGameVolumes(await matRes.json());
       if (depRes.ok) {
@@ -1441,7 +1468,7 @@ function App() {
                   >
                     <div>
                       <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2">Referral Bet Commission (%)</label>
-                      <div className="relative">
+                      <div className="relative flex items-center">
                         <input
                           type="number"
                           step="0.5"
@@ -1449,23 +1476,23 @@ function App() {
                           max="50"
                           value={referralConfig.commissionPercentage}
                           onChange={(e) => setReferralConfig({ ...referralConfig, commissionPercentage: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-[#0F172A] border border-[#334155] rounded-xl p-3.5 text-lg text-white font-mono font-bold focus:outline-none focus:border-[#3B82F6] pr-10"
+                          className="w-full bg-[#0F172A] border border-[#334155] rounded-xl py-3.5 px-4 text-lg text-white font-mono font-bold focus:outline-none focus:border-[#3B82F6] pr-10"
                         />
-                        <span className="absolute right-4 top-3.5 text-[#94A3B8] font-bold">%</span>
+                        <span className="absolute right-4 text-[#94A3B8] font-bold">%</span>
                       </div>
                       <p className="text-[11px] text-[#64748B] mt-1.5">Percentage of every bet placed by a referred friend credited to the referrer's wallet.</p>
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-2">Instant Signup Referral Bonus (₹)</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-3.5 text-[#94A3B8] font-bold">₹</span>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-4 text-[#94A3B8] font-bold">₹</span>
                         <input
                           type="number"
                           min="0"
                           value={referralConfig.signupBonus}
                           onChange={(e) => setReferralConfig({ ...referralConfig, signupBonus: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-[#0F172A] border border-[#334155] rounded-xl p-3.5 text-lg text-white font-mono font-bold focus:outline-none focus:border-[#3B82F6] pl-9"
+                          className="w-full bg-[#0F172A] border border-[#334155] rounded-xl py-3.5 pl-10 pr-4 text-lg text-white font-mono font-bold focus:outline-none focus:border-[#3B82F6]"
                         />
                       </div>
                       <p className="text-[11px] text-[#64748B] mt-1.5">One-time instant wallet reward credited when a new player registers with a referral code.</p>
@@ -1486,7 +1513,7 @@ function App() {
 
                     <button
                       type="submit"
-                      className="w-full bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-[#F1F5F9] font-black py-4 rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-blue-500/20 text-sm tracking-wider uppercase flex items-center justify-center gap-2"
+                      className="w-full bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-white font-black py-4 rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-blue-500/20 text-sm tracking-wider uppercase flex items-center justify-center gap-2"
                     >
                       <span>🚀</span> Save Referral Settings
                     </button>
@@ -1525,6 +1552,113 @@ function App() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Referrers Leaderboard & Friends Table */}
+              <div className="bg-[#1E293B] p-6 rounded-2xl border border-[#334155] shadow-xl">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                      <span>👥</span> Active Referrers & Referral Earnings Breakdown
+                    </h2>
+                    <p className="text-xs text-[#94A3B8] mt-1">Real-time list of all users who referred friends and their total commission earned.</p>
+                  </div>
+                  <div className="flex gap-3 text-xs font-mono">
+                    <span className="bg-[#0F172A] border border-[#334155] px-3 py-1.5 rounded-lg text-[#F3D079] font-bold">
+                      Referrers: {referralStats.totalReferrersCount || referralStats.referrers.length}
+                    </span>
+                    <span className="bg-[#0F172A] border border-[#334155] px-3 py-1.5 rounded-lg text-[#22C55E] font-bold">
+                      Total Paid: ₹{referralStats.totalReferralPayout || 0}
+                    </span>
+                  </div>
+                </div>
+
+                {referralStats.referrers.length === 0 ? (
+                  <div className="text-center text-[#64748B] py-12 bg-[#0F172A] rounded-xl border border-[#334155]">
+                    <div className="text-3xl mb-2">🎁</div>
+                    <p className="text-sm font-semibold">No Referral Data Recorded Yet</p>
+                    <p className="text-xs mt-1">When users sign up with a referral code and place bets, their referral performance will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-[#0F172A] text-[#94A3B8] text-xs uppercase tracking-wider border-b border-[#334155]">
+                          <th className="p-4">Referrer Name & Phone</th>
+                          <th className="p-4">Referral Code</th>
+                          <th className="p-4 text-center">Invited Friends</th>
+                          <th className="p-4 text-right">Total Commission Earned</th>
+                          <th className="p-4 text-center">Details</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#334155] text-white">
+                        {referralStats.referrers.map(ref => {
+                          const isExpanded = expandedReferrerId === ref.id;
+                          return (
+                            <React.Fragment key={ref.id}>
+                              <tr className="hover:bg-[#334155]/30 transition-colors">
+                                <td className="p-4">
+                                  <div className="font-bold text-white">{ref.referrerName}</div>
+                                  <div className="text-xs text-[#94A3B8] font-mono">+91 {ref.referrerMobile}</div>
+                                </td>
+                                <td className="p-4">
+                                  <span className="bg-[#0F172A] text-[#F3D079] border border-amber-400/30 px-2.5 py-1 rounded font-mono font-bold text-xs">
+                                    {ref.referralCode}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-center">
+                                  <span className="bg-[#3B82F6]/20 text-[#3B82F6] font-bold px-3 py-1 rounded-full text-xs">
+                                    👤 {ref.totalReferredCount} Friends
+                                  </span>
+                                </td>
+                                <td className="p-4 text-right font-mono font-black text-[#22C55E] text-base">
+                                  ₹{ref.totalCommissionEarned}
+                                </td>
+                                <td className="p-4 text-center">
+                                  <button
+                                    onClick={() => setExpandedReferrerId(isExpanded ? null : ref.id)}
+                                    className="bg-[#334155] hover:bg-[#475569] text-xs px-3 py-1.5 rounded-lg text-white font-semibold transition-all"
+                                  >
+                                    {isExpanded ? 'Hide Friends ▲' : 'View Friends (4% Comm) ▼'}
+                                  </button>
+                                </td>
+                              </tr>
+
+                              {/* Expanded Friends Details Sub-Row */}
+                              {isExpanded && (
+                                <tr className="bg-[#090D16]">
+                                  <td colSpan={5} className="p-4">
+                                    <div className="bg-[#0F172A] p-4 rounded-xl border border-[#334155] space-y-3">
+                                      <h4 className="text-xs font-bold text-[#F3D079] uppercase tracking-wider">
+                                        Referred Friends List ({ref.friends.length})
+                                      </h4>
+                                      <div className="space-y-2">
+                                        {ref.friends.map((f, idx) => (
+                                          <div key={idx} className="flex justify-between items-center bg-[#1E293B] p-3 rounded-lg border border-[#334155] text-xs">
+                                            <div>
+                                              <span className="font-bold text-white">{f.name}</span>
+                                              <span className="text-[#94A3B8] font-mono ml-2">(+91 {f.mobile})</span>
+                                            </div>
+                                            <div className="flex gap-4 text-right font-mono">
+                                              <span>Signup Bonus: <strong className="text-[#F3D079]">₹{f.signupBonus}</strong></span>
+                                              <span>Total Bets: <strong>₹{f.totalBets}</strong></span>
+                                              <span>4% Bet Comm: <strong className="text-[#22C55E]">₹{f.betCommission}</strong></span>
+                                              <span className="text-white font-bold">Total: ₹{f.totalEarned}</span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
