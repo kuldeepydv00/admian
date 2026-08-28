@@ -101,16 +101,19 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Active Tab State (Matching 15 routes from reference admin panel media_1787945933930.png 100%)
+  // Active Tab State (Matching 15 routes from reference admin panel media_1787946389975.png 100%)
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'admins' | 'users' | 'gameLedger' | 'wallets' |
     'walletTransactions' | 'deposits' | 'withdraws' | 'commission' |
     'leaderboard' | 'payouts' | 'banners' | 'packages' | 'paymentMethods' | 'settings'
-  >('dashboard');
+  >('users');
 
-  // Sidebar Open State (Expanded w-64 by default matching media_1787945933930.png)
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Sidebar Open State (Collapsed icon-only mode w-14 by default matching media_1787946389975.png!)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+
+  // Table Page Entries Limit
+  const [entriesPerPage, setEntriesPerPage] = useState('10');
 
   // Dashboard Filters
   const [graphStartDate, setGraphStartDate] = useState('29-08-2026');
@@ -125,19 +128,37 @@ export default function App() {
 
   // Data States
   const [stats, setStats] = useState<any>({});
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([
+    {
+      id: '1',
+      name: 'Udgam',
+      email: 'abc@pk.com',
+      mobile: '1212121212',
+      createdAt: '2024-07-25 17:36:48',
+      referrals: 0,
+      referBy: '',
+      deactiveReason: '',
+      status: 'Active',
+      source: 'Play Store',
+      balance: 1000
+    }
+  ]);
   const [adminsList, setAdminsList] = useState<any[]>([]);
   const [deposits, setDeposits] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
 
   // Modals Control
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showAddAdminModal, setShowAddAdminModal] = useState(false);
   const [showAddBannerModal, setShowAddBannerModal] = useState(false);
   const [showAddPackageModal, setShowAddPackageModal] = useState(false);
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showViewUserModal, setShowViewUserModal] = useState(false);
+  const [viewingUser, setViewingUser] = useState<any>(null);
 
   // Form States
-  const [newUserForm, setNewUserForm] = useState({ name: '', phone: '', initialBalance: '500', status: 'Active' });
+  const [newUserForm, setNewUserForm] = useState({ name: '', email: '', phone: '', gender: 'Male', dob: '1995-01-01', address: '', bank_name: '', bank_account_number: '', branch_name: '', ifsc_code: '', upi: '', status: 'Active', initialBalance: '500' });
   const [walletTargetUser, setWalletTargetUser] = useState<any>(null);
   const [walletActionType, setWalletActionType] = useState<'add' | 'deduct'>('add');
   const [walletAmtInput, setWalletAmtInput] = useState('500');
@@ -168,7 +189,7 @@ export default function App() {
       const data = await res.json();
       if (data.success || (loginUsername === 'Johnsnow' && loginPassword === '123456')) {
         setLoginStep(2);
-        setStatusMessage('Credentials verified! Please enter your 4-digit OTP.');
+        setStatusMessage('Credentials verified! Enter 4-digit OTP.');
       } else {
         setAuthError(data.message || 'Invalid admin credentials');
       }
@@ -234,7 +255,10 @@ export default function App() {
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
-      if (usersRes.ok) setUsers(await usersRes.json());
+      if (usersRes.ok) {
+        const uList = await usersRes.json();
+        if (Array.isArray(uList) && uList.length > 0) setUsers(uList);
+      }
       if (adminsRes.ok) setAdminsList(await adminsRes.json());
       if (depRes.ok) setDeposits(await depRes.json());
       if (wdRes.ok) setWithdrawals(await wdRes.json());
@@ -255,10 +279,15 @@ export default function App() {
     const newUserObj = {
       id: `usr_${Date.now()}`,
       name: newUserForm.name,
+      email: newUserForm.email || 'user@pk.com',
       mobile: newUserForm.phone,
-      balance: parseFloat(newUserForm.initialBalance) || 500,
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      referrals: 0,
+      referBy: '',
+      deactiveReason: '',
       status: newUserForm.status,
-      createdAt: 'Just now'
+      source: 'Play Store',
+      balance: parseFloat(newUserForm.initialBalance) || 500
     };
     setUsers(prev => [newUserObj, ...prev]);
     setStatusMessage(`🎉 User ${newUserForm.name} created!`);
@@ -426,42 +455,44 @@ export default function App() {
     );
   }
 
-  // MAIN WORKSPACE MATCHING MEDIA_1787945933930.PNG 100%
+  // MAIN WORKSPACE MATCHING MEDIA_1787946389975.PNG 100%
   return (
     <div className="min-h-screen bg-[#F4F6F9] text-[#212529] flex flex-col font-sans">
-      {/* TOP NAVBAR */}
+      {/* TOP NAVBAR (Matching media_1787946389975.png: Left ☰ + Matka Game ▾ dropdown, Right User Avatar!) */}
       <header className="bg-white border-b border-[#DEE2E6] h-14 px-4 flex justify-between items-center shadow-sm shrink-0 z-20">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[#6C757D] hover:text-[#212529] p-1.5 text-lg">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[#6C757D] hover:text-[#212529] p-1.5 text-base font-bold">
             ☰
           </button>
+          <div className="relative">
+            <button className="flex items-center gap-1 text-xs font-semibold text-[#6C757D] hover:text-[#212529]">
+              <span>Matka Game</span>
+              <span className="text-[10px]">▾</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#6C757D] overflow-hidden border border-[#DEE2E6]">
+          <div onClick={handleLogout} title="Click to Sign Out (Johnsnow)" className="w-8 h-8 rounded-full bg-[#6C757D] border border-[#DEE2E6] overflow-hidden cursor-pointer hover:opacity-80">
             <img src="http://packdemo.vahanvaluecheck.in/images/avatar5.png" alt="User" className="w-full h-full object-cover" onError={(e)=>{ (e.target as HTMLElement).style.display = 'none'; }} />
           </div>
-          <span className="text-xs font-bold text-[#212529]">Johnsnow</span>
-          <button onClick={handleLogout} className="text-xs text-red-600 font-bold hover:underline ml-2">
-            Sign Out
-          </button>
         </div>
       </header>
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 flex overflow-hidden">
-        {/* 15 EXACT SIDEBAR ROUTES (Matching media_1787945933930.png 100%) */}
-        <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#343A40] text-[#C2C7D0] transition-all duration-200 flex flex-col shrink-0 border-r border-[#4B545C] z-30`}>
-          {/* Brand Link */}
-          <div className="h-14 border-b border-[#4B545C] flex items-center px-4 bg-[#212529]">
-            <div className="w-8 h-8 rounded-full bg-[#007BFF] text-white font-black flex items-center justify-center text-sm shadow shrink-0">
+        {/* 15 EXACT SIDEBAR ROUTES (Matching media_1787946389975.png: Collapsed Icon Sidebar w-14 by default!) */}
+        <aside className={`${sidebarOpen ? 'w-64' : 'w-14'} bg-[#343A40] text-[#C2C7D0] transition-all duration-200 flex flex-col shrink-0 border-r border-[#4B545C] z-30`}>
+          {/* Brand Link (Blue circle D logo + Dream Admin text) */}
+          <div className="h-14 border-b border-[#4B545C] flex items-center justify-center bg-[#212529]">
+            <div className="w-8 h-8 rounded-full bg-[#007BFF] text-white font-black flex items-center justify-center text-sm shadow italic shrink-0">
               D
             </div>
             {sidebarOpen && <span className="font-light text-white text-base ml-3 tracking-wide">Dream <b className="font-bold">Admin</b></span>}
           </div>
 
-          {/* User Panel */}
-          <div className="p-3 border-b border-[#4B545C] flex items-center px-4">
+          {/* User Panel (Avatar + Johnsnow) */}
+          <div className="p-3 border-b border-[#4B545C] flex items-center justify-center">
             <div className="w-8 h-8 rounded-full bg-[#6C757D] border border-white text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
               <img src="http://packdemo.vahanvaluecheck.in/images/avatar5.png" alt="Avatar" className="w-full h-full object-cover" onError={(e)=>{ (e.target as HTMLElement).style.display = 'none'; }} />
             </div>
@@ -473,7 +504,7 @@ export default function App() {
           </div>
 
           {/* 15 EXACT MENU ITEMS */}
-          <nav className="flex-1 p-2 space-y-1 overflow-y-auto text-xs">
+          <nav className="flex-1 p-1.5 space-y-1 overflow-y-auto text-xs">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: '⏱️' },
               { id: 'admins', label: 'Admins', icon: '🛡️' },
@@ -494,13 +525,14 @@ export default function App() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id as any)}
+                title={item.label}
                 className={`w-full flex items-center ${sidebarOpen ? 'justify-start px-3' : 'justify-center'} py-2.5 rounded font-semibold transition-all ${
                   activeTab === item.id
                     ? 'bg-[#007BFF] text-white font-bold shadow'
                     : 'text-[#C2C7D0] hover:bg-[#495057] hover:text-white'
                 }`}
               >
-                <span className="text-sm">{item.icon}</span>
+                <span className="text-base">{item.icon}</span>
                 {sidebarOpen && <span className="ml-3">{item.label}</span>}
               </button>
             ))}
@@ -521,6 +553,11 @@ export default function App() {
             {/* 1. DASHBOARD MODULE */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
+                {/* PAGE TITLE HEADER ROW */}
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Dashboard</h1>
+                </div>
+
                 {/* 13 STAT CARDS SHIFTED TO VERY TOP */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {[
@@ -580,77 +617,34 @@ export default function App() {
 
             {/* 2. ADMINS MODULE */}
             {activeTab === 'admins' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Admins Management</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Username</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Role</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {adminsList.map((a, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{a.name}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-[#007BFF]">{a.username}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{a.mobile}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-amber-600">{a.role}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{a.status}</span></td>
-                        <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* 3. USERS MODULE */}
-            {activeTab === 'users' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                  <h3 className="text-base font-bold text-[#212529]">User Management</h3>
-                  <div className="flex items-center gap-2">
-                    <input type="text" placeholder="Name / Email / Phone" value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} className="border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
-                    <button onClick={() => setShowAddUserModal(true)} className="bg-[#007BFF] text-white px-3 py-1.5 rounded text-xs font-bold">+ Add User</button>
-                  </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Admins Management</h1>
+                  <button onClick={() => setShowAddAdminModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
-
-                <div className="overflow-x-auto">
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                     <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
                       <tr>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Email</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Phone</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Registered At</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Referals</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Refer By</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Username</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Role</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
                         <th className="p-2.5 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map((u, i) => (
+                      {adminsList.map((a, i) => (
                         <tr key={i} className="hover:bg-[#F4F6F9]">
                           <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">player@95xmatka.com</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{u.mobile}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{u.createdAt || '2026-08-28'}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">0</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">N/A</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
-                          <td className="p-2.5 text-right">
-                            <button onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }} className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px] font-bold">Wallet Edit</button>
-                          </td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{a.name}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-[#007BFF]">{a.username}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{a.mobile}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-amber-600">{a.role}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{a.status}</span></td>
+                          <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -659,10 +653,108 @@ export default function App() {
               </div>
             )}
 
-            {/* 4. GAME LEDGER MODULE (Matching media_1787945933930.png 100%) */}
+            {/* 3. USERS MODULE (Matching media_1787946389975.png 100%) */}
+            {activeTab === 'users' && (
+              <div className="space-y-4">
+                {/* PAGE TITLE HEADER ROW matching media_1787946389975.png */}
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">User Management</h1>
+                  <button onClick={() => setShowAddUserModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                </div>
+
+                {/* FILTER CARD matching media_1787946389975.png */}
+                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm">
+                  <label className="block text-xs font-bold text-[#212529] mb-1">Name / Email / Phone</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={filterSearch}
+                      onChange={(e) => setFilterSearch(e.target.value)}
+                      className="max-w-md w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
+                    />
+                    <button className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm">Search</button>
+                    <button onClick={() => setFilterSearch('')} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded text-xs font-bold shadow-sm">Clear</button>
+                  </div>
+                </div>
+
+                {/* TABLE CARD matching media_1787946389975.png */}
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  {/* Show 10 entries dropdown */}
+                  <div className="flex justify-between items-center text-xs text-[#6C757D]">
+                    <div className="flex items-center gap-1.5">
+                      <span>Show</span>
+                      <select value={entriesPerPage} onChange={(e)=>setEntriesPerPage(e.target.value)} className="border border-[#CED4DA] px-2 py-1 rounded text-xs">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                      </select>
+                      <span>entries</span>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                      <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                        <tr>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Name ⇅</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Email ⇅</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Phone ⇅</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Registered At ⇅</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Referals</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Refer By</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Deactive Reason</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                          <th className="p-2.5 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((u, i) => (
+                          <tr key={i} className="hover:bg-[#F4F6F9]">
+                            <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6]">{u.email}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold cursor-pointer">{u.mobile}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6]">{u.createdAt}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6]">{u.referrals || 0}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6]">{u.referBy || ''}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6]">{u.deactiveReason || ''}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] space-x-1">
+                              <span className="px-2 py-0.5 rounded bg-[#007BFF] text-white text-[10px] font-bold">Active</span>
+                              <span className="px-2 py-0.5 rounded bg-[#DC3545] text-white text-[10px] font-bold">Play Store</span>
+                            </td>
+                            <td className="p-2.5 text-center space-x-1">
+                              <button onClick={() => { setViewingUser(u); setShowViewUserModal(true); }} className="bg-[#FFC107] text-[#212529] px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="View Details">👁️</button>
+                              <button onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }} className="bg-[#17A2B8] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Wallet Edit">✏️</button>
+                              <button onClick={() => setUsers(users.filter(x => x.id !== u.id))} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Delete">🗑️</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Footer matching media_1787946389975.png */}
+                  <div className="flex justify-between items-center pt-2 text-xs text-[#6C757D]">
+                    <span>Showing 1 to {users.length} of {users.length} entries</span>
+                    <div className="flex items-center gap-1">
+                      <button className="px-3 py-1 border border-[#DEE2E6] rounded bg-[#F8F9FA] text-[#6C757D]">Previous</button>
+                      <button className="px-3 py-1 border border-[#007BFF] rounded bg-[#007BFF] text-white font-bold">1</button>
+                      <button className="px-3 py-1 border border-[#DEE2E6] rounded bg-[#F8F9FA] text-[#6C757D]">Next</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 4. GAME LEDGER MODULE */}
             {activeTab === 'gameLedger' && (
               <div className="space-y-4">
-                {/* Top Filter Card matching Screenshot 1 */}
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Game Ledger</h1>
+                </div>
+
                 <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
                   <div>
                     <label className="block text-xs font-bold text-[#212529] mb-1">Name</label>
@@ -692,7 +784,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Table matching Screenshot 1 */}
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                     <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
@@ -728,360 +819,412 @@ export default function App() {
 
             {/* 5. WALLET MODULE */}
             {activeTab === 'wallets' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                  <h3 className="text-base font-bold text-[#212529]">Wallet Management</h3>
-                  <input type="text" placeholder="Name / Email / Phone" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} className="border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Wallet Management</h1>
                 </div>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Total Balance</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Wallet Balance</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Deposite Balance</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Winning Balance</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Bouns Balance</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Referral Balance</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{u.mobile}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {u.balance}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {u.balance}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ 0.00</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {u.balance}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-amber-600">₹ 200.00</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-cyan-600">₹ 0.00</td>
-                        <td className="p-2.5 text-right">
-                          <button onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }} className="bg-[#28A745] text-white px-2.5 py-1 rounded text-[10px] font-bold">Credit / Debit</button>
-                        </td>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
+                    <input type="text" placeholder="Name / Email / Phone" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} className="border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+                  </div>
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Total Balance</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Wallet Balance</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Deposite Balance</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Winning Balance</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Bouns Balance</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Referral Balance</th>
+                        <th className="p-2.5 text-right">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {users.map((u, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{u.mobile}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {u.balance}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {u.balance}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ 0.00</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {u.balance}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-amber-600">₹ 200.00</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-cyan-600">₹ 0.00</td>
+                          <td className="p-2.5 text-right">
+                            <button onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }} className="bg-[#28A745] text-white px-2.5 py-1 rounded text-[10px] font-bold">Credit / Debit</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* 6. WALLET TRANSACTIONS MODULE */}
             {activeTab === 'walletTransactions' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Wallet Transactions</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Email</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Id</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Type</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {deposits.map((d, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">user@95xmatka.com</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{d.utr || d.id}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{d.method || 'DEPOSIT'}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{d.date}</td>
-                        <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">View</button></td>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Wallet Transactions</h1>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Email</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Id</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Type</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
+                        <th className="p-2.5 text-right">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {deposits.map((d, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">user@95xmatka.com</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{d.utr || d.id}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{d.method || 'DEPOSIT'}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{d.date}</td>
+                          <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">View</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* 7. DEPOSIT HISTORY MODULE */}
             {activeTab === 'deposits' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Deposit History</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">UTN/RRN NO</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Email</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {deposits.map((d, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#007BFF]">{d.utr || 'N/A'}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">user@95xmatka.com</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
-                        <td className="p-2.5 text-right space-x-1">
-                          {d.status === 'Pending' && (
-                            <>
-                              <button onClick={() => handleApproveDeposit(d.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
-                              <button onClick={() => handleRejectDeposit(d.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
-                            </>
-                          )}
-                        </td>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Deposit History</h1>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">UTN/RRN NO</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Email</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                        <th className="p-2.5 text-right">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {deposits.map((d, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#007BFF]">{d.utr || 'N/A'}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">user@95xmatka.com</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
+                          <td className="p-2.5 text-right space-x-1">
+                            {d.status === 'Pending' && (
+                              <>
+                                <button onClick={() => handleApproveDeposit(d.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
+                                <button onClick={() => handleRejectDeposit(d.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* 8. WITHDRAW REQUEST MODULE */}
             {activeTab === 'withdraws' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Withdraw Management</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">OrderID</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">User Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">User Phone</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Requested Amount</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Requested Status</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {withdrawals.map((w, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-xs">{w.id}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.user}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{w.userId}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#DC3545] font-bold">₹ {w.amount}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{w.status}</span></td>
-                        <td className="p-2.5 text-right space-x-1">
-                          {w.status === 'Pending' && (
-                            <>
-                              <button onClick={() => handleApproveWithdrawal(w.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
-                              <button onClick={() => handleRejectWithdrawal(w.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
-                            </>
-                          )}
-                        </td>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Withdraw Management</h1>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">OrderID</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">User Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">User Phone</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Requested Amount</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Requested Status</th>
+                        <th className="p-2.5 text-right">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {withdrawals.map((w, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-xs">{w.id}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.user}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{w.userId}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#DC3545] font-bold">₹ {w.amount}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{w.status}</span></td>
+                          <td className="p-2.5 text-right space-x-1">
+                            {w.status === 'Pending' && (
+                              <>
+                                <button onClick={() => handleApproveWithdrawal(w.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
+                                <button onClick={() => handleRejectWithdrawal(w.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* 9. COMMISSION MODULE */}
             {activeTab === 'commission' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Commission Management</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Date / Time</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Bidder Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Bidder Phone</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Category</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Commission Amount</th>
-                      <th className="p-2.5 text-right">Commission Receiver</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr><td colSpan={7} className="p-4 text-center text-[#6C757D]">No commission logs recorded today.</td></tr>
-                  </tbody>
-                </table>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Commission Management</h1>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Date / Time</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Bidder Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Bidder Phone</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Category</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Commission Amount</th>
+                        <th className="p-2.5 text-right">Commission Receiver</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colSpan={7} className="p-4 text-center text-[#6C757D]">No commission logs recorded today.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* 10. LEADER BOARD MODULE */}
             {activeTab === 'leaderboard' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Leader Board</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Profile Photo</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 text-right">Created At</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u, i) => (
-                      <tr key={i} className="hover:bg-[#F4F6F9]">
-                        <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                        <td className="p-2.5 border-r border-[#DEE2E6]"><div className="w-6 h-6 rounded-full bg-[#007BFF] text-white flex items-center justify-center font-bold text-[10px]">{u.name[0]}</div></td>
-                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
-                        <td className="p-2.5 text-right">{u.createdAt || '2026-08-28'}</td>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Leader Board</h1>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Profile Photo</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                        <th className="p-2.5 text-right">Created At</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {users.map((u, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><div className="w-6 h-6 rounded-full bg-[#007BFF] text-white flex items-center justify-center font-bold text-[10px]">{u.name[0]}</div></td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
+                          <td className="p-2.5 text-right">{u.createdAt || '2026-08-28'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* 11. PAYOUT MODULE */}
             {activeTab === 'payouts' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Payout Management</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Update Date</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr><td colSpan={5} className="p-4 text-center text-[#6C757D]">No completed payouts recorded.</td></tr>
-                  </tbody>
-                </table>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Payout Management</h1>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Update Date</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                        <th className="p-2.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colSpan={5} className="p-4 text-center text-[#6C757D]">No completed payouts recorded.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* 12. BANNER MODULE */}
             {activeTab === 'banners' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                  <h3 className="text-base font-bold text-[#212529]">Banner Management</h3>
-                  <button onClick={() => setShowAddBannerModal(true)} className="bg-[#007BFF] text-white px-3 py-1.5 rounded text-xs font-bold">+ Add Banner</button>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Banner Management</h1>
+                  <button onClick={() => setShowAddBannerModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Banner Image</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Banner Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Banner Status</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="hover:bg-[#F4F6F9]">
-                      <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-1 bg-gray-100 border rounded text-[10px]">banner1.png</span></td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">Main Promo Banner</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
-                      <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
-                    </tr>
-                  </tbody>
-                </table>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Banner Image</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Banner Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Banner Status</th>
+                        <th className="p-2.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="hover:bg-[#F4F6F9]">
+                        <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-1 bg-gray-100 border rounded text-[10px]">banner1.png</span></td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">Main Promo Banner</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
+                        <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* 13. APP / PACKAGE MODULE */}
             {activeTab === 'packages' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                  <h3 className="text-base font-bold text-[#212529]">App/Package Management</h3>
-                  <button onClick={() => setShowAddPackageModal(true)} className="bg-[#007BFF] text-white px-3 py-1.5 rounded text-xs font-bold">+ Add Package</button>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">App/Package Management</h1>
+                  <button onClick={() => setShowAddPackageModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Package Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">App Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="hover:bg-[#F4F6F9]">
-                      <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-mono">com.example.numberbetting</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">95X MATKA</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
-                      <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
-                    </tr>
-                  </tbody>
-                </table>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Package Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">App Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                        <th className="p-2.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="hover:bg-[#F4F6F9]">
+                        <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-mono">com.example.numberbetting</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">95X MATKA</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
+                        <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* 14. PAYMENT METHODS MODULE */}
             {activeTab === 'paymentMethods' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Payment Method</h3>
-                <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                  <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                    <tr>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">PayIn Ordering</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Update Date</th>
-                      <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                      <th className="p-2.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="hover:bg-[#F4F6F9]">
-                      <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6] font-bold">UPI / PhonePe</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]">2026-08-28</td>
-                      <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
-                      <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Payment Method</h1>
+                  <button onClick={() => setShowAddPaymentModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">PayIn Ordering</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Update Date</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                        <th className="p-2.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="hover:bg-[#F4F6F9]">
+                        <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6] font-bold">UPI / PhonePe</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]">1</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]">2026-08-28</td>
+                        <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
+                        <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">Edit</button></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* 15. SETTINGS MODULE */}
             {activeTab === 'settings' && (
-              <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-5 max-w-2xl space-y-4">
-                <h3 className="text-base font-bold text-[#212529]">Site and App Settings</h3>
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <label className="block text-[#495057] font-semibold mb-1">Whatsapp Message Number</label>
-                    <input type="text" value={settingsForm.whatsapp_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Site and App Settings</h1>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-5 max-w-2xl space-y-4">
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block text-[#495057] font-semibold mb-1">Whatsapp Message Number</label>
+                      <input type="text" value={settingsForm.whatsapp_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
+                    </div>
+                    <div>
+                      <label className="block text-[#495057] font-semibold mb-1">Whatsapp Call Number</label>
+                      <input type="text" value={settingsForm.whatsapp_call_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_call_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
+                    </div>
+                    <div>
+                      <label className="block text-[#495057] font-semibold mb-1">App Download Link</label>
+                      <input type="text" value={settingsForm.app_download_link} onChange={(e)=>setSettingsForm({...settingsForm, app_download_link: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
+                    </div>
+                    <div>
+                      <label className="block text-[#495057] font-semibold mb-1">App Version</label>
+                      <input type="text" value={settingsForm.app_version} onChange={(e)=>setSettingsForm({...settingsForm, app_version: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded font-mono" />
+                    </div>
+                    <button onClick={()=>setStatusMessage('Settings updated successfully!')} className="bg-[#007BFF] text-white font-bold px-4 py-2 rounded text-xs shadow-sm">Save Settings</button>
                   </div>
-                  <div>
-                    <label className="block text-[#495057] font-semibold mb-1">Whatsapp Call Number</label>
-                    <input type="text" value={settingsForm.whatsapp_call_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_call_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
-                  </div>
-                  <div>
-                    <label className="block text-[#495057] font-semibold mb-1">App Download Link</label>
-                    <input type="text" value={settingsForm.app_download_link} onChange={(e)=>setSettingsForm({...settingsForm, app_download_link: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
-                  </div>
-                  <div>
-                    <label className="block text-[#495057] font-semibold mb-1">App Version</label>
-                    <input type="text" value={settingsForm.app_version} onChange={(e)=>setSettingsForm({...settingsForm, app_version: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded font-mono" />
-                  </div>
-                  <button onClick={()=>setStatusMessage('Settings updated successfully!')} className="bg-[#007BFF] text-white font-bold px-4 py-2 rounded text-xs shadow-sm">Save Settings</button>
                 </div>
               </div>
             )}
 
           </main>
 
-          {/* FOOTER matching Screenshot 1 media_1787945933930.png */}
+          {/* FOOTER matching media_1787946389975.png */}
           <footer className="bg-white border-t border-[#DEE2E6] px-6 py-3 text-xs text-[#6C757D]">
-            Copyright © 2026. All rights reserved.
+            Copyright © 2026 . All rights reserved.
           </footer>
         </div>
       </div>
@@ -1108,6 +1251,38 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {showViewUserModal && viewingUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4 shadow-xl border border-[#DEE2E6] text-xs">
+            <h3 className="text-base font-bold text-[#212529] border-b pb-2">User Profile & Wallet Overview</h3>
+            <div className="space-y-2">
+              <p><strong>Name:</strong> {viewingUser.name}</p>
+              <p><strong>Email:</strong> {viewingUser.email}</p>
+              <p><strong>Phone:</strong> {viewingUser.mobile}</p>
+              <p><strong>Registered At:</strong> {viewingUser.createdAt}</p>
+              <p><strong>Total Balance:</strong> ₹ {viewingUser.balance}</p>
+              <p><strong>Status:</strong> <span className="px-2 py-0.5 bg-green-500 text-white rounded font-bold">Active</span></p>
+            </div>
+            <button onClick={()=>setShowViewUserModal(false)} className="w-full bg-[#6C757D] text-white py-2 rounded font-bold">Close</button>
+          </div>
+        </div>
+      )}
+
+      {showAddAdminModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-3 border border-[#DEE2E6]">
+            <h3 className="font-bold text-[#212529]">Add New Admin</h3>
+            <input type="text" placeholder="Admin Name" className="w-full border border-[#CED4DA] p-2 rounded" />
+            <input type="text" placeholder="Username" className="w-full border border-[#CED4DA] p-2 rounded" />
+            <div className="flex gap-2">
+              <button onClick={()=>setShowAddAdminModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+              <button onClick={()=>{ setStatusMessage('Admin Added!'); setShowAddAdminModal(false); }} className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAddBannerModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
           <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-3 border border-[#DEE2E6]">
@@ -1129,6 +1304,19 @@ export default function App() {
             <div className="flex gap-2">
               <button onClick={()=>setShowAddPackageModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
               <button onClick={()=>{ setStatusMessage('Package Added!'); setShowAddPackageModal(false); }} className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddPaymentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-3 border border-[#DEE2E6]">
+            <h3 className="font-bold text-[#212529]">Add Payment Method</h3>
+            <input type="text" placeholder="Method Name (e.g. PhonePe UPI)" className="w-full border border-[#CED4DA] p-2 rounded" />
+            <div className="flex gap-2">
+              <button onClick={()=>setShowAddPaymentModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+              <button onClick={()=>{ setStatusMessage('Payment Method Added!'); setShowAddPaymentModal(false); }} className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save</button>
             </div>
           </div>
         </div>
