@@ -206,7 +206,7 @@ export default function App() {
   const [newUserForm, setNewUserForm] = useState({ name: '', email: '', phone: '', gender: 'Male', dob: '1995-01-01', address: '', bank_name: '', bank_account_number: '', branch_name: '', ifsc_code: '', upi: '', status: 'Active', initialBalance: '500' });
   const [editUserForm, setEditUserForm] = useState<any>({});
   
-  const [bannerForm, setBannerForm] = useState({ name: '', type: 'Image', link: '', image: 'banner1.png', status: 'Active' });
+  const [bannerForm, setBannerForm] = useState({ name: '', type: 'Image', link: '', image: 'banner1.png', previewUrl: '', status: 'Active' });
   const [packageForm, setPackageForm] = useState({ packageName: '', appName: '', status: 'Active' });
   const [adminForm, setAdminForm] = useState({ name: '', username: '', mobile: '', password: '', role: 'Super Admin', status: 'Active' });
   const [paymentForm, setPaymentForm] = useState({ name: '', ordering: 1, status: 'Active' });
@@ -329,6 +329,21 @@ export default function App() {
   }, [isAuthenticated]);
 
   // BANNER ADD / EDIT HANDLERS
+  const handleBannerImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBannerForm(prev => ({
+          ...prev,
+          image: file.name,
+          previewUrl: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSaveBanner = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bannerForm.name) return;
@@ -342,7 +357,7 @@ export default function App() {
       setStatusMessage(`🎉 Banner "${bannerForm.name}" added successfully!`);
     }
     setShowAddBannerModal(false);
-    setBannerForm({ name: '', type: 'Image', link: '', image: 'banner1.png', status: 'Active' });
+    setBannerForm({ name: '', type: 'Image', link: '', image: 'banner1.png', previewUrl: '', status: 'Active' });
   };
 
   // PACKAGE ADD / EDIT HANDLERS
@@ -1461,7 +1476,7 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Banner Management</h1>
-                  <button onClick={() => { setEditingBanner(null); setBannerForm({ name: '', type: 'Image', link: '', image: 'banner1.png', status: 'Active' }); setShowAddBannerModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                  <button onClick={() => { setEditingBanner(null); setBannerForm({ name: '', type: 'Image', link: '', image: 'banner1.png', previewUrl: '', status: 'Active' }); setShowAddBannerModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
@@ -1479,11 +1494,17 @@ export default function App() {
                       {bannersList.map((b, i) => (
                         <tr key={i} className="hover:bg-[#F4F6F9]">
                           <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-1 bg-gray-100 border rounded text-[10px] font-mono">{b.image}</span></td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">
+                            {b.previewUrl ? (
+                              <img src={b.previewUrl} alt={b.name} className="h-10 w-20 object-cover rounded border border-gray-300" />
+                            ) : (
+                              <span className="px-2 py-1 bg-gray-100 border rounded text-[10px] font-mono">{b.image}</span>
+                            )}
+                          </td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{b.name}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{b.status}</span></td>
                           <td className="p-2.5 text-right space-x-1">
-                            <button onClick={() => { setEditingBanner(b); setBannerForm(b); setShowAddBannerModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">Edit</button>
+                            <button onClick={() => { setEditingBanner(b); setBannerForm({ ...b, previewUrl: b.previewUrl || '' }); setShowAddBannerModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">Edit</button>
                             <button onClick={() => setBannersList(bannersList.filter(x => x.id !== b.id))} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">Delete</button>
                           </td>
                         </tr>
@@ -1642,9 +1663,22 @@ export default function App() {
                   <option value="Deactive">Deactive</option>
                 </select>
               </div>
+
+              {/* PHOTO / IMAGE FILE UPLOADER */}
               <div>
-                <label className="block text-[#495057] font-bold mb-1">Image Name / URL</label>
-                <input type="text" value={bannerForm.image} onChange={(e)=>setBannerForm({...bannerForm, image: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded font-mono" />
+                <label className="block text-[#495057] font-bold mb-1">Upload Photo / Banner Image *</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBannerImageUpload}
+                  className="w-full border border-[#CED4DA] p-1.5 rounded text-xs bg-white cursor-pointer"
+                />
+                {bannerForm.previewUrl && (
+                  <div className="mt-2 text-center border p-2 rounded bg-gray-50">
+                    <p className="text-[10px] text-gray-500 font-bold mb-1">Photo Preview:</p>
+                    <img src={bannerForm.previewUrl} alt="Banner Preview" className="h-20 max-w-full object-contain mx-auto rounded shadow-sm" />
+                  </div>
+                )}
               </div>
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={()=>setShowAddBannerModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
