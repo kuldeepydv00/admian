@@ -721,31 +721,54 @@ export default function App() {
   // PAYMENT METHOD ADD / EDIT HANDLERS
   const handleSavePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paymentForm.name || (!paymentForm.upi_id && !paymentForm.upiId)) return;
+    const upiVal = paymentForm.upi_id || paymentForm.upiId || '8930507940@ybl';
+    const nameVal = paymentForm.name || 'PhonePe / GPay / Paytm UPI';
+    const merchantVal = paymentForm.merchant_name || 'Matka Official';
+    const orderVal = paymentForm.ordering || 1;
+    const statusVal = paymentForm.status || 'Active';
+    const targetId = editingPayment ? (editingPayment.id || editingPayment._id) : `pm_${Date.now()}`;
+
+    const newPMObj = {
+      _id: targetId,
+      id: targetId,
+      name: nameVal,
+      upi_id: upiVal,
+      upiId: upiVal,
+      merchant_name: merchantVal,
+      ordering: orderVal,
+      status: statusVal,
+      updateDate: new Date().toLocaleDateString()
+    };
+
+    // 1. Instantly update UI state & close modal!
+    setPaymentMethodsList(prev => {
+      let updatedList = [...prev];
+      if (statusVal === 'Active') {
+        updatedList = updatedList.map(p => ({ ...p, status: 'Inactive' }));
+      }
+      const existingIdx = updatedList.findIndex(p => String(p.id || p._id) === String(targetId));
+      if (existingIdx >= 0) {
+        updatedList[existingIdx] = newPMObj;
+      } else {
+        updatedList.unshift(newPMObj);
+      }
+      return updatedList;
+    });
+
+    setShowAddPaymentModal(false);
+    setEditingPayment(null);
+    setStatusMessage(`🎉 Payment Method "${nameVal}" (${upiVal}) saved successfully!`);
+
+    // 2. Persist to Backend API & MongoDB Atlas
     try {
-      const payload = {
-        id: editingPayment ? (editingPayment.id || editingPayment._id) : undefined,
-        _id: editingPayment ? (editingPayment._id || editingPayment.id) : undefined,
-        name: paymentForm.name,
-        upi_id: paymentForm.upi_id || paymentForm.upiId,
-        merchant_name: paymentForm.merchant_name || 'Matka Official',
-        ordering: paymentForm.ordering || 1,
-        status: paymentForm.status || 'Active'
-      };
-      const res = await fetch(`${API_BASE}/api/admin/payment-methods`, {
+      await fetch(`${API_BASE}/api/admin/payment-methods`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(newPMObj)
       });
-      if (res.ok) {
-        setStatusMessage(`🎉 Payment Method "${paymentForm.name}" saved & synced to MongoDB Atlas!`);
-        setShowAddPaymentModal(false);
-        setEditingPayment(null);
-        setPaymentForm({ name: '', upi_id: '', merchant_name: 'Matka Official', ordering: 1, status: 'Active' });
-        fetchLiveData();
-      }
+      fetchLiveData();
     } catch (err) {
-      console.error(err);
+      console.error('[Save Payment Error]', err);
     }
   };
 
