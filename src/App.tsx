@@ -721,7 +721,7 @@ export default function App() {
   // PAYMENT METHOD ADD / EDIT HANDLERS
   const handleSavePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const upiVal = paymentForm.upi_id || paymentForm.upiId || '8930507940@ybl';
+    const upiVal = paymentForm.upi_id || paymentForm.upiId || '';
     const nameVal = paymentForm.name || 'PhonePe / GPay / Paytm UPI';
     const merchantVal = paymentForm.merchant_name || 'Matka Official';
     const orderVal = paymentForm.ordering || (paymentMethodsList.length + 1);
@@ -3970,7 +3970,7 @@ export default function App() {
                     </thead>
                     <tbody>
                       {paymentMethodsList.map((pm, i) => {
-                        const upiVal = pm.upi_id || pm.upiId || pm.upi || '8930507940@ybl';
+                        const upiVal = pm.upi_id || pm.upiId || pm.upi || 'N/A';
                         const pmId = pm._id || pm.id;
                         return (
                           <tr key={i} className="hover:bg-[#F4F6F9]">
