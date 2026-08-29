@@ -213,6 +213,10 @@ export default function App() {
   const [showEditBidModal, setShowEditBidModal] = useState(false);
   const [editBidForm, setEditBidForm] = useState({ id: '', number: '', amount: 10, category: '', gameType: '', user: '', phone: '' });
 
+  // Game History Breakdown Modal Control
+  const [showGameHistoryModal, setShowGameHistoryModal] = useState(false);
+  const [selectedGameHistoryCategory, setSelectedGameHistoryCategory] = useState('Desawar');
+
   // Edit Item States
   const [editingBanner, setEditingBanner] = useState<any>(null);
   const [editingPackage, setEditingPackage] = useState<any>(null);
@@ -274,6 +278,73 @@ export default function App() {
     } finally {
       setAuthLoading(false);
     }
+  };
+
+  // Get market game breakdown totals & per-number stakes
+  const getMarketBreakdown = (categoryName: string) => {
+    const jodiMap: { [key: string]: number } = {};
+    const crossMap: { [key: string]: number } = {};
+    const haroofAnderMap: { [key: string]: number } = {};
+    const haroofBaharMap: { [key: string]: number } = {};
+
+    let jodiTotal = 0;
+    let crossTotal = 0;
+    let haroofTotal = 0;
+
+    bidsList.forEach(b => {
+      if (b.category === categoryName) {
+        const amt = parseFloat(b.amount) || 0;
+        const numStr = String(b.number !== undefined ? b.number : '00').padStart(2, '0');
+        const gType = (b.gameType || '').toUpperCase();
+
+        if (gType.includes('CROSS')) {
+          crossMap[numStr] = (crossMap[numStr] || 0) + amt;
+          crossTotal += amt;
+        } else if (gType.includes('HAROOF') || gType.includes('HAROP') || gType.includes('HROPE') || gType.includes('ANDER') || gType.includes('BAHAR')) {
+          if (gType.includes('BAHAR')) {
+            const digit = `B${numStr.slice(-1)}`;
+            haroofBaharMap[digit] = (haroofBaharMap[digit] || 0) + amt;
+          } else {
+            const digit = `A${numStr.slice(-1)}`;
+            haroofAnderMap[digit] = (haroofAnderMap[digit] || 0) + amt;
+          }
+          haroofTotal += amt;
+        } else {
+          jodiMap[numStr] = (jodiMap[numStr] || 0) + amt;
+          jodiTotal += amt;
+        }
+      }
+    });
+
+    const totalInvestment = jodiTotal + crossTotal + haroofTotal;
+
+    const matchedResult = resultsList.find(r => r.category === categoryName);
+    const winningNumStr = matchedResult ? String(matchedResult.resultNumber).padStart(2, '0') : '31';
+    const winningAnderDigit = `A${winningNumStr.charAt(0)}`;
+    const winningBaharDigit = `B${winningNumStr.charAt(1)}`;
+
+    const jodiWinTotal = (jodiMap[winningNumStr] || 0) * 95;
+    const crossWinTotal = (crossMap[winningNumStr] || 0) * 95;
+    const haroofWinTotal = ((haroofAnderMap[winningAnderDigit] || 0) * 9.5) + ((haroofBaharMap[winningBaharDigit] || 0) * 9.5);
+    const totalWinningAmount = jodiWinTotal + crossWinTotal + haroofWinTotal;
+
+    return {
+      jodiMap,
+      crossMap,
+      haroofAnderMap,
+      haroofBaharMap,
+      jodiTotal,
+      crossTotal,
+      haroofTotal,
+      totalInvestment,
+      winningNumStr,
+      winningAnderDigit,
+      winningBaharDigit,
+      jodiWinTotal,
+      crossWinTotal,
+      haroofWinTotal,
+      totalWinningAmount
+    };
   };
 
   const handleOtpSubmit = async (e: React.FormEvent) => {
@@ -1257,34 +1328,34 @@ export default function App() {
               </div>
             )}
 
-            {/* MATKA GAME SUB-MODULE 4: GAME HISTORY (Matching media_1787977928866.png 100%) */}
+            {/* MATKA GAME SUB-MODULE 4: GAME HISTORY (Matching media_1787981861611.jpg 100%) */}
             {activeTab === 'gameHistory' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Game History</h1>
                 </div>
 
-                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm flex flex-wrap gap-4 items-end text-xs">
+                <form onSubmit={handleExecuteSearch} className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm flex flex-wrap gap-4 items-end text-xs">
                   <div className="min-w-[200px]">
                     <label className="block font-bold text-[#212529] mb-1">Category</label>
-                    <select value={filterCategory} onChange={(e)=>setFilterCategory(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded">
+                    <select value={filterCategory} onChange={(e)=>{ setFilterCategory(e.target.value); setAppliedCategory(e.target.value); }} className="w-full border border-[#CED4DA] p-1.5 rounded">
                       <option value="All">All</option>
                       {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Start Date</label>
-                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} placeholder="DD-MM-YYYY" className="border border-[#CED4DA] p-1.5 rounded" />
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">End Date</label>
-                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} placeholder="DD-MM-YYYY" className="border border-[#CED4DA] p-1.5 rounded" />
                   </div>
                   <div className="flex gap-2">
-                    <button className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
-                    <button onClick={()=>{ setFilterCategory('All'); }} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm">Clear</button>
+                    <button type="submit" onClick={handleExecuteSearch} className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
+                    <button type="button" onClick={handleClearFilters} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm hover:bg-gray-100">Clear</button>
                   </div>
-                </div>
+                </form>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
@@ -1301,32 +1372,71 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {bidsList.map((b, i) => (
-                        <tr key={i} className="hover:bg-[#F4F6F9]">
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{b.date}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{b.category}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{b.gameType}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ 0.00</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#DC3545]">₹ {b.amount}.00</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {b.status === 'Won' ? b.amount * 9 : 0}.00</td>
-                          <td className="p-2.5 text-right"><button onClick={() => { setViewingBid(b); setShowViewBidModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3 py-1 rounded text-[10px] font-bold shadow-sm">View</button></td>
-                        </tr>
-                      ))}
+                      {categoriesList.filter(c => {
+                        const targetCat = appliedCategory !== 'All' ? appliedCategory : filterCategory;
+                        if (targetCat !== 'All' && c.name !== targetCat) return false;
+                        return true;
+                      }).map((c, i) => {
+                        const bd = getMarketBreakdown(c.name);
+                        const bonusAmt = (bd.totalInvestment * 0.0005).toFixed(2);
+                        return (
+                          <tr key={i} className="hover:bg-[#F4F6F9] align-top">
+                            <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6]">2026-08-29</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{c.name}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono space-y-1">
+                              {bd.crossTotal > 0 && <div>Cross Amount:- {bd.crossTotal}</div>}
+                              {bd.jodiTotal > 0 && <div>Jodi Amount:- {bd.jodiTotal}</div>}
+                              {bd.haroofTotal > 0 && <div>Hrope Amount:- {bd.haroofTotal}</div>}
+                              {bd.totalInvestment === 0 && <div>Jodi Amount:- 0</div>}
+                            </td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-700">₹{bonusAmt}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#212529]">₹{bd.totalInvestment.toFixed(2)}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#212529]">₹{bd.totalWinningAmount.toFixed(2)}</td>
+                            <td className="p-2.5 text-right">
+                              <button
+                                onClick={() => {
+                                  setSelectedGameHistoryCategory(c.name);
+                                  setShowGameHistoryModal(true);
+                                }}
+                                className="bg-[#FFC107] hover:bg-[#E0A800] text-black px-2.5 py-1 rounded text-xs shadow-sm font-bold"
+                                title="View Game Breakdown"
+                              >
+                                👁️
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
 
-                  {/* SUMMARY CARD MATCHING MEDIA_1787977928866.PNG */}
-                  <div className="bg-white rounded border border-[#DEE2E6] p-5 space-y-4 mt-4">
-                    <h2 className="text-2xl font-bold text-[#212529]">Summary</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm font-bold text-[#212529]">
-                      <p>Total Betting : ₹{bidsList.reduce((s,b)=>s+b.amount,0)}.00</p>
-                      <p>Total Winning : ₹{winningsList.reduce((s,w)=>s+w.amount,0)}.00</p>
-                      <p>Total Commission : ₹0.00</p>
-                      <p>Total Bonus : ₹0.00 <span className="text-red-500 font-normal text-xs">(Effective from 14-08-2024)</span></p>
-                      <p>Net Amount : ₹{bidsList.reduce((s,b)=>s+b.amount,0) - winningsList.reduce((s,w)=>s+w.amount,0)}.00</p>
-                    </div>
-                  </div>
+                  {/* SUMMARY CARD MATCHING MEDIA_1787981861611.JPG 100% */}
+                  {(() => {
+                    let totalBet = 0;
+                    let totalWin = 0;
+                    categoriesList.forEach(c => {
+                      const bd = getMarketBreakdown(c.name);
+                      totalBet += bd.totalInvestment;
+                      totalWin += bd.totalWinningAmount;
+                    });
+                    const totalComm = totalBet * 0.04;
+                    const totalBonus = totalBet * 0.0005;
+                    const netAmt = totalBet - totalWin - totalComm;
+
+                    return (
+                      <div className="bg-[#EFEFDE]/30 bg-[#F8F9FA] rounded border border-[#DEE2E6] p-5 space-y-3 mt-4">
+                        <h2 className="text-xl font-bold text-[#212529]">Summary</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-y-2 gap-x-6 text-xs font-bold text-[#212529]">
+                          <div>Total Betting : <span className="font-mono">₹{totalBet.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                          <div>Total Winning : <span className="font-mono">₹{totalWin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                          <div>Total Commission : <span className="font-mono">₹{totalComm.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                          <div>Total Bonus : <span className="font-mono">₹{totalBonus.toFixed(2)}</span> <span className="text-red-500 font-normal text-[10px]">(Effective from 14-08-2024)</span></div>
+                          <div>Net Amount : <span className="font-mono">₹{netAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -2619,7 +2729,7 @@ export default function App() {
                 <h3 className="font-bold text-[#212529] text-base">Bet Breakdown & Money Distribution</h3>
                 <p className="text-xs text-[#007BFF] font-bold mt-0.5">Market: {viewingBid.category} ({viewingBid.gameType || 'Single Jodi'})</p>
               </div>
-              <button onClick={() => setShowViewBidModal(false)} className="text-gray-500 hover:text-black font-bold text-lg">✕</button>
+              <button onClick={() => { setShowViewBidModal(false); setViewingBid(null); }} className="text-gray-500 hover:text-black font-bold text-lg">✕</button>
             </div>
 
             {/* PER NUMBER MONEY BREAKDOWN CARDS */}
@@ -2730,6 +2840,165 @@ export default function App() {
                 <button type="submit" className="flex-1 bg-[#28A745] hover:bg-[#218838] text-white p-2 rounded font-bold shadow-sm">Update Bid Number</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 11. MARKET GAME BREAKDOWN MODAL (MATCHING MEDIA_1787981926315.JPG, MEDIA_1787981953977.JPG, MEDIA_1787981960032.JPG 100%) */}
+      {showGameHistoryModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl border border-[#DEE2E6] text-xs">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-[#212529] text-base">{selectedGameHistoryCategory} - Detailed Game Breakdown</h3>
+              <button onClick={() => setShowGameHistoryModal(false)} className="text-gray-500 hover:text-black font-bold text-lg">✕</button>
+            </div>
+
+            {/* TOP CATEGORY SELECTOR & SUBMIT BAR */}
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedGameHistoryCategory}
+                onChange={(e) => setSelectedGameHistoryCategory(e.target.value)}
+                className="border border-[#CED4DA] p-2 rounded font-bold text-xs flex-1"
+              >
+                {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+              <button className="bg-[#28A745] text-white px-4 py-2 rounded font-bold">Submit</button>
+              <button onClick={() => setShowGameHistoryModal(false)} className="bg-white border text-gray-700 px-4 py-2 rounded font-bold">Clear</button>
+            </div>
+
+            {(() => {
+              const bd = getMarketBreakdown(selectedGameHistoryCategory);
+              return (
+                <div className="space-y-6">
+
+                  {/* 1. JODI GAME SECTION (MATCHING MEDIA_1787981926315.JPG & MEDIA_1787981953977.JPG) */}
+                  <div className="space-y-3 border-t pt-4">
+                    <h4 className="font-bold text-[#212529] text-sm">Jodi Game</h4>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 justify-items-center">
+                      {Array.from({ length: 100 }).map((_, idx) => {
+                        const numStr = String(idx).padStart(2, '0');
+                        const amt = bd.jodiMap[numStr] || 0;
+                        const isWinner = numStr === bd.winningNumStr;
+                        return (
+                          <div
+                            key={numStr}
+                            className={`w-14 h-14 rounded-full flex flex-col items-center justify-center text-center p-1 text-[11px] font-bold shadow-sm transition-all ${
+                              isWinner
+                                ? 'bg-[#28A745] text-white ring-4 ring-[#28A745]/30'
+                                : 'bg-[#E67E22] text-white'
+                            }`}
+                          >
+                            <span className="text-xs leading-none">{numStr}</span>
+                            <span className="text-[9px] mt-0.5 opacity-90 font-mono">Rs = {amt}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="bg-[#F8F9FA] border border-[#DEE2E6] p-3 rounded space-y-1 font-bold text-xs mt-3">
+                      <div className="flex justify-between">
+                        <span>Total</span>
+                        <span className="font-mono">Rs. {bd.jodiTotal}</span>
+                      </div>
+                      <div className="flex justify-between text-[#28A745]">
+                        <span>Winning Amount Total (95x)</span>
+                        <span className="font-mono">Rs. {bd.jodiWinTotal}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. CROSS GAME SECTION (MATCHING MEDIA_1787981953977.JPG & MEDIA_1787981960032.JPG) */}
+                  <div className="space-y-3 border-t pt-4">
+                    <h4 className="font-bold text-[#212529] text-sm">Cross Game</h4>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
+                      {Array.from({ length: 100 }).map((_, idx) => {
+                        const numStr = String(idx).padStart(2, '0');
+                        const amt = bd.crossMap[numStr] || 0;
+                        return (
+                          <div key={numStr} className="bg-gray-200 text-gray-800 p-2 rounded text-[11px] font-bold font-mono">
+                            {numStr} Rs = {amt}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="bg-[#F8F9FA] border border-[#DEE2E6] p-3 rounded space-y-1 font-bold text-xs mt-3">
+                      <div className="flex justify-between">
+                        <span>Total</span>
+                        <span className="font-mono">Rs. {bd.crossTotal}</span>
+                      </div>
+                      <div className="flex justify-between text-[#28A745]">
+                        <span>Cross Winning Amount Total (95x)</span>
+                        <span className="font-mono">Rs. {bd.crossWinTotal}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. HAROOP GAME SECTION (MATCHING MEDIA_1787981960032.JPG) */}
+                  <div className="space-y-3 border-t pt-4">
+                    <h4 className="font-bold text-[#212529] text-sm">Haroop Game</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* INNER (AHEDR) */}
+                      <div className="space-y-1.5">
+                        <div className="bg-[#F8F9FA] p-2 font-bold text-center border-b">Inner (Ahedr)</div>
+                        {Array.from({ length: 10 }).map((_, idx) => {
+                          const digitKey = `A${idx}`;
+                          const amt = bd.haroofAnderMap[digitKey] || 0;
+                          const isWin = digitKey === bd.winningAnderDigit;
+                          return (
+                            <div key={digitKey} className={`flex justify-between p-2 rounded font-bold text-xs ${isWin ? 'bg-[#28A745] text-white' : 'bg-[#E67E22] text-white'}`}>
+                              <span>{digitKey}</span>
+                              <span className="font-mono">{amt}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* OUTER (BAHAR) */}
+                      <div className="space-y-1.5">
+                        <div className="bg-[#F8F9FA] p-2 font-bold text-center border-b">Outer (Bahar)</div>
+                        {Array.from({ length: 10 }).map((_, idx) => {
+                          const digitKey = `B${idx}`;
+                          const amt = bd.haroofBaharMap[digitKey] || 0;
+                          const isWin = digitKey === bd.winningBaharDigit;
+                          return (
+                            <div key={digitKey} className={`flex justify-between p-2 rounded font-bold text-xs ${isWin ? 'bg-[#28A745] text-white' : 'bg-[#E67E22] text-white'}`}>
+                              <span>{digitKey}</span>
+                              <span className="font-mono">{amt}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F8F9FA] border border-[#DEE2E6] p-3 rounded space-y-1 font-bold text-xs mt-3">
+                      <div className="flex justify-between">
+                        <span>Total</span>
+                        <span className="font-mono">Rs. {bd.haroofTotal}</span>
+                      </div>
+                      <div className="flex justify-between text-[#28A745]">
+                        <span>Winning Amount Total (9.5x)</span>
+                        <span className="font-mono">Rs. {bd.haroofWinTotal}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. AMOUNT HISTORY BOX (MATCHING MEDIA_1787981960032.JPG 100%) */}
+                  <div className="bg-[#F8F9FA] border border-[#DEE2E6] p-4 rounded space-y-2 text-xs font-bold border-t-2 border-t-[#007BFF]">
+                    <h5 className="text-gray-700 uppercase tracking-wider text-[10px]">Amount History</h5>
+                    <div className="flex justify-between text-sm">
+                      <span>Total Investment</span>
+                      <span className="font-mono text-gray-900">Rs. {bd.totalInvestment}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-[#28A745]">
+                      <span>Total Winning Amount (Payable Payout 95x / 9.5x)</span>
+                      <span className="font-mono">Rs. {bd.totalWinningAmount}</span>
+                    </div>
+                  </div>
+
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
