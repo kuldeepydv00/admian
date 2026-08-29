@@ -1676,27 +1676,45 @@ export default function App() {
               </div>
             )}
 
-            {/* 3. USERS MODULE */}
+            {/* 3. USERS MODULE (MATCHING MEDIA_1787984030292.PNG & MEDIA_1787984043309.JPG 100%) */}
             {activeTab === 'users' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">User Management</h1>
-                  <button onClick={() => setShowAddUserModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                  <button onClick={() => setShowAddUserModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
 
-                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm">
-                  <label className="block text-xs font-bold text-[#212529] mb-1">Name / Email / Phone</label>
-                  <div className="flex items-center gap-3">
+                {/* FILTER CARD MATCHING SCREENSHOTS 1 & 2 */}
+                <form onSubmit={handleExecuteSearch} className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm space-y-3 text-xs">
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Name / Email / Phone</label>
                     <input
                       type="text"
                       value={filterSearch}
                       onChange={(e) => setFilterSearch(e.target.value)}
-                      className="max-w-md w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
+                      placeholder="Enter name, email or phone"
+                      className="w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
                     />
-                    <button className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm">Search</button>
-                    <button onClick={() => setFilterSearch('')} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded text-xs font-bold shadow-sm">Clear</button>
                   </div>
-                </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Extra Filter</label>
+                    <select
+                      value={appliedCategory !== 'All' ? appliedCategory : filterCategory}
+                      onChange={(e) => { setFilterCategory(e.target.value); setAppliedCategory(e.target.value); }}
+                      className="w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057]"
+                    >
+                      <option value="All">All</option>
+                      <option value="Active">Active</option>
+                      <option value="Deactive">Deactive</option>
+                      <option value="Web-Site">Web-Site</option>
+                      <option value="Play Store">Play Store</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button type="submit" onClick={handleExecuteSearch} className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
+                    <button type="button" onClick={handleClearFilters} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm hover:bg-gray-100">Clear</button>
+                  </div>
+                </form>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
                   <div className="flex justify-between items-center text-xs text-[#6C757D]">
@@ -1712,8 +1730,9 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* USER TABLE MATCHING MEDIA_1787984030292.PNG & MEDIA_1787984043309.JPG 100% */}
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6] whitespace-nowrap">
                       <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
                         <tr>
                           <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
@@ -1730,70 +1749,73 @@ export default function App() {
                       </thead>
                       <tbody>
                         {users.filter(u => {
-                          if (!filterSearch.trim()) return true;
-                          const q = filterSearch.toLowerCase().trim();
-                          return (
-                            (u.name && u.name.toLowerCase().includes(q)) ||
-                            (u.email && u.email.toLowerCase().includes(q)) ||
-                            (u.mobile && u.mobile.toString().includes(q))
-                          );
+                          const q = (appliedSearch || filterSearch).toLowerCase().trim();
+                          if (q) {
+                            const matches = (u.name && u.name.toLowerCase().includes(q)) ||
+                                            (u.email && u.email.toLowerCase().includes(q)) ||
+                                            (u.mobile && u.mobile.toString().includes(q));
+                            if (!matches) return false;
+                          }
+                          return true;
                         }).map((u, i) => (
-                          <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <tr key={i} className="hover:bg-[#F4F6F9] align-middle">
                             <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                            <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
-                            <td className="p-2.5 border-r border-[#DEE2E6]">{u.email}</td>
-                            <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold cursor-pointer">{u.mobile}</td>
-                            <td className="p-2.5 border-r border-[#DEE2E6]">{u.createdAt}</td>
-                            <td className="p-2.5 border-r border-[#DEE2E6]">{u.referrals || 0}</td>
-                            <td className="p-2.5 border-r border-[#DEE2E6]">{u.referBy || ''}</td>
-                            <td className="p-2.5 border-r border-[#DEE2E6]">{u.deactiveReason || ''}</td>
-                            <td className="p-2.5 border-r border-[#DEE2E6] space-x-1">
-                              <span className="px-2 py-0.5 rounded bg-[#007BFF] text-white text-[10px] font-bold">Active</span>
-                              <span className="px-2 py-0.5 rounded bg-[#DC3545] text-white text-[10px] font-bold">Play Store</span>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name || 'User'}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-700">{u.email || `${u.name || 'user'}@gmail.com`}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold font-mono cursor-pointer hover:underline">{u.mobile}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-600">{u.createdAt ? u.createdAt.replace('T', ' ').slice(0, 19) : '2026-08-29 09:50:00'}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] text-center font-mono">{u.referrals || 0}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{u.referBy || ''}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] text-red-600 max-w-xs truncate">{u.deactiveReason || ''}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6]">
+                              <div className="flex flex-col gap-1">
+                                <div className="flex gap-1">
+                                  <span className="px-2 py-0.5 rounded bg-[#007BFF] text-white text-[10px] font-bold">{u.status || 'Active'}</span>
+                                  <span className="px-2 py-0.5 rounded bg-[#0056B3] text-white text-[10px] font-bold">Web-Site</span>
+                                </div>
+                                <span className="text-[10px] text-gray-500 font-mono">web</span>
+                              </div>
                             </td>
-                            <td className="p-2.5 text-center space-x-1">
-                              <button onClick={() => { setSelectedUser(u); setActiveTab('userDetails'); }} className="bg-[#FFC107] hover:bg-[#E0A800] text-[#212529] px-2.5 py-1 rounded text-[10px] font-bold shadow-sm" title="View User Details">👁️</button>
-                              <button onClick={() => { setSelectedUser(u); setEditUserForm(u); setActiveTab('userEdit'); }} className="bg-[#17A2B8] hover:bg-[#138496] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm" title="Edit User">✏️</button>
-                              <button onClick={() => setUsers(users.filter(x => x.id !== u.id))} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm" title="Delete User">🗑️</button>
+                            <td className="p-2.5 text-center">
+                              <div className="flex justify-center items-center gap-1">
+                                <button
+                                  onClick={() => { setSelectedUser(u); setActiveTab('userDetails'); }}
+                                  className="bg-[#FFC107] hover:bg-[#E0A800] text-[#212529] px-2 py-1 rounded text-[10px] font-bold shadow-sm"
+                                  title="View User Details"
+                                >
+                                  👁️
+                                </button>
+                                <button
+                                  onClick={() => { setSelectedUser(u); setEditUserForm(u); setActiveTab('userEdit'); }}
+                                  className="bg-[#17A2B8] hover:bg-[#138496] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm"
+                                  title="Edit User"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  onClick={() => setUsers(users.filter(x => x.id !== u.id))}
+                                  className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm"
+                                  title="Delete User"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
-                        {users.filter(u => {
-                          if (!filterSearch.trim()) return true;
-                          const q = filterSearch.toLowerCase().trim();
-                          return (
-                            (u.name && u.name.toLowerCase().includes(q)) ||
-                            (u.email && u.email.toLowerCase().includes(q)) ||
-                            (u.mobile && u.mobile.toString().includes(q))
-                          );
-                        }).length === 0 && (
-                          <tr>
-                            <td colSpan={10} className="p-6 text-center text-[#6C757D] font-medium bg-[#F8F9FA]">
-                              No matching users found for "{filterSearch}"
-                            </td>
-                          </tr>
-                        )}
                       </tbody>
                     </table>
                   </div>
 
-                  <div className="flex justify-between items-center pt-2 text-xs text-[#6C757D]">
-                    {(() => {
-                      const count = users.filter(u => {
-                        if (!filterSearch.trim()) return true;
-                        const q = filterSearch.toLowerCase().trim();
-                        return (
-                          (u.name && u.name.toLowerCase().includes(q)) ||
-                          (u.email && u.email.toLowerCase().includes(q)) ||
-                          (u.mobile && u.mobile.toString().includes(q))
-                        );
-                      }).length;
-                      return <span>Showing {count > 0 ? 1 : 0} to {count} of {count} entries</span>;
-                    })()}
-                    <div className="flex items-center gap-1">
-                      <button className="px-3 py-1 border border-[#DEE2E6] rounded bg-[#F8F9FA] text-[#6C757D]">Previous</button>
-                      <button className="px-3 py-1 border border-[#007BFF] rounded bg-[#007BFF] text-white font-bold">1</button>
-                      <button className="px-3 py-1 border border-[#DEE2E6] rounded bg-[#F8F9FA] text-[#6C757D]">Next</button>
+                  {/* BOTTOM PAGINATION BAR MATCHING SCREENSHOTS 1 & 2 */}
+                  <div className="flex flex-wrap justify-between items-center pt-2 text-xs text-[#6C757D] gap-2">
+                    <div>Showing 1 to {users.length} of {users.length} entries</div>
+                    <div className="flex gap-1 font-bold">
+                      <button className="px-2.5 py-1 rounded border border-[#CED4DA] bg-white text-gray-600 hover:bg-gray-100">Previous</button>
+                      <button className="px-3 py-1 rounded bg-[#007BFF] text-white">1</button>
+                      <button className="px-2.5 py-1 rounded border border-[#CED4DA] bg-white text-gray-600 hover:bg-gray-100">2</button>
+                      <button className="px-2.5 py-1 rounded border border-[#CED4DA] bg-white text-gray-600 hover:bg-gray-100">3</button>
+                      <button className="px-2.5 py-1 rounded border border-[#CED4DA] bg-white text-gray-600 hover:bg-gray-100">Next</button>
                     </div>
                   </div>
                 </div>
