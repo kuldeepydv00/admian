@@ -133,9 +133,43 @@ export default function App() {
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterGameType, setFilterGameType] = useState('All');
   const [filterTxnType, setFilterTxnType] = useState('All');
-  const [filterStartDate, setFilterStartDate] = useState('29-08-2026');
-  const [filterEndDate, setFilterEndDate] = useState('29-08-2026');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
   const [searchNumberInput, setSearchNumberInput] = useState('');
+
+  // Smart Date Matching Helper to prevent date format mismatch
+  const isDateMatch = (recordDate?: string, filterDate?: string) => {
+    if (!filterDate || !filterDate.trim()) return true;
+    if (!recordDate) return false;
+
+    const fTrim = filterDate.trim();
+    if (recordDate.includes(fTrim)) return true;
+
+    const fParts = fTrim.split(/[-/]/);
+    if (fParts.length === 3) {
+      let fDay = parseInt(fParts[0]);
+      let fMonth = parseInt(fParts[1]);
+      let fYear = parseInt(fParts[2]);
+
+      if (fParts[0].length === 4) {
+        fYear = parseInt(fParts[0]);
+        fMonth = parseInt(fParts[1]);
+        fDay = parseInt(fParts[2]);
+      }
+
+      const rDate = new Date(recordDate);
+      if (!isNaN(rDate.getTime())) {
+        if (
+          rDate.getDate() === fDay &&
+          rDate.getMonth() + 1 === fMonth &&
+          rDate.getFullYear() === fYear
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
 
   // Applied Active Filter States (Triggered by clicking Search button or submitting filter form)
   const [appliedCategory, setAppliedCategory] = useState('All');
@@ -1085,8 +1119,8 @@ export default function App() {
                         // Date check
                         const sDate = appliedStartDate || filterStartDate;
                         const eDate = appliedEndDate || filterEndDate;
-                        if (sDate && sDate.trim() && b.date && !b.date.includes(sDate.trim())) return false;
-                        if (eDate && eDate.trim() && b.date && !b.date.includes(eDate.trim())) return false;
+                        if (sDate && sDate.trim() && !isDateMatch(b.date, sDate)) return false;
+                        if (eDate && eDate.trim() && !isDateMatch(b.date, eDate)) return false;
 
                         return true;
                       }).map((b, i) => (
@@ -1284,8 +1318,8 @@ export default function App() {
                         // Date range check
                         const sDate = appliedStartDate || filterStartDate;
                         const eDate = appliedEndDate || filterEndDate;
-                        if (sDate && sDate.trim() && w.dateOfWinning && !w.dateOfWinning.includes(sDate.trim())) return false;
-                        if (eDate && eDate.trim() && w.dateOfWinning && !w.dateOfWinning.includes(eDate.trim())) return false;
+                        if (sDate && sDate.trim() && !isDateMatch(w.dateOfWinning, sDate)) return false;
+                        if (eDate && eDate.trim() && !isDateMatch(w.dateOfWinning, eDate)) return false;
 
                         return true;
                       }).map((w, i) => (
