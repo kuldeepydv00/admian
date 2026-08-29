@@ -2711,14 +2711,14 @@ export default function App() {
               </div>
             )}
 
-            {/* 6. WALLET TRANSACTIONS MODULE */}
+            {/* 6. WALLET TRANSACTIONS MODULE (COMBINED DEPOSITS & WITHDRAWALS) */}
             {activeTab === 'walletTransactions' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Wallet Transactions</h1>
                 </div>
 
-                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 overflow-x-auto">
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                     <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
                       <tr>
@@ -2735,20 +2735,88 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {deposits.map((d, i) => (
-                        <tr key={i} className="hover:bg-[#F4F6F9]">
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">user@95xmatka.com</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{d.utr || d.id}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{d.method || 'DEPOSIT'}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{d.date}</td>
-                          <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">View</button></td>
-                        </tr>
-                      ))}
+                      {(() => {
+                        const allWalletTransactions = [
+                          ...deposits.map(d => {
+                            const rawMob = (d.mobile || d.phone || d.user || '').replace(/[^0-9]/g, '');
+                            const mob = rawMob.length >= 10 ? rawMob.slice(-10) : 'N/A';
+                            return {
+                              id: d._id || d.id || d.utr,
+                              user: d.user || d.name || 'User',
+                              email: `${mob}@gmail.com`,
+                              mobile: mob,
+                              amount: d.amount,
+                              amountPrefix: '+',
+                              amountColor: 'text-[#28A745]',
+                              txnId: d.utr || d.utr_number || d.id || d._id,
+                              txnType: 'DEPOSIT (' + (d.method || 'UPI') + ')',
+                              status: d.status || 'Approved',
+                              date: d.createdAt || d.date || 'Today',
+                              rawDate: d.createdAt ? new Date(d.createdAt).getTime() : Date.now(),
+                              originalItem: d,
+                              itemType: 'deposit'
+                            };
+                          }),
+                          ...withdrawals.map(w => {
+                            const rawMob = (w.mobile || w.phone || w.user || '').replace(/[^0-9]/g, '');
+                            const mob = rawMob.length >= 10 ? rawMob.slice(-10) : 'N/A';
+                            return {
+                              id: w._id || w.id,
+                              user: w.user || w.name || 'User',
+                              email: `${mob}@gmail.com`,
+                              mobile: mob,
+                              amount: w.amount,
+                              amountPrefix: '-',
+                              amountColor: 'text-[#DC3545]',
+                              txnId: w.id || w._id,
+                              txnType: 'WITHDRAWAL (' + (w.payment_method || 'Bank Transfer') + ')',
+                              status: w.status || 'Pending',
+                              date: w.created_at ? new Date(w.created_at).toLocaleString() : 'Today',
+                              rawDate: w.created_at ? new Date(w.created_at).getTime() : Date.now(),
+                              originalItem: w,
+                              itemType: 'withdrawal'
+                            };
+                          })
+                        ].sort((a, b) => b.rawDate - a.rawDate);
+
+                        return allWalletTransactions.map((t, i) => (
+                          <tr key={i} className="hover:bg-[#F4F6F9]">
+                            <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{t.user}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] text-gray-600">{t.email}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-gray-800">{t.mobile}</td>
+                            <td className={`p-2.5 border-r border-[#DEE2E6] font-mono font-bold ${t.amountColor}`}>
+                              ₹ {t.amountPrefix}{t.amount}
+                            </td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px]">{t.txnId}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-indigo-600">{t.txnType}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6]">
+                              <span className={`px-2 py-0.5 rounded text-white text-[10px] font-bold ${
+                                (t.status === 'Approved' || t.status === 'approved' || t.status === 'success') ? 'bg-[#28A745]' :
+                                (t.status === 'Rejected' || t.status === 'rejected') ? 'bg-[#DC3545]' : 'bg-[#FFC107] text-gray-900'
+                              }`}>
+                                {t.status}
+                              </span>
+                            </td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] text-[11px] text-gray-600">{t.date}</td>
+                            <td className="p-2.5 text-right">
+                              <button
+                                onClick={() => {
+                                  if (t.itemType === 'withdrawal') {
+                                    setSelectedWithdrawalForModal(t.originalItem);
+                                    setWithdrawalModalTab('payment');
+                                  } else {
+                                    setStatusMessage(`💳 Transaction #${t.txnId} - ${t.user} (${t.mobile}): ₹${t.amount}`);
+                                  }
+                                }}
+                                className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm"
+                              >
+                                View
+                              </button>
+                            </td>
+                          </tr>
+                        ));
+                      })()}
                     </tbody>
                   </table>
                 </div>
