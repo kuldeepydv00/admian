@@ -3970,7 +3970,7 @@ export default function App() {
                     </thead>
                     <tbody>
                       {paymentMethodsList.map((pm, i) => {
-                        const upiVal = pm.upi_id || pm.upiId || '8930507940@ybl';
+                        const upiVal = pm.upi_id || pm.upiId || pm.upi || '8930507940@ybl';
                         const pmId = pm._id || pm.id;
                         return (
                           <tr key={i} className="hover:bg-[#F4F6F9]">
