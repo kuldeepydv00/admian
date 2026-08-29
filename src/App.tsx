@@ -813,6 +813,9 @@ export default function App() {
     } catch (err) {}
   };
 
+  const [selectedWithdrawalForModal, setSelectedWithdrawalForModal] = useState<any>(null);
+  const [withdrawalModalTab, setWithdrawalModalTab] = useState<'payment' | 'withdrawal' | 'transaction' | 'player' | 'wallet'>('payment');
+
   const handleSaveUserEdit = (e: React.FormEvent) => {
     e.preventDefault();
     setUsers(users.map(u => u.id === editUserForm.id ? { ...u, ...editUserForm } : u));
@@ -2819,7 +2822,7 @@ export default function App() {
                         <th className="p-2.5 border-r border-[#DEE2E6]">IFSC Code</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Requested Amount</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Requested Status</th>
-                        <th className="p-2.5 text-right">Action</th>
+                        <th className="p-2.5 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2844,14 +2847,26 @@ export default function App() {
                               {w.status || 'Pending'}
                             </span>
                           </td>
-                          <td className="p-2.5 text-right space-x-1">
-                            {(w.status === 'Pending' || w.status === 'pending') ? (
+                          <td className="p-2.5 text-right space-x-1.5 whitespace-nowrap">
+                            <button
+                              onClick={() => { setSelectedWithdrawalForModal(w); setWithdrawalModalTab('payment'); }}
+                              className="px-2 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded text-xs text-gray-700 shadow-sm"
+                              title="View Details"
+                            >
+                              👁️
+                            </button>
+                            <button
+                              onClick={() => { setSelectedWithdrawalForModal(w); setWithdrawalModalTab('payment'); }}
+                              className="px-2 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded text-xs text-gray-700 shadow-sm"
+                              title="Edit"
+                            >
+                              ✏️
+                            </button>
+                            {(w.status === 'Pending' || w.status === 'pending') && (
                               <>
                                 <button onClick={() => handleApproveWithdrawal(w.id || w._id)} className="bg-[#28A745] hover:bg-[#218838] text-white px-2.5 py-1 rounded text-[11px] font-bold shadow-sm">Approve</button>
                                 <button onClick={() => handleRejectWithdrawal(w.id || w._id)} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[11px] font-bold shadow-sm">Reject</button>
                               </>
-                            ) : (
-                              <span className="text-gray-400 text-[10px] italic">Completed</span>
                             )}
                           </td>
                         </tr>
@@ -2859,6 +2874,272 @@ export default function App() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* WITHDRAWAL DETAILS MODAL (MATCHING SCREENSHOT media_1788005177401.jpg 100%) */}
+                {selectedWithdrawalForModal && (
+                  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-200">
+                      {/* MODAL HEADER */}
+                      <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gray-50">
+                        <div className="flex items-center gap-2">
+                          <span className="text-indigo-600 font-bold text-base">ℹ️</span>
+                          <h3 className="font-bold text-gray-900 text-base">
+                            Withdrawal Details - ₹{selectedWithdrawalForModal.amount}
+                          </h3>
+                        </div>
+                        <button
+                          onClick={() => setSelectedWithdrawalForModal(null)}
+                          className="text-gray-400 hover:text-gray-600 font-bold text-lg p-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      {/* MODAL SUB-TABS */}
+                      <div className="flex border-b border-gray-200 bg-gray-50/50 px-4 pt-2 text-xs font-bold text-gray-600 overflow-x-auto gap-2">
+                        <button
+                          onClick={() => setWithdrawalModalTab('payment')}
+                          className={`pb-2.5 px-3 flex items-center gap-1.5 border-b-2 transition-colors ${
+                            withdrawalModalTab === 'payment'
+                              ? 'border-indigo-600 text-indigo-600 font-extrabold'
+                              : 'border-transparent hover:text-gray-900'
+                          }`}
+                        >
+                          💳 PAYMENT METHOD
+                        </button>
+                        <button
+                          onClick={() => setWithdrawalModalTab('withdrawal')}
+                          className={`pb-2.5 px-3 flex items-center gap-1.5 border-b-2 transition-colors ${
+                            withdrawalModalTab === 'withdrawal'
+                              ? 'border-indigo-600 text-indigo-600 font-extrabold'
+                              : 'border-transparent hover:text-gray-900'
+                          }`}
+                        >
+                          📑 WITHDRAWAL
+                        </button>
+                        <button
+                          onClick={() => setWithdrawalModalTab('transaction')}
+                          className={`pb-2.5 px-3 flex items-center gap-1.5 border-b-2 transition-colors ${
+                            withdrawalModalTab === 'transaction'
+                              ? 'border-indigo-600 text-indigo-600 font-extrabold'
+                              : 'border-transparent hover:text-gray-900'
+                          }`}
+                        >
+                          📋 TRANSACTION
+                        </button>
+                        <button
+                          onClick={() => setWithdrawalModalTab('player')}
+                          className={`pb-2.5 px-3 flex items-center gap-1.5 border-b-2 transition-colors ${
+                            withdrawalModalTab === 'player'
+                              ? 'border-indigo-600 text-indigo-600 font-extrabold'
+                              : 'border-transparent hover:text-gray-900'
+                          }`}
+                        >
+                          👤 PLAYER INFO
+                        </button>
+                        <button
+                          onClick={() => setWithdrawalModalTab('wallet')}
+                          className={`pb-2.5 px-3 flex items-center gap-1.5 border-b-2 transition-colors ${
+                            withdrawalModalTab === 'wallet'
+                              ? 'border-indigo-600 text-indigo-600 font-extrabold'
+                              : 'border-transparent hover:text-gray-900'
+                          }`}
+                        >
+                          🏦 WALLET
+                        </button>
+                      </div>
+
+                      {/* MODAL CONTENT */}
+                      <div className="p-6 text-xs space-y-4 max-h-[70vh] overflow-y-auto">
+                        {/* TAB 1: PAYMENT METHOD */}
+                        {withdrawalModalTab === 'payment' && (
+                          <div className="space-y-4">
+                            <h4 className="font-bold text-gray-800 text-sm">Payment Method Details</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">ID</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-gray-800">
+                                  {selectedWithdrawalForModal.id || selectedWithdrawalForModal._id}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Type</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                                  {selectedWithdrawalForModal.bank_name && selectedWithdrawalForModal.bank_name !== 'N/A' ? 'Bank Account' : 'UPI / Wallet'}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Person Name</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                                  {selectedWithdrawalForModal.account_name || selectedWithdrawalForModal.user || 'N/A'}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Account Number</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-gray-800">
+                                  {selectedWithdrawalForModal.account_number || selectedWithdrawalForModal.accountNumber || 'N/A'}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">IFSC Code</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-indigo-600">
+                                  {selectedWithdrawalForModal.ifsc_code || selectedWithdrawalForModal.ifscCode || 'N/A'}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">UPI ID</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-gray-800">
+                                  {selectedWithdrawalForModal.upi_id || selectedWithdrawalForModal.upiId || 'N/A'}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Bank Name</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                                  {selectedWithdrawalForModal.bank_name || selectedWithdrawalForModal.bankName || 'State Bank of India'}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Bank Branch</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                                  Main Branch
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Status</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-emerald-600">
+                                  Active
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Is Default</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                                  No
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Is Rejected</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                                  {selectedWithdrawalForModal.status === 'Rejected' ? 'Yes' : 'No'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* TAB 2: WITHDRAWAL */}
+                        {withdrawalModalTab === 'withdrawal' && (
+                          <div className="space-y-4">
+                            <h4 className="font-bold text-gray-800 text-sm">Withdrawal Request Summary</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Requested Amount</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-rose-600 text-sm">
+                                  ₹ {selectedWithdrawalForModal.amount}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Current Status</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold">
+                                  <span className={`px-2 py-1 rounded text-white text-[11px] ${
+                                    selectedWithdrawalForModal.status === 'Approved' ? 'bg-emerald-600' :
+                                    selectedWithdrawalForModal.status === 'Rejected' ? 'bg-rose-600' : 'bg-amber-500'
+                                  }`}>
+                                    {selectedWithdrawalForModal.status || 'Pending'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Request Date</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                                  {selectedWithdrawalForModal.created_at ? new Date(selectedWithdrawalForModal.created_at).toLocaleString() : 'Today'}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Processing Fee</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                                  ₹ 0.00 (Free)
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* TAB 3: TRANSACTION */}
+                        {withdrawalModalTab === 'transaction' && (
+                          <div className="space-y-4">
+                            <h4 className="font-bold text-gray-800 text-sm">Ledger Transaction Logs</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Transaction Reference</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono text-gray-800">
+                                  TXN_{selectedWithdrawalForModal.id || selectedWithdrawalForModal._id}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Transaction Type</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-indigo-600">
+                                  Withdrawal Payout
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* TAB 4: PLAYER INFO */}
+                        {withdrawalModalTab === 'player' && (
+                          <div className="space-y-4">
+                            <h4 className="font-bold text-gray-800 text-sm">User Profile Information</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Player Name</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                                  {selectedWithdrawalForModal.user || selectedWithdrawalForModal.name || 'User'}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Mobile Number</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-gray-800">
+                                  +91 {selectedWithdrawalForModal.mobile || selectedWithdrawalForModal.phone || 'N/A'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* TAB 5: WALLET */}
+                        {withdrawalModalTab === 'wallet' && (
+                          <div className="space-y-4">
+                            <h4 className="font-bold text-gray-800 text-sm">User Live Wallet Balance Summary</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Withdrawable Balance</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-emerald-600 text-sm">
+                                  ₹ {selectedWithdrawalForModal.amount}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-gray-500 font-medium mb-1">Bonus Balance</label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-gray-800">
+                                  ₹ 200.00
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* MODAL FOOTER */}
+                      <div className="flex justify-end px-6 py-3 border-t border-gray-100 bg-gray-50">
+                        <button
+                          onClick={() => setSelectedWithdrawalForModal(null)}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-lg text-xs transition-colors shadow-sm"
+                        >
+                          CLOSE
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
