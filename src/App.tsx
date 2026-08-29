@@ -2266,51 +2266,117 @@ export default function App() {
               </div>
             )}
 
-            {/* 5. WALLET MODULE */}
+            {/* 5. WALLET MODULE (MATCHING MEDIA_1787996341869.PNG 100%) */}
             {activeTab === 'wallets' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Wallet Management</h1>
                 </div>
 
-                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                  <div className="flex justify-between items-center border-b border-[#DEE2E6] pb-3">
-                    <input type="text" placeholder="Name / Email / Phone" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} className="border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+                {/* FILTER CARD MATCHING SCREENSHOT */}
+                <form onSubmit={handleExecuteSearch} className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm space-y-3 text-xs">
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Name / Email / Phone</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={filterSearch}
+                        onChange={(e) => setFilterSearch(e.target.value)}
+                        placeholder=""
+                        className="max-w-md w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
+                      />
+                      <button type="submit" onClick={handleExecuteSearch} className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
+                      <button type="button" onClick={handleClearFilters} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm hover:bg-gray-100">Clear</button>
+                    </div>
                   </div>
-                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
-                      <tr>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Total Balance</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Wallet Balance</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Deposite Balance</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Winning Balance</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Bouns Balance</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Referral Balance</th>
-                        <th className="p-2.5 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map((u, i) => (
-                        <tr key={i} className="hover:bg-[#F4F6F9]">
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{u.mobile}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {u.balance}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {u.balance}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ 0.00</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ {u.balance}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-amber-600">₹ 200.00</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-cyan-600">₹ 0.00</td>
-                          <td className="p-2.5 text-right">
-                            <button onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }} className="bg-[#28A745] text-white px-2.5 py-1 rounded text-[10px] font-bold">Credit / Debit</button>
-                          </td>
+                </form>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <div className="flex justify-between items-center text-xs text-[#6C757D]">
+                    <div className="flex items-center gap-1.5">
+                      <span>Show</span>
+                      <select value={entriesPerPage} onChange={(e)=>setEntriesPerPage(e.target.value)} className="border border-[#CED4DA] px-2 py-1 rounded text-xs">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                      </select>
+                      <span>entries</span>
+                    </div>
+                  </div>
+
+                  {/* WALLET TABLE MATCHING SCREENSHOT 100% */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6] whitespace-nowrap">
+                      <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                        <tr>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Name ⇅</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number ⇅</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Total Balance</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Wallet Balance ⇅</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Deposite Balance ⇅</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Winning Balance ⇅</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Bouns Balance ⇅</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Referral Balance ⇅</th>
+                          <th className="p-2.5 text-center">Action</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {users.filter(u => {
+                          const q = (appliedSearch || filterSearch).toLowerCase().trim();
+                          if (q) {
+                            const matches = (u.name && u.name.toLowerCase().includes(q)) ||
+                                            (u.email && u.email.toLowerCase().includes(q)) ||
+                                            (u.mobile && u.mobile.toString().includes(q));
+                            if (!matches) return false;
+                          }
+                          return true;
+                        }).map((u, i) => {
+                          const depositBal = u.deposit_balance !== undefined ? u.deposit_balance : (u.balance || 0);
+                          const winningBal = u.winning_balance !== undefined ? u.winning_balance : 0;
+                          const bonusBal = u.bonus_balance !== undefined ? u.bonus_balance : 200;
+                          const commissionBal = u.commission_balance !== undefined ? u.commission_balance : 0;
+                          const totalMainBal = depositBal + winningBal + commissionBal;
+
+                          return (
+                            <tr key={i} className="hover:bg-[#F4F6F9] align-middle">
+                              <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name || 'User'}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold font-mono cursor-pointer hover:underline">{u.mobile}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-900 font-bold">{totalMainBal}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-900">{totalMainBal}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-900">{depositBal}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-900">{winningBal}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-900">{bonusBal}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-900">{commissionBal}</td>
+                              <td className="p-2.5 text-center">
+                                <div className="flex justify-center items-center">
+                                  <button
+                                    onClick={() => { setWalletTargetUser(u); setShowWalletModal(true); }}
+                                    className="bg-[#28A745] hover:bg-[#218838] text-white w-6 h-6 rounded flex items-center justify-center font-bold text-sm shadow-sm"
+                                    title="Credit / Debit Wallet"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* BOTTOM PAGINATION BAR MATCHING SCREENSHOT */}
+                  <div className="flex flex-wrap justify-between items-center pt-2 text-xs text-[#6C757D] gap-2">
+                    <div>Showing 1 to {users.length} of {users.length} entries</div>
+                    <div className="flex gap-1 font-bold">
+                      <button className="px-2.5 py-1 rounded border border-[#CED4DA] bg-white text-gray-600 hover:bg-gray-100">Previous</button>
+                      <button className="px-3 py-1 rounded bg-[#007BFF] text-white">1</button>
+                      <button className="px-2.5 py-1 rounded border border-[#CED4DA] bg-white text-gray-600 hover:bg-gray-100">Next</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
