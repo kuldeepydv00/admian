@@ -292,7 +292,7 @@ export default function App() {
       if (statsRes.ok) setStats(await statsRes.json());
       if (usersRes.ok) {
         const uList = await usersRes.json();
-        if (Array.isArray(uList) && uList.length > 0) setUsers(uList);
+        if (Array.isArray(uList)) setUsers(uList);
       }
       if (adminsRes.ok) {
         const aList = await adminsRes.json();
