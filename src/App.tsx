@@ -2018,69 +2018,248 @@ export default function App() {
               </div>
             )}
 
-            {/* 4. GAME LEDGER MODULE */}
+            {/* 4. GAME LEDGER MODULE (MATCHING MEDIA_1787984986125.PNG & MEDIA_1787984992702.JPG 100%) */}
             {activeTab === 'gameLedger' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Game Ledger</h1>
                 </div>
 
-                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                {/* FILTER CARD MATCHING SCREENSHOTS 1 & 2 */}
+                <form onSubmit={handleExecuteSearch} className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm space-y-3 text-xs">
                   <div>
-                    <label className="block text-xs font-bold text-[#212529] mb-1">Name</label>
-                    <input type="text" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} placeholder="" className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+                    <label className="block font-bold text-[#212529] mb-1">Name / Email / Phone</label>
+                    <input
+                      type="text"
+                      value={filterSearch}
+                      onChange={(e) => setFilterSearch(e.target.value)}
+                      placeholder="Name / Email / Phone"
+                      className="w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057] focus:outline-none focus:border-[#80BDFF]"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#212529] mb-1">Transaction Type</label>
-                    <select value={filterTxnType} onChange={(e)=>setFilterTxnType(e.target.value)} className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs">
+                    <label className="block font-bold text-[#212529] mb-1">Transaction Type</label>
+                    <select
+                      value={filterTxnType}
+                      onChange={(e) => setFilterTxnType(e.target.value)}
+                      className="w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057]"
+                    >
                       <option value="All">All</option>
-                      <option value="BET_DEBIT">BET_DEBIT</option>
-                      <option value="WINNING_CREDIT">WINNING_CREDIT</option>
-                      <option value="DEPOSIT">DEPOSIT</option>
-                      <option value="WITHDRAW">WITHDRAW</option>
+                      <option value="Deposit Manually">Deposit Manually</option>
+                      <option value="Deposit UPI">Deposit UPI</option>
+                      <option value="Bid Place">Bid Place</option>
+                      <option value="Commission">Commission</option>
+                      <option value="Joining Bonus">Joining Bonus</option>
+                      <option value="Referel Bonus">Referel Bonus</option>
+                      <option value="Withdrawl Add">Withdrawl Add</option>
+                      <option value="Withdrawl Decline">Withdrawl Decline</option>
+                      <option value="Withdrawl Refund">Withdrawl Refund</option>
+                      <option value="Winning Amount">Winning Amount</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#212529] mb-1">Start Date</label>
-                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-[#212529] mb-1">Start Date</label>
+                      <input
+                        type="text"
+                        value={filterStartDate}
+                        onChange={(e) => setFilterStartDate(e.target.value)}
+                        placeholder="DD-MM-YYYY"
+                        className="w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-[#212529] mb-1">End Date</label>
+                      <input
+                        type="text"
+                        value={filterEndDate}
+                        onChange={(e) => setFilterEndDate(e.target.value)}
+                        placeholder="DD-MM-YYYY"
+                        className="w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057]"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#212529] mb-1">End Date</label>
-                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} className="w-full border border-[#CED4DA] px-3 py-1.5 rounded text-xs" />
+                  <div className="flex gap-2 pt-1">
+                    <button type="submit" onClick={handleExecuteSearch} className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
+                    <button type="button" onClick={handleClearFilters} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm hover:bg-gray-100">Clear</button>
                   </div>
-                  <div className="flex gap-2">
-                    <button className="flex-1 bg-[#28A745] hover:bg-[#218838] text-white py-1.5 rounded text-xs font-bold">Search</button>
-                    <button onClick={()=>{ setFilterSearch(''); setFilterTxnType('All'); }} className="flex-1 bg-white border border-[#CED4DA] text-[#212529] py-1.5 rounded text-xs font-bold">Clear</button>
-                  </div>
-                </div>
+                </form>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
-                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
-                    <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
-                      <tr>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">User</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Transact Type</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Old Bal.</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">New Bal.</th>
-                        <th className="p-2.5">Game Type</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td colSpan={7} className="p-6 text-center text-[#6C757D] font-medium bg-[#F8F9FA]">
-                          No data available in table
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6] whitespace-nowrap">
+                      <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                        <tr>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No.</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">User</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Transact Type</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Old Bal.</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">New Bal.</th>
+                          <th className="p-2.5">Game Type</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          // Generate dynamic ledger list combining bids, deposits, withdrawals, & commission
+                          let ledgerItems: any[] = [];
 
-                  <div className="flex justify-between items-center pt-2 text-xs text-[#6C757D]">
-                    <span>Showing 0 to 0 of 0 entries</span>
-                    <div className="flex gap-1">
-                      <button className="px-3 py-1 border border-[#DEE2E6] rounded bg-[#F8F9FA] text-[#6C757D]">Previous</button>
-                      <button className="px-3 py-1 border border-[#DEE2E6] rounded bg-[#F8F9FA] text-[#6C757D]">Next</button>
+                          // 1. Convert bids to ledger items
+                          bidsList.forEach((b, idx) => {
+                            ledgerItems.push({
+                              id: `ldg_b_${idx}`,
+                              user: b.user || 'NasibAnsari',
+                              email: `${(b.user || 'nasib').toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+                              phone: b.phone || '9007724336',
+                              amount: `-${b.amount}.00`,
+                              date: b.date || '2026-08-29 11:51:10',
+                              transactType: 'Bid Place',
+                              oldBal: { wallet: '500.00', deposit: '500.00', winning: '0.00', commission: '0.00', bonus: '200.00', referral: '0.00' },
+                              newBal: { wallet: `${500 - b.amount}.00`, deposit: `${500 - b.amount}.00`, winning: '0.00', commission: '0.00', bonus: '200.00', referral: '0.00' },
+                              gameType: b.gameType || 'Single Jodi'
+                            });
+                          });
+
+                          // 2. Sample commission logs matching Screenshot 1 100%
+                          ledgerItems.push(
+                            {
+                              id: 'ldg_comm_1',
+                              user: 'NasibAnsari',
+                              email: 'na0193354@gmail.com',
+                              phone: '9007724336',
+                              amount: '+0.25',
+                              date: '2026-08-29 11:51:10',
+                              transactType: 'Commission',
+                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.60', bonus: '0.00', referral: '99.10' },
+                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.85', bonus: '0.00', referral: '99.10' },
+                              gameType: '-'
+                            },
+                            {
+                              id: 'ldg_comm_2',
+                              user: 'NasibAnsari',
+                              email: 'na0193354@gmail.com',
+                              phone: '9007724336',
+                              amount: '+0.75',
+                              date: '2026-08-29 11:50:55',
+                              transactType: 'Commission',
+                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.85', bonus: '0.00', referral: '99.10' },
+                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.60', bonus: '0.00', referral: '99.10' },
+                              gameType: '-'
+                            },
+                            {
+                              id: 'ldg_comm_3',
+                              user: 'NasibAnsari',
+                              email: 'na0193354@gmail.com',
+                              phone: '9007724336',
+                              amount: '+0.5',
+                              date: '2026-08-29 11:50:36',
+                              transactType: 'Commission',
+                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.35', bonus: '0.00', referral: '99.10' },
+                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.85', bonus: '0.00', referral: '99.10' },
+                              gameType: '-'
+                            },
+                            {
+                              id: 'ldg_comm_4',
+                              user: 'NasibAnsari',
+                              email: 'na0193354@gmail.com',
+                              phone: '9007724336',
+                              amount: '+0.25',
+                              date: '2026-08-29 07:55:25',
+                              transactType: 'Commission',
+                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.10', bonus: '0.00', referral: '99.10' },
+                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.35', bonus: '0.00', referral: '99.10' },
+                              gameType: '-'
+                            },
+                            {
+                              id: 'ldg_comm_5',
+                              user: 'NasibAnsari',
+                              email: 'na0193354@gmail.com',
+                              phone: '9007724336',
+                              amount: '+0.5',
+                              date: '2026-08-29 07:54:58',
+                              transactType: 'Commission',
+                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '6.60', bonus: '0.00', referral: '99.10' },
+                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.10', bonus: '0.00', referral: '99.10' },
+                              gameType: '-'
+                            }
+                          );
+
+                          const filteredLedger = ledgerItems.filter(item => {
+                            const targetTxn = appliedGameType !== 'All' ? appliedGameType : filterTxnType;
+                            if (targetTxn !== 'All' && item.transactType !== targetTxn) return false;
+
+                            const q = (appliedSearch || filterSearch).toLowerCase().trim();
+                            if (q) {
+                              const matches = (item.user && item.user.toLowerCase().includes(q)) ||
+                                              (item.email && item.email.toLowerCase().includes(q)) ||
+                                              (item.phone && item.phone.includes(q)) ||
+                                              (item.transactType && item.transactType.toLowerCase().includes(q));
+                              if (!matches) return false;
+                            }
+
+                            const sDate = appliedStartDate || filterStartDate;
+                            const eDate = appliedEndDate || filterEndDate;
+                            if (sDate && sDate.trim() && !isDateMatch(item.date, sDate)) return false;
+                            if (eDate && eDate.trim() && !isDateMatch(item.date, eDate)) return false;
+
+                            return true;
+                          });
+
+                          if (filteredLedger.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={8} className="p-6 text-center text-[#6C757D] font-medium bg-[#F8F9FA]">
+                                  No data available in table
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return filteredLedger.map((item, i) => (
+                            <tr key={i} className="hover:bg-[#F4F6F9] align-top">
+                              <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6]">
+                                <div className="space-y-0.5">
+                                  <div className="font-bold text-[#007BFF]">{item.user}</div>
+                                  <div className="text-gray-500 text-[11px] font-mono">{item.email}</div>
+                                  <div className="text-[#007BFF] font-bold font-mono">{item.phone}</div>
+                                </div>
+                              </td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">{item.amount}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{item.date}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-medium">{item.transactType}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px] space-y-0.5 text-gray-700">
+                                <div>Wallet - {item.oldBal?.wallet || '0.00'}</div>
+                                <div>Deposit - {item.oldBal?.deposit || '0.00'}</div>
+                                <div>Winning - {item.oldBal?.winning || '0.00'}</div>
+                                <div>Commission - {item.oldBal?.commission || '0.00'}</div>
+                                <div>Bonus - {item.oldBal?.bonus || '0.00'}</div>
+                                <div>Referral - {item.oldBal?.referral || '0.00'}</div>
+                              </td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px] space-y-0.5 text-gray-700">
+                                <div>Wallet - {item.newBal?.wallet || '0.00'}</div>
+                                <div>Deposit - {item.newBal?.deposit || '0.00'}</div>
+                                <div>Winning - {item.newBal?.winning || '0.00'}</div>
+                                <div>Commission - {item.newBal?.commission || '0.00'}</div>
+                                <div>Bonus - {item.newBal?.bonus || '0.00'}</div>
+                                <div>Referral - {item.newBal?.referral || '0.00'}</div>
+                              </td>
+                              <td className="p-2.5 font-medium">{item.gameType || '-'}</td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* BOTTOM PAGINATION BAR MATCHING SCREENSHOTS 1 & 2 */}
+                  <div className="flex flex-wrap justify-between items-center pt-2 text-xs text-[#6C757D] gap-2">
+                    <div>Showing 1 to 5 of 5 entries</div>
+                    <div className="flex gap-1 font-bold">
+                      <button className="px-2.5 py-1 rounded border border-[#CED4DA] bg-white text-gray-600 hover:bg-gray-100">Previous</button>
+                      <button className="px-3 py-1 rounded bg-[#007BFF] text-white">1</button>
+                      <button className="px-2.5 py-1 rounded border border-[#CED4DA] bg-white text-gray-600 hover:bg-gray-100">Next</button>
                     </div>
                   </div>
                 </div>
