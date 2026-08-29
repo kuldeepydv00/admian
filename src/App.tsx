@@ -106,8 +106,11 @@ export default function App() {
     'dashboard' | 'admins' | 'users' | 'gameLedger' | 'wallets' |
     'walletTransactions' | 'deposits' | 'withdraws' | 'commission' |
     'leaderboard' | 'payouts' | 'banners' | 'packages' | 'paymentMethods' | 'settings' |
-    'userDetails' | 'userEdit'
-  >('banners');
+    'userDetails' | 'userEdit' | 'bids' | 'results' | 'winnings' | 'gameHistory' | 'categories'
+  >('dashboard');
+
+  // Matka Game Header Dropdown Open State
+  const [matkaDropdownOpen, setMatkaDropdownOpen] = useState(false);
 
   // User View Navigation State
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -127,9 +130,12 @@ export default function App() {
 
   // Generic Filter Bar States
   const [filterSearch, setFilterSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState('All');
+  const [filterGameType, setFilterGameType] = useState('All');
   const [filterTxnType, setFilterTxnType] = useState('All');
   const [filterStartDate, setFilterStartDate] = useState('29-08-2026');
   const [filterEndDate, setFilterEndDate] = useState('29-08-2026');
+  const [searchNumberInput, setSearchNumberInput] = useState('');
 
   // Data Lists State
   const [stats, setStats] = useState<any>({});
@@ -164,12 +170,35 @@ export default function App() {
     }
   ]);
 
+  const [categoriesList, setCategoriesList] = useState<any[]>([
+    { id: '1', name: 'Desawar', seniority: 1, image: '', status: 'Active' },
+    { id: '2', name: 'Gali', seniority: 7, image: '', status: 'Active' },
+    { id: '3', name: 'Faridabad', seniority: 5, image: '', status: 'Active' },
+    { id: '4', name: 'Ghaziabad', seniority: 6, image: '', status: 'Active' },
+    { id: '5', name: 'Shree Ganesh', seniority: 4, image: '', status: 'Active' },
+    { id: '6', name: 'Delhi Bazar', seniority: 2, image: '', status: 'Active' },
+    { id: '7', name: 'Dubai market', seniority: 3, image: '', status: 'Active' }
+  ]);
+
+  const [bidsList, setBidsList] = useState<any[]>([
+    { id: 'bid_101', date: '29-08-2026 10:15 AM', user: 'Udgam', phone: '1212121212', category: 'Desawar', gameType: 'Single Jodi', number: '45', amount: 50, status: 'Pending' },
+    { id: 'bid_102', date: '29-08-2026 11:30 AM', user: 'Udgam', phone: '1212121212', category: 'Gali', gameType: 'Single Panna', number: '789', amount: 100, status: 'Pending' }
+  ]);
+
+  const [resultsList, setResultsList] = useState<any[]>([
+    { id: 'res_1', date: '28-08-2026', category: 'Desawar', resultNumber: '45', createdAt: '2026-08-28 05:00 PM', resultBy: 'Johnsnow' }
+  ]);
+
+  const [winningsList, setWinningsList] = useState<any[]>([
+    { id: 'win_101', category: 'Desawar', user: 'Udgam', email: 'abc@pk.com', mobile: '1212121212', userId: '8113', amount: 450, txnId: 'TXN_WIN_99', txnType: 'WINNING', status: 'Credited', dateOfWinning: '28-08-2026', dateOfTxn: '28-08-2026 05:01 PM' }
+  ]);
+
   const [adminsList, setAdminsList] = useState<any[]>([
     { id: '1', name: 'John Snow Admin', username: 'Johnsnow', mobile: '9876543210', role: 'Super Admin', status: 'Active' }
   ]);
 
   const [bannersList, setBannersList] = useState<any[]>([
-    { id: '1', image: 'banner1.png', name: 'Main Promo Banner', type: 'Image', link: 'https://matka-website.vercel.app', status: 'Active' }
+    { id: '1', image: 'banner1.png', name: 'Main Promo Banner', type: 'Image', link: 'https://matka-website.vercel.app', previewUrl: '', status: 'Active' }
   ]);
 
   const [packagesList, setPackagesList] = useState<any[]>([
@@ -195,6 +224,8 @@ export default function App() {
   const [showAddPackageModal, setShowAddPackageModal] = useState(false);
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showAddResultModal, setShowAddResultModal] = useState(false);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
 
   // Edit Item States
   const [editingBanner, setEditingBanner] = useState<any>(null);
@@ -210,6 +241,9 @@ export default function App() {
   const [packageForm, setPackageForm] = useState({ packageName: '', appName: '', status: 'Active' });
   const [adminForm, setAdminForm] = useState({ name: '', username: '', mobile: '', password: '', role: 'Super Admin', status: 'Active' });
   const [paymentForm, setPaymentForm] = useState({ name: '', ordering: 1, status: 'Active' });
+
+  const [resultForm, setResultForm] = useState({ category: 'Desawar', resultDate: '29-08-2026', resultNumber: '', reResultNumber: '' });
+  const [categoryForm, setCategoryForm] = useState({ type: 'Matka', name: '', status: 'Active', seniority: 1, image: '', previewUrl: '', description: '' });
 
   const [walletTargetUser, setWalletTargetUser] = useState<any>(null);
   const [walletActionType, setWalletActionType] = useState<'add' | 'deduct'>('add');
@@ -327,6 +361,95 @@ export default function App() {
       return () => clearInterval(interval);
     }
   }, [isAuthenticated]);
+
+  // RESULT DECLARATION & WINNER CREDIT HANDLER
+  const handleDeclareResultSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resultForm.resultNumber || resultForm.resultNumber !== resultForm.reResultNumber) {
+      alert("Result numbers do not match! Please re-enter.");
+      return;
+    }
+
+    const newRes = {
+      id: `res_${Date.now()}`,
+      date: resultForm.resultDate,
+      category: resultForm.category,
+      resultNumber: resultForm.resultNumber,
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      resultBy: 'Johnsnow'
+    };
+
+    setResultsList([newRes, ...resultsList]);
+
+    // Check for winning bids matching declared number
+    const matchingBids = bidsList.filter(b => b.category === resultForm.category && b.number === resultForm.resultNumber);
+    let winningSum = 0;
+
+    // Update winning bids status to 'Won'
+    setBidsList(prev => prev.map(b => (b.category === resultForm.category && b.number === resultForm.resultNumber) ? { ...b, status: 'Won' } : b));
+
+    matchingBids.forEach(b => {
+      const winAmt = b.amount * 9;
+      winningSum += winAmt;
+      
+      // Add record to Wallet Winnings
+      const newWin = {
+        id: `win_${Date.now()}`,
+        category: b.category,
+        user: b.user,
+        email: 'user@pk.com',
+        mobile: b.phone,
+        userId: '8113',
+        amount: winAmt,
+        txnId: `TXN_WIN_${Date.now()}`,
+        txnType: 'WINNING',
+        status: 'Credited',
+        dateOfWinning: resultForm.resultDate,
+        dateOfTxn: new Date().toISOString().replace('T', ' ').substring(0, 19)
+      };
+      setWinningsList(prev => [newWin, ...prev]);
+
+      // Credit winning amount to user wallet
+      setUsers(prev => prev.map(u => u.name === b.user ? { ...u, balance: u.balance + winAmt, totalWinning: (u.totalWinning || 0) + winAmt } : u));
+    });
+
+    setStatusMessage(`🎉 Result "${resultForm.resultNumber}" declared for ${resultForm.category}! ${matchingBids.length} winners credited total ₹${winningSum}.`);
+    setShowAddResultModal(false);
+    setResultForm({ category: 'Desawar', resultDate: '29-08-2026', resultNumber: '', reResultNumber: '' });
+  };
+
+  // CATEGORY HANDLERS
+  const handleSaveCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryForm.name) return;
+    const newCat = {
+      id: `${Date.now()}`,
+      name: categoryForm.name,
+      seniority: categoryForm.seniority,
+      image: categoryForm.image,
+      previewUrl: categoryForm.previewUrl,
+      status: categoryForm.status
+    };
+    setCategoriesList([newCat, ...categoriesList]);
+    setStatusMessage(`🎉 Category "${categoryForm.name}" created successfully!`);
+    setShowAddCategoryModal(false);
+    setCategoryForm({ type: 'Matka', name: '', status: 'Active', seniority: 1, image: '', previewUrl: '', description: '' });
+  };
+
+  const handleCategoryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCategoryForm(prev => ({
+          ...prev,
+          image: file.name,
+          previewUrl: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // BANNER ADD / EDIT HANDLERS
   const handleBannerImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -519,6 +642,13 @@ export default function App() {
     } catch (err) {}
   };
 
+  // Calculate Market Total Beted Amount for Result Declaration Modal
+  const getMarketBetTotal = (catName: string) => {
+    return bidsList
+      .filter(b => b.category.toLowerCase() === catName.toLowerCase())
+      .reduce((sum, b) => sum + (b.amount || 0), 0);
+  };
+
   // LOGIN SCREEN
   if (!isAuthenticated) {
     return (
@@ -624,11 +754,26 @@ export default function App() {
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[#6C757D] hover:text-[#212529] p-1.5 text-base font-bold">
             ☰
           </button>
+
+          {/* MATKA GAME DROPDOWN MENU MATCHING MEDIA_1787977750711.PNG 100%! */}
           <div className="relative">
-            <button className="flex items-center gap-1 text-xs font-semibold text-[#6C757D] hover:text-[#212529]">
+            <button
+              onClick={() => setMatkaDropdownOpen(!matkaDropdownOpen)}
+              className="flex items-center gap-1 text-xs font-semibold text-[#6C757D] hover:text-[#212529] focus:outline-none"
+            >
               <span>Matka Game</span>
               <span className="text-[10px]">▾</span>
             </button>
+
+            {matkaDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-44 bg-white border border-[#DEE2E6] rounded shadow-lg py-1 z-50 text-xs font-medium">
+                <button onClick={() => { setActiveTab('bids'); setMatkaDropdownOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-[#007BFF] hover:text-white transition-colors">Bids</button>
+                <button onClick={() => { setActiveTab('results'); setMatkaDropdownOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-[#007BFF] hover:text-white transition-colors">Results</button>
+                <button onClick={() => { setActiveTab('winnings'); setMatkaDropdownOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-[#007BFF] hover:text-white transition-colors">Winnings</button>
+                <button onClick={() => { setActiveTab('gameHistory'); setMatkaDropdownOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-[#007BFF] hover:text-white transition-colors">Game History</button>
+                <button onClick={() => { setActiveTab('categories'); setMatkaDropdownOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-[#007BFF] hover:text-white transition-colors">Categories</button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -709,6 +854,371 @@ export default function App() {
           )}
 
           <main className="p-6 space-y-6">
+
+            {/* MATKA GAME SUB-MODULE 1: BIDS */}
+            {activeTab === 'bids' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Bids Management</h1>
+                </div>
+
+                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-6 gap-3 items-end text-xs">
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Search Fields</label>
+                    <input type="text" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} placeholder="Name/Email/Phone" className="w-full border border-[#CED4DA] p-1.5 rounded" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Category</label>
+                    <select value={filterCategory} onChange={(e)=>setFilterCategory(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded">
+                      <option value="All">All</option>
+                      {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Game Type</label>
+                    <select value={filterGameType} onChange={(e)=>setFilterGameType(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded">
+                      <option value="All">All</option>
+                      <option value="Single Jodi">Single Jodi</option>
+                      <option value="Single Panna">Single Panna</option>
+                      <option value="Double Panna">Double Panna</option>
+                      <option value="Triple Panna">Triple Panna</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Start Date</label>
+                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Search Number</label>
+                    <input type="text" value={searchNumberInput} onChange={(e)=>setSearchNumberInput(e.target.value)} placeholder="Number e.g. 45" className="w-full border border-[#CED4DA] p-1.5 rounded font-mono" />
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="flex-1 bg-[#28A745] hover:bg-[#218838] text-white py-1.5 rounded font-bold shadow-sm">Search</button>
+                    <button onClick={()=>{ setFilterSearch(''); setFilterCategory('All'); setFilterGameType('All'); setSearchNumberInput(''); }} className="flex-1 bg-white border border-[#CED4DA] text-[#212529] py-1.5 rounded font-bold shadow-sm">Clear</button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <div className="flex justify-between items-center text-xs font-bold text-[#212529]">
+                    <span>Total Amount : ₹ {bidsList.reduce((s,b)=>s+b.amount,0)}.00</span>
+                  </div>
+
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Date / Time</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">User</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Phone No.</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Category</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Game Type</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Number</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                        <th className="p-2.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bidsList.map((b, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{b.date}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{b.user}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold">{b.phone}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{b.category}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{b.gameType}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold font-mono text-[#DC3545]">{b.number}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {b.amount}</td>
+                          <td className="p-2.5 text-right"><span className="px-2 py-0.5 rounded bg-[#FFC107] text-[#212529] text-[10px] font-bold">{b.status}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* MATKA GAME SUB-MODULE 2: RESULTS (Matching media_1787977805132.png 100%) */}
+            {activeTab === 'results' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Result Management</h1>
+                  <button onClick={() => setShowAddResultModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                </div>
+
+                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm flex flex-wrap gap-4 items-end text-xs">
+                  <div className="min-w-[200px]">
+                    <label className="block font-bold text-[#212529] mb-1">Category</label>
+                    <select value={filterCategory} onChange={(e)=>setFilterCategory(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded">
+                      <option value="All">All</option>
+                      {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Start Date</label>
+                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">End Date</label>
+                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
+                    <button onClick={()=>{ setFilterCategory('All'); }} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm">Clear</button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Date ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Category Name ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Result Number ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Created At ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Result By ⇅</th>
+                        <th className="p-2.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resultsList.map((r, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{r.date}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{r.category}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-lg text-[#007BFF]">{r.resultNumber}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{r.createdAt}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{r.resultBy}</td>
+                          <td className="p-2.5 text-right">
+                            <button onClick={()=>setResultsList(resultsList.filter(x=>x.id!==r.id))} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Delete</button>
+                          </td>
+                        </tr>
+                      ))}
+                      {resultsList.length === 0 && (
+                        <tr><td colSpan={7} className="p-6 text-center text-[#6C757D]">No data available in table</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* MATKA GAME SUB-MODULE 3: WINNINGS (Matching media_1787977884136.png 100%) */}
+            {activeTab === 'winnings' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Wallet Winning</h1>
+                </div>
+
+                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm flex flex-wrap gap-3 items-end text-xs">
+                  <div className="min-w-[150px]">
+                    <label className="block font-bold text-[#212529] mb-1">Category</label>
+                    <select value={filterCategory} onChange={(e)=>setFilterCategory(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded">
+                      <option value="All">All</option>
+                      {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Name / Email / Phone</label>
+                    <input type="text" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Start Date</label>
+                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">End Date</label>
+                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
+                    <button onClick={()=>{ setFilterCategory('All'); setFilterSearch(''); }} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm">Clear</button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Category Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Email</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">User Id</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Id</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Type</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Date Of Winning</th>
+                        <th className="p-2.5">Date of Transaction</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {winningsList.map((w, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.category}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.user}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{w.email}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold">{w.mobile}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{w.userId}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {w.amount}.00</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[10px]">{w.txnId}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{w.txnType}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{w.status}</span></td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{w.dateOfWinning}</td>
+                          <td className="p-2.5">{w.dateOfTxn}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {/* WINNING SUMMARY CARD MATCHING MEDIA_1787977884136.PNG */}
+                  <div className="bg-white rounded border border-[#DEE2E6] p-4 space-y-2 mt-4">
+                    <h2 className="text-xl font-bold text-[#212529]">Winning Summary</h2>
+                    <p className="text-sm font-bold text-[#212529]">Total Amount : ₹{winningsList.reduce((s,w)=>s+w.amount,0)}.00</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MATKA GAME SUB-MODULE 4: GAME HISTORY (Matching media_1787977928866.png 100%) */}
+            {activeTab === 'gameHistory' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Game History</h1>
+                </div>
+
+                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm flex flex-wrap gap-4 items-end text-xs">
+                  <div className="min-w-[200px]">
+                    <label className="block font-bold text-[#212529] mb-1">Category</label>
+                    <select value={filterCategory} onChange={(e)=>setFilterCategory(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded">
+                      <option value="All">All</option>
+                      {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">Start Date</label>
+                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#212529] mb-1">End Date</label>
+                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
+                    <button onClick={()=>{ setFilterCategory('All'); }} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm">Clear</button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Category</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Game Type</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Bonus Amount</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Betting Amount</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Winning Amount</th>
+                        <th className="p-2.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bidsList.map((b, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{b.date}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{b.category}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{b.gameType}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ 0.00</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#DC3545]">₹ {b.amount}.00</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {b.status === 'Won' ? b.amount * 9 : 0}.00</td>
+                          <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">View</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {/* SUMMARY CARD MATCHING MEDIA_1787977928866.PNG */}
+                  <div className="bg-white rounded border border-[#DEE2E6] p-5 space-y-4 mt-4">
+                    <h2 className="text-2xl font-bold text-[#212529]">Summary</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm font-bold text-[#212529]">
+                      <p>Total Betting : ₹{bidsList.reduce((s,b)=>s+b.amount,0)}.00</p>
+                      <p>Total Winning : ₹{winningsList.reduce((s,w)=>s+w.amount,0)}.00</p>
+                      <p>Total Commission : ₹0.00</p>
+                      <p>Total Bonus : ₹0.00 <span className="text-red-500 font-normal text-xs">(Effective from 14-08-2024)</span></p>
+                      <p>Net Amount : ₹{bidsList.reduce((s,b)=>s+b.amount,0) - winningsList.reduce((s,w)=>s+w.amount,0)}.00</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MATKA GAME SUB-MODULE 5: CATEGORIES (Matching media_1787977958362.png 100%) */}
+            {activeTab === 'categories' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Category Management</h1>
+                  <button onClick={() => setShowAddCategoryModal(true)} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span>Show</span>
+                      <select value={entriesPerPage} onChange={(e)=>setEntriesPerPage(e.target.value)} className="border border-[#CED4DA] px-2 py-1 rounded text-xs">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                      </select>
+                      <span>entries</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span>Search:</span>
+                      <input type="text" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} className="border border-[#CED4DA] px-2 py-1 rounded text-xs" />
+                    </div>
+                  </div>
+
+                  <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
+                    <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                      <tr>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Category Status ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Category Image</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Category Name ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Category Seniority ⇅</th>
+                        <th className="p-2.5 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {categoriesList.filter(c => !filterSearch || c.name.toLowerCase().includes(filterSearch.toLowerCase())).map((c, i) => (
+                        <tr key={i} className="hover:bg-[#F4F6F9]">
+                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#007BFF] text-white text-[10px] font-bold">{c.status}</span></td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">
+                            {c.previewUrl ? (
+                              <img src={c.previewUrl} alt={c.name} className="w-8 h-8 object-cover rounded" />
+                            ) : (
+                              <span className="text-gray-400">🖼️</span>
+                            )}
+                          </td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{c.name}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{c.seniority}</td>
+                          <td className="p-2.5 text-center space-x-1">
+                            <button className="bg-[#FFC107] text-[#212529] px-2 py-1 rounded text-[10px] font-bold">👁️</button>
+                            <button className="bg-[#17A2B8] text-white px-2 py-1 rounded text-[10px] font-bold">✏️</button>
+                            <button onClick={()=>setCategoriesList(categoriesList.filter(x=>x.id!==c.id))} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">🗑️</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* 1. DASHBOARD MODULE */}
             {activeTab === 'dashboard' && (
@@ -1634,7 +2144,93 @@ export default function App() {
       </div>
 
       {/* WORKING MODALS */}
-      {/* 1. BANNER ADD/EDIT MODAL matching media_1787949265283.png 100%! */}
+      {/* 1. DECLARE RESULT MODAL matching media_1787977805132.png 100%! */}
+      {showAddResultModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
+            <h3 className="font-bold text-[#212529] text-base border-b pb-2">Declare Game Result</h3>
+            <form onSubmit={handleDeclareResultSubmit} className="space-y-3">
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Category / Market *</label>
+                <select value={resultForm.category} onChange={(e)=>setResultForm({...resultForm, category: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded font-bold text-[#007BFF]">
+                  {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+
+              {/* MARKET TOTAL BET AMOUNT DISPLAY CARD */}
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded text-center">
+                <p className="text-[11px] text-gray-600 font-medium">Total Amount Beted on Market today:</p>
+                <p className="text-xl font-bold font-mono text-[#007BFF]">₹ {getMarketBetTotal(resultForm.category)}.00</p>
+              </div>
+
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Result Date *</label>
+                <input type="text" value={resultForm.resultDate} onChange={(e)=>setResultForm({...resultForm, resultDate: e.target.value})} required className="w-full border border-[#CED4DA] p-2 rounded font-bold text-center" />
+              </div>
+
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Result Number *</label>
+                <input type="text" value={resultForm.resultNumber} onChange={(e)=>setResultForm({...resultForm, resultNumber: e.target.value})} required placeholder="e.g. 45 or 789" className="w-full border border-[#007BFF] p-2 rounded font-mono font-bold text-center text-lg tracking-widest text-[#007BFF]" />
+              </div>
+
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Re Enter Result Number *</label>
+                <input type="text" value={resultForm.reResultNumber} onChange={(e)=>setResultForm({...resultForm, reResultNumber: e.target.value})} required placeholder="Re-enter number" className="w-full border border-[#007BFF] p-2 rounded font-mono font-bold text-center text-lg tracking-widest text-[#007BFF]" />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={()=>setShowAddResultModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+                <button type="submit" className="flex-1 bg-[#28A745] hover:bg-[#218838] text-white p-2 rounded font-bold shadow-sm">Declare Result</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 2. ADD CATEGORY MODAL matching media_1787977958362.png 100%! */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
+            <h3 className="font-bold text-[#212529] text-base border-b pb-2">Add New Category</h3>
+            <form onSubmit={handleSaveCategory} className="space-y-3">
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Category Name *</label>
+                <input type="text" value={categoryForm.name} onChange={(e)=>setCategoryForm({...categoryForm, name: e.target.value})} required placeholder="e.g. Desawar" className="w-full border border-[#CED4DA] p-2 rounded font-bold" />
+              </div>
+
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Category Seniority</label>
+                <input type="number" value={categoryForm.seniority} onChange={(e)=>setCategoryForm({...categoryForm, seniority: parseInt(e.target.value)||1})} className="w-full border border-[#CED4DA] p-2 rounded" />
+              </div>
+
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Status</label>
+                <select value={categoryForm.status} onChange={(e)=>setCategoryForm({...categoryForm, status: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded">
+                  <option value="Active">Active</option>
+                  <option value="Deactive">Deactive</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Category Image</label>
+                <input type="file" accept="image/*" onChange={handleCategoryImageUpload} className="w-full border border-[#CED4DA] p-1.5 rounded text-xs bg-white cursor-pointer" />
+                {categoryForm.previewUrl && (
+                  <div className="mt-2 text-center border p-2 rounded bg-gray-50">
+                    <img src={categoryForm.previewUrl} alt="Preview" className="h-16 max-w-full object-contain mx-auto rounded shadow-sm" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={()=>setShowAddCategoryModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+                <button type="submit" className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save Category</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. BANNER ADD/EDIT MODAL */}
       {showAddBannerModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
           <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
@@ -1689,7 +2285,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 2. PACKAGE ADD/EDIT MODAL */}
+      {/* 4. PACKAGE ADD/EDIT MODAL */}
       {showAddPackageModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
           <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
@@ -1719,7 +2315,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 3. ADMIN ADD/EDIT MODAL */}
+      {/* 5. ADMIN ADD/EDIT MODAL */}
       {showAddAdminModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
           <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
@@ -1761,7 +2357,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. PAYMENT METHOD ADD/EDIT MODAL */}
+      {/* 6. PAYMENT METHOD ADD/EDIT MODAL */}
       {showAddPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
           <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
@@ -1791,7 +2387,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 5. USER ADD MODAL */}
+      {/* 7. USER ADD MODAL */}
       {showAddUserModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-3 shadow-xl border border-[#DEE2E6] text-xs">
@@ -1814,7 +2410,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 6. WALLET EDIT MODAL */}
+      {/* 8. WALLET EDIT MODAL */}
       {showWalletModal && walletTargetUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-5 w-full max-w-sm space-y-4 shadow-xl border border-[#DEE2E6]">
