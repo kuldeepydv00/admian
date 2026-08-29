@@ -279,13 +279,14 @@ export default function App() {
   const fetchLiveData = async () => {
     try {
       const [
-        statsRes, usersRes, adminsRes, depRes, wdRes
+        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes
       ] = await Promise.all([
         fetch(`${API_BASE}/api/admin/stats`),
         fetch(`${API_BASE}/api/admin/users`),
         fetch(`${API_BASE}/api/admin/admins`),
         fetch(`${API_BASE}/api/admin/deposits`),
-        fetch(`${API_BASE}/api/admin/withdrawals`)
+        fetch(`${API_BASE}/api/admin/withdrawals`),
+        fetch(`${API_BASE}/api/admin/bets`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
@@ -299,6 +300,23 @@ export default function App() {
       }
       if (depRes.ok) setDeposits(await depRes.json());
       if (wdRes.ok) setWithdrawals(await wdRes.json());
+      if (bidsRes.ok) {
+        const rawBids = await bidsRes.json();
+        if (Array.isArray(rawBids)) {
+          const formatted = rawBids.map((b: any, idx: number) => ({
+            id: b._id || b.id || `bid_${idx}_${Date.now()}`,
+            date: b.created_at ? new Date(b.created_at).toLocaleString() : '2026-08-29 09:51:51',
+            user: b.user || b.username || 'User',
+            phone: b.mobile || (b.user && b.user.includes('(') ? b.user.split('(')[1].replace(')', '') : '7027709695'),
+            category: b.game_name || b.category || 'Delhi Bazar',
+            gameType: b.bet_type || b.gameType || 'jodi',
+            number: String(b.number !== undefined ? b.number : '00').padStart(2, '0'),
+            amount: b.bet_amount || b.amount || 10,
+            status: b.status === 'won' ? 'Won' : (b.status === 'lost' ? 'Lost' : 'Pending')
+          }));
+          setBidsList(formatted);
+        }
+      }
     } catch (err) {}
   };
 
