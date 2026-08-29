@@ -281,14 +281,15 @@ export default function App() {
   const fetchLiveData = async () => {
     try {
       const [
-        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes
+        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes
       ] = await Promise.all([
         fetch(`${API_BASE}/api/admin/stats`),
         fetch(`${API_BASE}/api/admin/users`),
         fetch(`${API_BASE}/api/admin/admins`),
         fetch(`${API_BASE}/api/admin/deposits`),
         fetch(`${API_BASE}/api/admin/withdrawals`),
-        fetch(`${API_BASE}/api/admin/bets`)
+        fetch(`${API_BASE}/api/admin/bets`),
+        fetch(`${API_BASE}/api/admin/winnings`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
@@ -308,6 +309,10 @@ export default function App() {
       }
       if (depRes.ok) setDeposits(await depRes.json());
       if (wdRes.ok) setWithdrawals(await wdRes.json());
+      if (winRes.ok) {
+        const wData = await winRes.json();
+        if (Array.isArray(wData) && wData.length > 0) setWinningsList(wData);
+      }
       if (bidsRes.ok) {
         const rawBids = await bidsRes.json();
         if (Array.isArray(rawBids)) {
@@ -1127,18 +1132,14 @@ export default function App() {
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                     <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
                       <tr>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No ⇅</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Category Name</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Email</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">User Id</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Id</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Type</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Date Of Winning</th>
-                        <th className="p-2.5">Date of Transaction</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">User Id ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Amount ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Id ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Transaction Type ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Status ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Date Of Winning ⇅</th>
+                        <th className="p-2.5">Date of Transaction ⇅</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1155,16 +1156,12 @@ export default function App() {
                         return true;
                       }).map((w, i) => (
                         <tr key={i} className="hover:bg-[#F4F6F9]">
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.category}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.user}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{w.email}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold">{w.mobile}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{w.userId}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {w.amount}.00</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[10px]">{w.txnId}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{w.txnType}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{w.status}</span></td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold cursor-pointer hover:underline">{w.mobile}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{w.userId}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#212529]">{w.amount}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px] text-[#007BFF]">{w.txnId}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-medium">{w.txnType || 'Winning amount'}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold uppercase">{w.status || 'SUCCESS'}</span></td>
                           <td className="p-2.5 border-r border-[#DEE2E6]">{w.dateOfWinning}</td>
                           <td className="p-2.5">{w.dateOfTxn}</td>
                         </tr>
@@ -1181,15 +1178,16 @@ export default function App() {
                         }
                         return true;
                       }).length === 0 && (
-                        <tr><td colSpan={12} className="p-6 text-center text-[#6C757D]">No matching winnings found</td></tr>
+                        <tr><td colSpan={8} className="p-6 text-center text-[#6C757D]">No matching winnings found</td></tr>
                       )}
                     </tbody>
                   </table>
 
-                  {/* WINNING SUMMARY CARD MATCHING MEDIA_1787977884136.PNG */}
-                  <div className="bg-white rounded border border-[#DEE2E6] p-4 space-y-2 mt-4">
-                    <h2 className="text-xl font-bold text-[#212529]">Winning Summary</h2>
-                    <p className="text-sm font-bold text-[#212529]">Total Amount : ₹{winningsList.reduce((s,w)=>s+w.amount,0)}.00</p>
+                  <div className="bg-[#EFEFDE]/40 bg-[#F8F9FA] rounded border border-[#DEE2E6] p-4 space-y-2 mt-4">
+                    <h3 className="font-bold text-[#212529] text-base">Winning Summary</h3>
+                    <p className="text-xs font-bold text-[#212529]">
+                      Total Amount : <span className="font-mono text-[#212529]">₹{winningsList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </p>
                   </div>
                 </div>
               </div>
