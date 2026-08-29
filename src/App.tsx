@@ -817,6 +817,7 @@ export default function App() {
   const [withdrawalModalTab, setWithdrawalModalTab] = useState<'payment' | 'withdrawal' | 'transaction' | 'player' | 'wallet'>('payment');
 
   const [walletTxnSearchQuery, setWalletTxnSearchQuery] = useState('');
+  const [depositSearchQuery, setDepositSearchQuery] = useState('');
   const [selectedTxnForModal, setSelectedTxnForModal] = useState<any>(null);
 
   const handleSaveUserEdit = (e: React.FormEvent) => {
@@ -1067,7 +1068,7 @@ export default function App() {
               { id: 'gameLedger', label: 'Game Ledger', icon: '📘' },
               { id: 'wallets', label: 'Wallet', icon: '👛' },
               { id: 'walletTransactions', label: 'Wallet Transactions', icon: '🧾' },
-              { id: 'deposits', label: 'Deposit History', icon: '💳' },
+              { id: 'deposits', label: 'Deposit Request', icon: '💳' },
               { id: 'withdraws', label: 'Withdraw Request', icon: '🏦' },
               { id: 'commission', label: 'Commission Dashboard', icon: '🎁' },
               { id: 'leaderboard', label: 'Leader Board', icon: '🥇' },
@@ -2962,14 +2963,41 @@ export default function App() {
               </div>
             )}
 
-            {/* 7. DEPOSIT HISTORY MODULE */}
+            {/* 7. DEPOSIT REQUEST MODULE */}
             {activeTab === 'deposits' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h1 className="text-2xl font-bold text-[#212529]">Deposit History</h1>
+                  <h1 className="text-2xl font-bold text-[#212529]">Deposit Request</h1>
                 </div>
 
-                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                {/* SEARCH FILTER BAR */}
+                <div className="bg-white p-3 rounded border border-[#DEE2E6] shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+                  <div className="flex gap-2 w-full md:w-auto flex-1">
+                    <input
+                      type="text"
+                      placeholder="Search Name / Email / Mobile / UTR / Status..."
+                      value={depositSearchQuery}
+                      onChange={(e) => setDepositSearchQuery(e.target.value)}
+                      className="border border-gray-300 rounded px-3 py-1.5 text-xs w-full max-w-md focus:outline-none focus:border-indigo-500 shadow-inner"
+                    />
+                    <button
+                      onClick={() => {}}
+                      className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm"
+                    >
+                      Search
+                    </button>
+                    {depositSearchQuery && (
+                      <button
+                        onClick={() => setDepositSearchQuery('')}
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded text-xs font-bold"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 overflow-x-auto">
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                     <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
                       <tr>
@@ -2980,29 +3008,91 @@ export default function App() {
                         <th className="p-2.5 border-r border-[#DEE2E6]">Mobile Number</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
-                        <th className="p-2.5 text-right">Action</th>
+                        <th className="p-2.5 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {deposits.map((d, i) => (
-                        <tr key={i} className="hover:bg-[#F4F6F9]">
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#007BFF]">{d.utr || 'N/A'}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">user@95xmatka.com</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{d.userId}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{d.status}</span></td>
-                          <td className="p-2.5 text-right space-x-1">
-                            {d.status === 'Pending' && (
-                              <>
-                                <button onClick={() => handleApproveDeposit(d.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
-                                <button onClick={() => handleRejectDeposit(d.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                      {(() => {
+                        const q = depositSearchQuery.toLowerCase().trim();
+                        const filtered = deposits.filter(d => {
+                          const rawMob = (d.mobile || d.phone || d.user || d.username || '').replace(/[^0-9]/g, '');
+                          const mob = rawMob.length >= 10 ? rawMob.slice(-10) : '';
+                          const userStr = (d.user || d.username || '').toLowerCase();
+                          const utrStr = String(d.utr || d.utr_number || d._id || d.id || '').toLowerCase();
+                          const statusStr = String(d.status || '').toLowerCase();
+
+                          return !q ||
+                            userStr.includes(q) ||
+                            mob.includes(q) ||
+                            utrStr.includes(q) ||
+                            statusStr.includes(q);
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={8} className="p-8 text-center text-gray-500 font-medium italic">
+                                No deposit requests found matching "{depositSearchQuery}".
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filtered.map((d, i) => {
+                          const rawMob = (d.mobile || d.phone || d.user || d.username || '').replace(/[^0-9]/g, '');
+                          const mob = rawMob.length >= 10 ? rawMob.slice(-10) : 'N/A';
+                          const depId = d._id || d.id || d.utr;
+                          const isPending = d.status === 'Pending' || d.status === 'pending';
+
+                          return (
+                            <tr key={i} className="hover:bg-[#F4F6F9]">
+                              <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#007BFF]">{d.utr || d.utr_number || d.id || 'N/A'}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{d.user || d.username || 'User'}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] text-gray-600">{mob !== 'N/A' ? `${mob}@gmail.com` : 'user@95xmatka.com'}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-gray-800">{mob}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#28A745] font-bold">₹ {d.amount}</td>
+                              <td className="p-2.5 border-r border-[#DEE2E6]">
+                                <span className={`px-2 py-0.5 rounded text-white text-[10px] font-bold ${
+                                  (d.status === 'Approved' || d.status === 'approved') ? 'bg-[#28A745]' :
+                                  (d.status === 'Rejected' || d.status === 'rejected') ? 'bg-[#DC3545]' : 'bg-[#FFC107] text-gray-900'
+                                }`}>
+                                  {d.status || 'Pending'}
+                                </span>
+                              </td>
+                              <td className="p-2.5 text-right space-x-1.5 whitespace-nowrap">
+                                <button
+                                  onClick={() => setSelectedTxnForModal({
+                                    txnId: d.utr || d.utr_number || d.id || d._id,
+                                    txnType: 'DEPOSIT (' + (d.method || 'UPI') + ')',
+                                    user: d.user || d.username || 'User',
+                                    mobile: mob,
+                                    email: mob !== 'N/A' ? `${mob}@gmail.com` : 'user@95xmatka.com',
+                                    amount: d.amount,
+                                    amountPrefix: '+',
+                                    amountColor: 'text-[#28A745]',
+                                    status: d.status || 'Pending',
+                                    date: d.createdAt || d.date || 'Today',
+                                    itemType: 'deposit'
+                                  })}
+                                  className="px-2 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded text-xs text-gray-700 shadow-sm"
+                                  title="View Details"
+                                >
+                                  👁️
+                                </button>
+                                {isPending ? (
+                                  <>
+                                    <button onClick={() => handleApproveDeposit(depId)} className="bg-[#28A745] hover:bg-[#218838] text-white px-2.5 py-1 rounded text-[11px] font-bold shadow-sm">Approve</button>
+                                    <button onClick={() => handleRejectDeposit(depId)} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[11px] font-bold shadow-sm">Reject</button>
+                                  </>
+                                ) : (
+                                  <span className="text-gray-400 text-[10px] italic">Completed</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </div>
