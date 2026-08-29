@@ -1966,21 +1966,22 @@ export default function App() {
                           </thead>
                           <tbody>
                             {(() => {
-                              const userDeps = deposits.filter(d => d.userId === selectedUser.id || d.user === selectedUser.name);
-                              const userWds = withdrawals.filter(w => w.userId === selectedUser.id || w.user === selectedUser.name);
-                              const combined = [
-                                ...userDeps.map((d, idx) => ({ id: `dep_${idx}`, type: 'Deposit', amount: `+₹${d.amount}`, date: d.date || 'Today', status: d.status || 'Approved' })),
-                                ...userWds.map((w, idx) => ({ id: `wd_${idx}`, type: 'Withdrawal', amount: `-₹${w.amount}`, date: w.date || 'Today', status: w.status || 'Approved' }))
+                              const userDeps = deposits.filter(d => d.userId === selectedUser.id || d.user === selectedUser.name || (d.mobile && d.mobile.includes(selectedUser.mobile)));
+                              const userWds = withdrawals.filter(w => w.userId === selectedUser.id || w.user === selectedUser.name || (w.mobile && w.mobile.includes(selectedUser.mobile)));
+
+                              const realTxns = [
+                                {
+                                  id: `bonus_${selectedUser.id || selectedUser.mobile}`,
+                                  type: 'Joining Bonus',
+                                  amount: '+₹200.00',
+                                  date: selectedUser.createdAt ? selectedUser.createdAt.replace('T', ' ').slice(0, 19) : '2026-08-29 09:50:00',
+                                  status: 'Approved'
+                                },
+                                ...userDeps.map((d, idx) => ({ id: `dep_${d.id || idx}`, type: d.payment_method ? `Deposit (${d.payment_method})` : 'Deposit UPI', amount: `+₹${d.amount}.00`, date: d.date || d.created_at || 'Today', status: d.status || 'Approved' })),
+                                ...userWds.map((w, idx) => ({ id: `wd_${w.id || idx}`, type: 'Withdrawal', amount: `-₹${w.amount}.00`, date: w.date || w.created_at || 'Today', status: w.status || 'Approved' }))
                               ];
 
-                              if (combined.length === 0) {
-                                combined.push(
-                                  { id: 'txn_101', type: 'Deposit UPI', amount: '+₹200.00', date: '2026-08-29 09:50:00', status: 'Approved' },
-                                  { id: 'txn_102', type: 'Joining Bonus', amount: '+₹200.00', date: '2026-08-29 09:50:00', status: 'Approved' }
-                                );
-                              }
-
-                              return combined.map((item, i) => (
+                              return realTxns.map((item, i) => (
                                 <tr key={i} className="hover:bg-[#F4F6F9]">
                                   <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
                                   <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{item.id}</td>
@@ -2017,11 +2018,14 @@ export default function App() {
                           </thead>
                           <tbody>
                             {(() => {
-                              const userBids = bidsList.filter(b => b.user === selectedUser.name || b.phone === selectedUser.mobile);
+                              const userBids = bidsList.filter(b => b.user === selectedUser.name || b.phone === selectedUser.mobile || (b.user && selectedUser.mobile && b.user.includes(selectedUser.mobile)));
                               if (userBids.length === 0) {
-                                userBids.push(
-                                  { category: 'Gali', gameType: 'Single Jodi', number: '31', amount: 40, date: '2026-08-29 10:45:00', status: 'Pending' },
-                                  { category: 'Desawar', gameType: 'Single Jodi', number: '72', amount: 50, date: '2026-08-29 08:30:00', status: 'Pending' }
+                                return (
+                                  <tr>
+                                    <td colSpan={8} className="p-6 text-center text-[#6C757D] font-medium bg-[#F8F9FA]">
+                                      No game bets found for {selectedUser.name}
+                                    </td>
+                                  </tr>
                                 );
                               }
 
@@ -2108,35 +2112,58 @@ export default function App() {
                             </tr>
                           </thead>
                           <tbody>
-                            {[
-                              { amount: '+0.25', date: '2026-08-29 11:51:10', type: 'Commission', oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.60', bonus: '0.00', referral: '99.10' }, newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.85', bonus: '0.00', referral: '99.10' }, gameType: '-' },
-                              { amount: '+0.75', date: '2026-08-29 11:50:55', type: 'Commission', oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.85', bonus: '0.00', referral: '99.10' }, newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.60', bonus: '0.00', referral: '99.10' }, gameType: '-' },
-                              { amount: '+0.50', date: '2026-08-29 11:50:36', type: 'Commission', oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.35', bonus: '0.00', referral: '99.10' }, newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.85', bonus: '0.00', referral: '99.10' }, gameType: '-' }
-                            ].map((item, i) => (
-                              <tr key={i} className="hover:bg-[#F4F6F9] align-top">
-                                <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                                <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">{item.amount}</td>
-                                <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{item.date}</td>
-                                <td className="p-2.5 border-r border-[#DEE2E6] font-medium">{item.type}</td>
-                                <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px] space-y-0.5 text-gray-700">
-                                  <div>Wallet - {item.oldBal.wallet}</div>
-                                  <div>Deposit - {item.oldBal.deposit}</div>
-                                  <div>Winning - {item.oldBal.winning}</div>
-                                  <div>Commission - {item.oldBal.commission}</div>
-                                  <div>Bonus - {item.oldBal.bonus}</div>
-                                  <div>Referral - {item.oldBal.referral}</div>
-                                </td>
-                                <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px] space-y-0.5 text-gray-700">
-                                  <div>Wallet - {item.newBal.wallet}</div>
-                                  <div>Deposit - {item.newBal.deposit}</div>
-                                  <div>Winning - {item.newBal.winning}</div>
-                                  <div>Commission - {item.newBal.commission}</div>
-                                  <div>Bonus - {item.newBal.bonus}</div>
-                                  <div>Referral - {item.newBal.referral}</div>
-                                </td>
-                                <td className="p-2.5 font-medium">{item.gameType}</td>
-                              </tr>
-                            ))}
+                            {(() => {
+                              const realLedger: any[] = [];
+
+                              // 1. Initial Joining Bonus Entry (+200.00)
+                              realLedger.push({
+                                amount: '+200.00',
+                                date: selectedUser.createdAt ? selectedUser.createdAt.replace('T', ' ').slice(0, 19) : '2026-08-29 09:50:00',
+                                type: 'Joining Bonus',
+                                oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
+                                newBal: { wallet: `${selectedUser.balance || 0}.00`, deposit: `${selectedUser.deposit_balance || 0}.00`, winning: `${selectedUser.winning_balance || 0}.00`, commission: `${selectedUser.commission_balance || 0}.00`, bonus: '200.00', referral: '0.00' },
+                                gameType: '-'
+                              });
+
+                              // 2. Real User Bids
+                              const userBids = bidsList.filter(b => b.user === selectedUser.name || b.phone === selectedUser.mobile);
+                              userBids.forEach(b => {
+                                realLedger.push({
+                                  amount: `-${b.amount}.00`,
+                                  date: b.date || '2026-08-29 11:51:10',
+                                  type: 'Bid Place',
+                                  oldBal: { wallet: `${(selectedUser.balance || 0) + b.amount}.00`, deposit: `${(selectedUser.deposit_balance || 0) + b.amount}.00`, winning: '0.00', commission: '0.00', bonus: '200.00', referral: '0.00' },
+                                  newBal: { wallet: `${selectedUser.balance || 0}.00`, deposit: `${selectedUser.deposit_balance || 0}.00`, winning: '0.00', commission: '0.00', bonus: '200.00', referral: '0.00' },
+                                  gameType: b.gameType || 'Single Jodi'
+                                });
+                              });
+
+                              return realLedger.map((item, i) => (
+                                <tr key={i} className="hover:bg-[#F4F6F9] align-top">
+                                  <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                                  <td className={`p-2.5 border-r border-[#DEE2E6] font-mono font-bold ${item.amount.startsWith('+') ? 'text-[#28A745]' : 'text-[#DC3545]'}`}>{item.amount}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{item.date}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-medium">{item.type}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px] space-y-0.5 text-gray-700">
+                                    <div>Wallet - {item.oldBal.wallet}</div>
+                                    <div>Deposit - {item.oldBal.deposit}</div>
+                                    <div>Winning - {item.oldBal.winning}</div>
+                                    <div>Commission - {item.oldBal.commission}</div>
+                                    <div>Bonus - {item.oldBal.bonus}</div>
+                                    <div>Referral - {item.oldBal.referral}</div>
+                                  </td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px] space-y-0.5 text-gray-700">
+                                    <div>Wallet - {item.newBal.wallet}</div>
+                                    <div>Deposit - {item.newBal.deposit}</div>
+                                    <div>Winning - {item.newBal.winning}</div>
+                                    <div>Commission - {item.newBal.commission}</div>
+                                    <div>Bonus - {item.newBal.bonus}</div>
+                                    <div>Referral - {item.newBal.referral}</div>
+                                  </td>
+                                  <td className="p-2.5 font-medium">{item.gameType}</td>
+                                </tr>
+                              ));
+                            })()}
                           </tbody>
                         </table>
                       </div>
