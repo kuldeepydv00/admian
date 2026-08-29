@@ -441,6 +441,14 @@ export default function App() {
       if (pmRes.ok) {
         const pmData = await pmRes.json();
         if (Array.isArray(pmData) && pmData.length > 0) setPaymentMethodsList(pmData);
+      } else {
+        try {
+          const altRes = await fetch(`${API_BASE}/api/payment-methods`);
+          if (altRes.ok) {
+            const pmData = await altRes.json();
+            if (Array.isArray(pmData) && pmData.length > 0) setPaymentMethodsList(pmData);
+          }
+        } catch (e) {}
       }
       if (usersRes.ok) {
         const uList = await usersRes.json();
@@ -744,11 +752,18 @@ export default function App() {
 
     // 1. Send POST request to backend API & MongoDB Atlas
     try {
-      const res = await fetch(`${API_BASE}/api/admin/payment-methods`, {
+      let res = await fetch(`${API_BASE}/api/admin/payment-methods`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      if (!res.ok) {
+        res = await fetch(`${API_BASE}/api/payment-methods`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
       if (res.ok) {
         const data = await res.json();
         if (data.paymentMethods && Array.isArray(data.paymentMethods)) {
