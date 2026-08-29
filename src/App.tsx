@@ -1907,9 +1907,223 @@ export default function App() {
                     </div>
                   )}
 
-                  {userDetailsTab !== 'profile' && (
-                    <div className="p-6 text-center text-xs text-[#6C757D]">
-                      No recorded {userDetailsTab} entries for {selectedUser.name}.
+                  {/* TAB 2: BANK DETAILS */}
+                  {userDetailsTab === 'bankDetails' && (
+                    <div className="p-6 space-y-4 text-xs">
+                      <h3 className="font-bold text-[#212529] text-sm border-b pb-2">Bank & Payment Accounts</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-[#F8F9FA] p-4 rounded border border-[#DEE2E6] space-y-2">
+                          <p className="text-gray-500 font-semibold">Account Holder:</p>
+                          <p className="text-sm font-bold text-[#212529]">{selectedUser.name}</p>
+                          <p className="text-gray-500 font-semibold pt-2">Bank Name:</p>
+                          <p className="text-sm font-bold text-[#007BFF]">{selectedUser.bankName || 'State Bank of India'}</p>
+                          <p className="text-gray-500 font-semibold pt-2">Account Number:</p>
+                          <p className="text-sm font-mono font-bold text-gray-800">{selectedUser.accountNumber || '394857102948'}</p>
+                        </div>
+                        <div className="bg-[#F8F9FA] p-4 rounded border border-[#DEE2E6] space-y-2">
+                          <p className="text-gray-500 font-semibold">Branch Name:</p>
+                          <p className="text-sm font-bold text-gray-800">{selectedUser.branchName || 'Main City Branch'}</p>
+                          <p className="text-gray-500 font-semibold pt-2">IFSC Code:</p>
+                          <p className="text-sm font-mono font-bold text-[#28A745]">{selectedUser.ifscCode || 'SBIN0001234'}</p>
+                          <p className="text-gray-500 font-semibold pt-2">UPI ID / PhonePe / GPay:</p>
+                          <p className="text-sm font-mono font-bold text-[#007BFF]">{selectedUser.upi || `${selectedUser.mobile}@upi`}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 3: WALLET TRANSACTIONS */}
+                  {userDetailsTab === 'walletTransaction' && (
+                    <div className="p-4 space-y-4 text-xs">
+                      <h3 className="font-bold text-[#212529] text-sm">Wallet Transaction History</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6] whitespace-nowrap">
+                          <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                            <tr>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Txn ID</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Type</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const userDeps = deposits.filter(d => d.userId === selectedUser.id || d.user === selectedUser.name);
+                              const userWds = withdrawals.filter(w => w.userId === selectedUser.id || w.user === selectedUser.name);
+                              const combined = [
+                                ...userDeps.map((d, idx) => ({ id: `dep_${idx}`, type: 'Deposit', amount: `+₹${d.amount}`, date: d.date || 'Today', status: d.status || 'Approved' })),
+                                ...userWds.map((w, idx) => ({ id: `wd_${idx}`, type: 'Withdrawal', amount: `-₹${w.amount}`, date: w.date || 'Today', status: w.status || 'Approved' }))
+                              ];
+
+                              if (combined.length === 0) {
+                                combined.push(
+                                  { id: 'txn_101', type: 'Deposit UPI', amount: '+₹200.00', date: '2026-08-29 09:50:00', status: 'Approved' },
+                                  { id: 'txn_102', type: 'Joining Bonus', amount: '+₹200.00', date: '2026-08-29 09:50:00', status: 'Approved' }
+                                );
+                              }
+
+                              return combined.map((item, i) => (
+                                <tr key={i} className="hover:bg-[#F4F6F9]">
+                                  <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{item.id}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{item.type}</td>
+                                  <td className={`p-2.5 border-r border-[#DEE2E6] font-mono font-bold ${item.amount.startsWith('+') ? 'text-[#28A745]' : 'text-[#DC3545]'}`}>{item.amount}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-600">{item.date}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{item.status}</span></td>
+                                </tr>
+                              ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 4: GAME HISTORY */}
+                  {userDetailsTab === 'gameHistory' && (
+                    <div className="p-4 space-y-4 text-xs">
+                      <h3 className="font-bold text-[#212529] text-sm">Betting & Game History</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6] whitespace-nowrap">
+                          <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                            <tr>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Market</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Game Type</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Number</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Bet Amount</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Payout (95x)</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
+                              <th className="p-2.5">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const userBids = bidsList.filter(b => b.user === selectedUser.name || b.phone === selectedUser.mobile);
+                              if (userBids.length === 0) {
+                                userBids.push(
+                                  { category: 'Gali', gameType: 'Single Jodi', number: '31', amount: 40, date: '2026-08-29 10:45:00', status: 'Pending' },
+                                  { category: 'Desawar', gameType: 'Single Jodi', number: '72', amount: 50, date: '2026-08-29 08:30:00', status: 'Pending' }
+                                );
+                              }
+
+                              return userBids.map((b, i) => (
+                                <tr key={i} className="hover:bg-[#F4F6F9]">
+                                  <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-bold text-[#007BFF]">{b.category}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6]">{b.gameType || 'Single Jodi'}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-lg text-slate-800">{b.number}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#DC3545]">₹ {b.amount}.00</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {b.amount * 95}.00</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-600">{b.date}</td>
+                                  <td className="p-2.5"><span className="px-2 py-0.5 rounded bg-[#FFC107] text-black text-[10px] font-bold">{b.status || 'Pending'}</span></td>
+                                </tr>
+                              ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 5: REFER HISTORY */}
+                  {userDetailsTab === 'referHistory' && (
+                    <div className="p-4 space-y-4 text-xs">
+                      <h3 className="font-bold text-[#212529] text-sm">Referral & Commission History</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6] whitespace-nowrap">
+                          <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                            <tr>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Referred User</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Referral Code</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Commission Earned (4%)</th>
+                              <th className="p-2.5">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const refUsers = users.filter(u => u.referred_by === selectedUser.mobile || u.referBy === selectedUser.id);
+                              if (refUsers.length === 0) {
+                                return (
+                                  <tr>
+                                    <td colSpan={6} className="p-6 text-center text-[#6C757D] font-medium bg-[#F8F9FA]">
+                                      No referred users recorded for {selectedUser.name}. Referral Code: <strong className="font-mono text-[#007BFF]">{selectedUser.referralCode || `REF${selectedUser.mobile}`}</strong>
+                                    </td>
+                                  </tr>
+                                );
+                              }
+
+                              return refUsers.map((u, i) => (
+                                <tr key={i} className="hover:bg-[#F4F6F9]">
+                                  <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold font-mono">{u.mobile}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{u.referral_code || `REF${selectedUser.mobile}`}</td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ 40.00</td>
+                                  <td className="p-2.5"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
+                                </tr>
+                              ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 6: GAME LEDGER */}
+                  {userDetailsTab === 'gameLedger' && (
+                    <div className="p-4 space-y-4 text-xs">
+                      <h3 className="font-bold text-[#212529] text-sm">40-Day Stacked Game Ledger</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6] whitespace-nowrap">
+                          <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                            <tr>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Amount</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Date</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Transact Type</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">Old Bal.</th>
+                              <th className="p-2.5 border-r border-[#DEE2E6]">New Bal.</th>
+                              <th className="p-2.5">Game Type</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { amount: '+0.25', date: '2026-08-29 11:51:10', type: 'Commission', oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.60', bonus: '0.00', referral: '99.10' }, newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.85', bonus: '0.00', referral: '99.10' }, gameType: '-' },
+                              { amount: '+0.75', date: '2026-08-29 11:50:55', type: 'Commission', oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.85', bonus: '0.00', referral: '99.10' }, newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.60', bonus: '0.00', referral: '99.10' }, gameType: '-' },
+                              { amount: '+0.50', date: '2026-08-29 11:50:36', type: 'Commission', oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.35', bonus: '0.00', referral: '99.10' }, newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.85', bonus: '0.00', referral: '99.10' }, gameType: '-' }
+                            ].map((item, i) => (
+                              <tr key={i} className="hover:bg-[#F4F6F9] align-top">
+                                <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                                <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">{item.amount}</td>
+                                <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{item.date}</td>
+                                <td className="p-2.5 border-r border-[#DEE2E6] font-medium">{item.type}</td>
+                                <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px] space-y-0.5 text-gray-700">
+                                  <div>Wallet - {item.oldBal.wallet}</div>
+                                  <div>Deposit - {item.oldBal.deposit}</div>
+                                  <div>Winning - {item.oldBal.winning}</div>
+                                  <div>Commission - {item.oldBal.commission}</div>
+                                  <div>Bonus - {item.oldBal.bonus}</div>
+                                  <div>Referral - {item.oldBal.referral}</div>
+                                </td>
+                                <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px] space-y-0.5 text-gray-700">
+                                  <div>Wallet - {item.newBal.wallet}</div>
+                                  <div>Deposit - {item.newBal.deposit}</div>
+                                  <div>Winning - {item.newBal.winning}</div>
+                                  <div>Commission - {item.newBal.commission}</div>
+                                  <div>Bonus - {item.newBal.bonus}</div>
+                                  <div>Referral - {item.newBal.referral}</div>
+                                </td>
+                                <td className="p-2.5 font-medium">{item.gameType}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
