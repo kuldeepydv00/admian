@@ -337,12 +337,30 @@ export default function App() {
   }, [isAuthenticated]);
 
   // EDIT BID NUMBER HANDLER
-  const handleSaveEditBid = (e: React.FormEvent) => {
+  const handleSaveEditBid = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editBidForm.number) return;
-    setBidsList(prev => prev.map(b => b.id === editBidForm.id ? { ...b, number: editBidForm.number, amount: editBidForm.amount } : b));
-    setStatusMessage(`🎉 Bid #${editBidForm.id} number changed to "${editBidForm.number}" successfully!`);
+    const newNum = String(editBidForm.number).padStart(2, '0');
+    const newAmt = parseFloat(editBidForm.amount as any) || 10;
+
+    // 1. Instantly update React state
+    setBidsList(prev => prev.map(b => b.id === editBidForm.id ? { ...b, number: newNum, amount: newAmt } : b));
+    setStatusMessage(`🎉 Bid #${editBidForm.id} number changed to "${newNum}" successfully!`);
     setShowEditBidModal(false);
+
+    // 2. Persist updated bid number & amount to Backend API live!
+    try {
+      await fetch(`${API_BASE}/api/admin/update-bid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editBidForm.id,
+          number: newNum,
+          amount: newAmt
+        })
+      });
+      fetchLiveData();
+    } catch (err) {}
   };
 
   // RESULT DECLARATION & WINNER CREDIT HANDLER
