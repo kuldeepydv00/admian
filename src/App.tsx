@@ -918,7 +918,18 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {bidsList.map((b, i) => (
+                      {bidsList.filter(b => {
+                        if (filterCategory !== 'All' && b.category !== filterCategory) return false;
+                        if (filterGameType !== 'All' && b.gameType !== filterGameType) return false;
+                        if (searchNumberInput.trim() && b.number !== searchNumberInput.trim()) return false;
+                        if (filterSearch.trim()) {
+                          const q = filterSearch.toLowerCase().trim();
+                          return (b.user && b.user.toLowerCase().includes(q)) ||
+                                 (b.phone && b.phone.includes(q)) ||
+                                 (b.category && b.category.toLowerCase().includes(q));
+                        }
+                        return true;
+                      }).map((b, i) => (
                         <tr key={i} className="hover:bg-[#F4F6F9]">
                           <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6]">{b.date}</td>
@@ -931,6 +942,20 @@ export default function App() {
                           <td className="p-2.5 text-right"><span className="px-2 py-0.5 rounded bg-[#FFC107] text-[#212529] text-[10px] font-bold">{b.status}</span></td>
                         </tr>
                       ))}
+                      {bidsList.filter(b => {
+                        if (filterCategory !== 'All' && b.category !== filterCategory) return false;
+                        if (filterGameType !== 'All' && b.gameType !== filterGameType) return false;
+                        if (searchNumberInput.trim() && b.number !== searchNumberInput.trim()) return false;
+                        if (filterSearch.trim()) {
+                          const q = filterSearch.toLowerCase().trim();
+                          return (b.user && b.user.toLowerCase().includes(q)) ||
+                                 (b.phone && b.phone.includes(q)) ||
+                                 (b.category && b.category.toLowerCase().includes(q));
+                        }
+                        return true;
+                      }).length === 0 && (
+                        <tr><td colSpan={9} className="p-6 text-center text-[#6C757D]">No matching bids found</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -981,7 +1006,16 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {resultsList.map((r, i) => (
+                      {resultsList.filter(r => {
+                        if (filterCategory !== 'All' && r.category !== filterCategory) return false;
+                        if (filterSearch.trim()) {
+                          const q = filterSearch.toLowerCase().trim();
+                          return (r.category && r.category.toLowerCase().includes(q)) ||
+                                 (r.resultNumber && r.resultNumber.includes(q)) ||
+                                 (r.resultBy && r.resultBy.toLowerCase().includes(q));
+                        }
+                        return true;
+                      }).map((r, i) => (
                         <tr key={i} className="hover:bg-[#F4F6F9]">
                           <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6]">{r.date}</td>
@@ -994,8 +1028,17 @@ export default function App() {
                           </td>
                         </tr>
                       ))}
-                      {resultsList.length === 0 && (
-                        <tr><td colSpan={7} className="p-6 text-center text-[#6C757D]">No data available in table</td></tr>
+                      {resultsList.filter(r => {
+                        if (filterCategory !== 'All' && r.category !== filterCategory) return false;
+                        if (filterSearch.trim()) {
+                          const q = filterSearch.toLowerCase().trim();
+                          return (r.category && r.category.toLowerCase().includes(q)) ||
+                                 (r.resultNumber && r.resultNumber.includes(q)) ||
+                                 (r.resultBy && r.resultBy.toLowerCase().includes(q));
+                        }
+                        return true;
+                      }).length === 0 && (
+                        <tr><td colSpan={7} className="p-6 text-center text-[#6C757D]">No matching results found</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -1055,7 +1098,18 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {winningsList.map((w, i) => (
+                      {winningsList.filter(w => {
+                        if (filterCategory !== 'All' && w.category !== filterCategory) return false;
+                        if (filterSearch.trim()) {
+                          const q = filterSearch.toLowerCase().trim();
+                          return (w.user && w.user.toLowerCase().includes(q)) ||
+                                 (w.email && w.email.toLowerCase().includes(q)) ||
+                                 (w.mobile && w.mobile.includes(q)) ||
+                                 (w.userId && w.userId.includes(q)) ||
+                                 (w.category && w.category.toLowerCase().includes(q));
+                        }
+                        return true;
+                      }).map((w, i) => (
                         <tr key={i} className="hover:bg-[#F4F6F9]">
                           <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.category}</td>
@@ -1071,6 +1125,20 @@ export default function App() {
                           <td className="p-2.5">{w.dateOfTxn}</td>
                         </tr>
                       ))}
+                      {winningsList.filter(w => {
+                        if (filterCategory !== 'All' && w.category !== filterCategory) return false;
+                        if (filterSearch.trim()) {
+                          const q = filterSearch.toLowerCase().trim();
+                          return (w.user && w.user.toLowerCase().includes(q)) ||
+                                 (w.email && w.email.toLowerCase().includes(q)) ||
+                                 (w.mobile && w.mobile.includes(q)) ||
+                                 (w.userId && w.userId.includes(q)) ||
+                                 (w.category && w.category.toLowerCase().includes(q));
+                        }
+                        return true;
+                      }).length === 0 && (
+                        <tr><td colSpan={12} className="p-6 text-center text-[#6C757D]">No matching winnings found</td></tr>
+                      )}
                     </tbody>
                   </table>
 
