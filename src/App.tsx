@@ -319,13 +319,15 @@ export default function App() {
     const totalInvestment = jodiTotal + crossTotal + haroofTotal;
 
     const matchedResult = resultsList.find(r => r.category === categoryName);
-    const winningNumStr = matchedResult ? String(matchedResult.resultNumber).padStart(2, '0') : '31';
-    const winningAnderDigit = `A${winningNumStr.charAt(0)}`;
-    const winningBaharDigit = `B${winningNumStr.charAt(1)}`;
+    const winningNumStr = (matchedResult && matchedResult.resultNumber !== undefined) ? String(matchedResult.resultNumber).padStart(2, '0') : null;
+    const winningAnderDigit = winningNumStr ? `A${winningNumStr.charAt(0)}` : null;
+    const winningBaharDigit = winningNumStr ? `B${winningNumStr.charAt(1)}` : null;
 
-    const jodiWinTotal = (jodiMap[winningNumStr] || 0) * 95;
-    const crossWinTotal = (crossMap[winningNumStr] || 0) * 95;
-    const haroofWinTotal = ((haroofAnderMap[winningAnderDigit] || 0) * 9.5) + ((haroofBaharMap[winningBaharDigit] || 0) * 9.5);
+    const jodiWinTotal = winningNumStr ? (jodiMap[winningNumStr] || 0) * 95 : 0;
+    const crossWinTotal = winningNumStr ? (crossMap[winningNumStr] || 0) * 95 : 0;
+    const haroofWinTotal = (winningAnderDigit && winningBaharDigit)
+      ? (((haroofAnderMap[winningAnderDigit] || 0) * 9.5) + ((haroofBaharMap[winningBaharDigit] || 0) * 9.5))
+      : 0;
     const totalWinningAmount = jodiWinTotal + crossWinTotal + haroofWinTotal;
 
     return {
@@ -2871,25 +2873,27 @@ export default function App() {
               return (
                 <div className="space-y-6">
 
-                  {/* 1. JODI GAME SECTION (MATCHING MEDIA_1787981926315.JPG & MEDIA_1787981953977.JPG) */}
+                  {/* 1. JODI GAME SECTION (SQUARE BOXES WITH 95X PAYOUT DISPLAY) */}
                   <div className="space-y-3 border-t pt-4">
                     <h4 className="font-bold text-[#212529] text-sm">Jodi Game</h4>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 justify-items-center">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 justify-items-center">
                       {Array.from({ length: 100 }).map((_, idx) => {
                         const numStr = String(idx).padStart(2, '0');
                         const amt = bd.jodiMap[numStr] || 0;
-                        const isWinner = numStr === bd.winningNumStr;
+                        const payout95 = amt * 95;
+                        const isWinner = bd.winningNumStr !== null && numStr === bd.winningNumStr;
                         return (
                           <div
                             key={numStr}
-                            className={`w-14 h-14 rounded-full flex flex-col items-center justify-center text-center p-1 text-[11px] font-bold shadow-sm transition-all ${
+                            className={`w-full py-2 px-1.5 rounded-lg flex flex-col items-center justify-center text-center p-1 font-bold shadow-sm transition-all border ${
                               isWinner
-                                ? 'bg-[#28A745] text-white ring-4 ring-[#28A745]/30'
-                                : 'bg-[#E67E22] text-white'
+                                ? 'bg-[#28A745] text-white border-[#1E7E34] ring-2 ring-[#28A745]/40'
+                                : (amt > 0 ? 'bg-[#E67E22] text-white border-[#D35400]' : 'bg-[#F8F9FA] text-[#495057] border-[#DEE2E6]')
                             }`}
                           >
-                            <span className="text-xs leading-none">{numStr}</span>
-                            <span className="text-[9px] mt-0.5 opacity-90 font-mono">Rs = {amt}</span>
+                            <span className="text-sm font-black font-mono leading-none">{numStr}</span>
+                            <span className="text-[10px] mt-1 font-mono">Rs = {amt}</span>
+                            <span className="text-[9px] mt-0.5 font-mono opacity-90">95x = Rs. {payout95}</span>
                           </div>
                         );
                       })}
@@ -2907,16 +2911,26 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* 2. CROSS GAME SECTION (MATCHING MEDIA_1787981953977.JPG & MEDIA_1787981960032.JPG) */}
+                  {/* 2. CROSS GAME SECTION (SQUARE BOXES WITH 95X PAYOUT DISPLAY) */}
                   <div className="space-y-3 border-t pt-4">
                     <h4 className="font-bold text-[#212529] text-sm">Cross Game</h4>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
                       {Array.from({ length: 100 }).map((_, idx) => {
                         const numStr = String(idx).padStart(2, '0');
                         const amt = bd.crossMap[numStr] || 0;
+                        const payout95 = amt * 95;
+                        const isWinner = bd.winningNumStr !== null && numStr === bd.winningNumStr;
                         return (
-                          <div key={numStr} className="bg-gray-200 text-gray-800 p-2 rounded text-[11px] font-bold font-mono">
-                            {numStr} Rs = {amt}
+                          <div
+                            key={numStr}
+                            className={`p-2 rounded-lg text-center font-mono border ${
+                              isWinner
+                                ? 'bg-[#28A745] text-white font-bold'
+                                : (amt > 0 ? 'bg-[#E67E22] text-white font-bold' : 'bg-gray-100 text-gray-800')
+                            }`}
+                          >
+                            <div className="text-xs font-bold">{numStr} Rs = {amt}</div>
+                            <div className="text-[9px] opacity-90 mt-0.5">95x = Rs. {payout95}</div>
                           </div>
                         );
                       })}
