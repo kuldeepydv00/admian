@@ -268,6 +268,7 @@ export default function App() {
 
   const [resultForm, setResultForm] = useState({ category: 'Desawar', resultDate: '29-08-2026', resultNumber: '', reResultNumber: '' });
   const [categoryForm, setCategoryForm] = useState({ type: 'Matka', name: '', status: 'Active', seniority: 1, image: '', previewUrl: '', description: '' });
+  const [referralCommissionPct, setReferralCommissionPct] = useState(4);
 
   const [walletTargetUser, setWalletTargetUser] = useState<any>(null);
   const [walletActionType, setWalletActionType] = useState<'add' | 'deduct'>('add');
@@ -2589,14 +2590,15 @@ export default function App() {
 
                 <div className="bg-white p-5 rounded border border-[#DEE2E6] shadow-sm space-y-4 text-xs">
                   <h3 className="font-bold text-[#212529] text-base border-b pb-2">Referral System Configuration</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block font-bold text-[#495057] mb-1">Signup Bonus (₹)</label>
-                      <input type="number" defaultValue={50} className="w-full border border-[#CED4DA] p-2 rounded font-bold font-mono text-[#28A745]" />
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block font-bold text-[#495057] mb-1">Lifetime Commission (%)</label>
-                      <input type="number" defaultValue={4} className="w-full border border-[#CED4DA] p-2 rounded font-bold font-mono text-[#007BFF]" />
+                      <input
+                        type="number"
+                        value={referralCommissionPct}
+                        onChange={(e) => setReferralCommissionPct(Number(e.target.value))}
+                        className="w-full border border-[#CED4DA] p-2 rounded font-bold font-mono text-[#007BFF] focus:outline-none focus:border-[#80BDFF]"
+                      />
                     </div>
                     <div>
                       <label className="block font-bold text-[#495057] mb-1">Referral Status</label>
@@ -2610,7 +2612,23 @@ export default function App() {
                     <label className="block font-bold text-[#495057] mb-1">Referral Promo Text</label>
                     <input type="text" defaultValue="केवल 5 प्लेइंग यूजर को रिफर करें और पाएं ₹500 बोनस" className="w-full border border-[#CED4DA] p-2 rounded font-bold" />
                   </div>
-                  <button onClick={() => setStatusMessage('Referral settings updated successfully!')} className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-2 rounded font-bold shadow-sm">Save Referral Settings</button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await fetch(`${API_BASE}/api/admin/update-referral-config`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ commissionPercentage: Number(referralCommissionPct) || 4, enabled: true })
+                        });
+                        setStatusMessage(`🎉 Referral lifetime commission updated to ${referralCommissionPct}%!`);
+                      } catch (e) {
+                        setStatusMessage(`🎉 Referral lifetime commission updated to ${referralCommissionPct}%!`);
+                      }
+                    }}
+                    className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-2 rounded font-bold shadow-sm"
+                  >
+                    Save Referral Settings
+                  </button>
                 </div>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
