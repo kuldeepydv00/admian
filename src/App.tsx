@@ -724,11 +724,13 @@ export default function App() {
     const upiVal = paymentForm.upi_id || paymentForm.upiId || '8930507940@ybl';
     const nameVal = paymentForm.name || 'PhonePe / GPay / Paytm UPI';
     const merchantVal = paymentForm.merchant_name || 'Matka Official';
-    const orderVal = paymentForm.ordering || 1;
+    const orderVal = paymentForm.ordering || (paymentMethodsList.length + 1);
     const statusVal = paymentForm.status || 'Active';
-    const targetId = editingPayment ? (editingPayment.id || editingPayment._id) : undefined;
+    const isEdit = !!editingPayment;
+    const targetId = isEdit ? (editingPayment.id || editingPayment._id) : undefined;
 
-    const newPMObj = {
+    const payload = {
+      isEdit: isEdit,
       _id: targetId,
       id: targetId,
       name: nameVal,
@@ -745,21 +747,21 @@ export default function App() {
       const res = await fetch(`${API_BASE}/api/admin/payment-methods`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPMObj)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const data = await res.json();
         if (data.paymentMethods && Array.isArray(data.paymentMethods)) {
           setPaymentMethodsList(data.paymentMethods);
         } else {
-          setPaymentMethodsList([newPMObj]);
+          setPaymentMethodsList(prev => [payload, ...prev]);
         }
       } else {
-        setPaymentMethodsList([newPMObj]);
+        setPaymentMethodsList(prev => [payload, ...prev]);
       }
     } catch (err) {
       console.error('[Save Payment Error]', err);
-      setPaymentMethodsList([newPMObj]);
+      setPaymentMethodsList(prev => [payload, ...prev]);
     }
 
     setShowAddPaymentModal(false);
@@ -3935,7 +3937,16 @@ export default function App() {
                   <button
                     onClick={() => {
                       setEditingPayment(null);
-                      setPaymentForm({ name: 'PhonePe / GPay / Paytm UPI', upi_id: '8930507940@ybl', merchant_name: 'Matka Official', ordering: 1, status: 'Active' });
+                      setPaymentForm({
+                        id: undefined,
+                        _id: undefined,
+                        name: 'PhonePe / GPay / Paytm UPI',
+                        upi_id: '',
+                        upiId: '',
+                        merchant_name: 'Matka Official',
+                        ordering: paymentMethodsList.length + 1,
+                        status: 'Active'
+                      });
                       setShowAddPaymentModal(true);
                     }}
                     className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm"
