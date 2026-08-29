@@ -816,6 +816,9 @@ export default function App() {
   const [selectedWithdrawalForModal, setSelectedWithdrawalForModal] = useState<any>(null);
   const [withdrawalModalTab, setWithdrawalModalTab] = useState<'payment' | 'withdrawal' | 'transaction' | 'player' | 'wallet'>('payment');
 
+  const [walletTxnSearchQuery, setWalletTxnSearchQuery] = useState('');
+  const [selectedTxnForModal, setSelectedTxnForModal] = useState<any>(null);
+
   const handleSaveUserEdit = (e: React.FormEvent) => {
     e.preventDefault();
     setUsers(users.map(u => u.id === editUserForm.id ? { ...u, ...editUserForm } : u));
@@ -2711,11 +2714,38 @@ export default function App() {
               </div>
             )}
 
-            {/* 6. WALLET TRANSACTIONS MODULE (COMBINED DEPOSITS & WITHDRAWALS) */}
+            {/* 6. WALLET TRANSACTIONS MODULE (COMBINED DEPOSITS & WITHDRAWALS WITH LIVE SEARCH & DETAILS MODAL) */}
             {activeTab === 'walletTransactions' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Wallet Transactions</h1>
+                </div>
+
+                {/* SEARCH FILTER BAR */}
+                <div className="bg-white p-3 rounded border border-[#DEE2E6] shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+                  <div className="flex gap-2 w-full md:w-auto flex-1">
+                    <input
+                      type="text"
+                      placeholder="Search Name / Email / Mobile / Transaction ID / UTR..."
+                      value={walletTxnSearchQuery}
+                      onChange={(e) => setWalletTxnSearchQuery(e.target.value)}
+                      className="border border-gray-300 rounded px-3 py-1.5 text-xs w-full max-w-md focus:outline-none focus:border-indigo-500 shadow-inner"
+                    />
+                    <button
+                      onClick={() => {}}
+                      className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm"
+                    >
+                      Search
+                    </button>
+                    {walletTxnSearchQuery && (
+                      <button
+                        onClick={() => setWalletTxnSearchQuery('')}
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded text-xs font-bold"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 overflow-x-auto">
@@ -2779,7 +2809,28 @@ export default function App() {
                           })
                         ].sort((a, b) => b.rawDate - a.rawDate);
 
-                        return allWalletTransactions.map((t, i) => (
+                        const q = walletTxnSearchQuery.toLowerCase().trim();
+                        const filtered = allWalletTransactions.filter(t => 
+                          !q ||
+                          t.user.toLowerCase().includes(q) ||
+                          t.email.toLowerCase().includes(q) ||
+                          t.mobile.toLowerCase().includes(q) ||
+                          String(t.txnId).toLowerCase().includes(q) ||
+                          String(t.txnType).toLowerCase().includes(q) ||
+                          String(t.status).toLowerCase().includes(q)
+                        );
+
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={10} className="p-8 text-center text-gray-500 font-medium italic">
+                                No wallet transactions found matching "{walletTxnSearchQuery}".
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filtered.map((t, i) => (
                           <tr key={i} className="hover:bg-[#F4F6F9]">
                             <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
                             <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{t.user}</td>
@@ -2801,14 +2852,7 @@ export default function App() {
                             <td className="p-2.5 border-r border-[#DEE2E6] text-[11px] text-gray-600">{t.date}</td>
                             <td className="p-2.5 text-right">
                               <button
-                                onClick={() => {
-                                  if (t.itemType === 'withdrawal') {
-                                    setSelectedWithdrawalForModal(t.originalItem);
-                                    setWithdrawalModalTab('payment');
-                                  } else {
-                                    setStatusMessage(`💳 Transaction #${t.txnId} - ${t.user} (${t.mobile}): ₹${t.amount}`);
-                                  }
-                                }}
+                                onClick={() => setSelectedTxnForModal(t)}
                                 className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm"
                               >
                                 View
@@ -2820,6 +2864,101 @@ export default function App() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* TRANSACTION DETAILS MODAL POPUP */}
+                {selectedTxnForModal && (
+                  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden border border-gray-200">
+                      {/* MODAL HEADER */}
+                      <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gray-50">
+                        <div className="flex items-center gap-2">
+                          <span className="text-indigo-600 font-bold text-base">ℹ️</span>
+                          <h3 className="font-bold text-gray-900 text-base">
+                            Transaction Details - ₹{selectedTxnForModal.amount}
+                          </h3>
+                        </div>
+                        <button
+                          onClick={() => setSelectedTxnForModal(null)}
+                          className="text-gray-400 hover:text-gray-600 font-bold text-lg p-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      {/* MODAL CONTENT */}
+                      <div className="p-6 text-xs space-y-4 max-h-[70vh] overflow-y-auto">
+                        <h4 className="font-bold text-gray-800 text-sm border-b pb-2">
+                          {selectedTxnForModal.itemType === 'deposit' ? '💳 Deposit Transaction Summary' : '🏦 Withdrawal Transaction Summary'}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-gray-500 font-medium mb-1">Transaction ID / UTR</label>
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-gray-800">
+                              {selectedTxnForModal.txnId}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-gray-500 font-medium mb-1">Transaction Type</label>
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-indigo-600">
+                              {selectedTxnForModal.txnType}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-gray-500 font-medium mb-1">User Name</label>
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                              {selectedTxnForModal.user}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-gray-500 font-medium mb-1">Mobile Number</label>
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-gray-800">
+                              +91 {selectedTxnForModal.mobile}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-gray-500 font-medium mb-1">Email</label>
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono text-gray-700">
+                              {selectedTxnForModal.email}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-gray-500 font-medium mb-1">Amount</label>
+                            <div className={`bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-mono font-bold text-sm ${selectedTxnForModal.amountColor}`}>
+                              ₹ {selectedTxnForModal.amountPrefix}{selectedTxnForModal.amount}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-gray-500 font-medium mb-1">Status</label>
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold">
+                              <span className={`px-2 py-0.5 rounded text-white text-[10px] font-bold ${
+                                (selectedTxnForModal.status === 'Approved' || selectedTxnForModal.status === 'approved' || selectedTxnForModal.status === 'success') ? 'bg-[#28A745]' :
+                                (selectedTxnForModal.status === 'Rejected' || selectedTxnForModal.status === 'rejected') ? 'bg-[#DC3545]' : 'bg-[#FFC107] text-gray-900'
+                              }`}>
+                                {selectedTxnForModal.status}
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-gray-500 font-medium mb-1">Date & Time</label>
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 font-bold text-gray-800">
+                              {selectedTxnForModal.date}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* MODAL FOOTER */}
+                      <div className="flex justify-end px-6 py-3 border-t border-gray-100 bg-gray-50">
+                        <button
+                          onClick={() => setSelectedTxnForModal(null)}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-lg text-xs transition-colors shadow-sm"
+                        >
+                          CLOSE
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
