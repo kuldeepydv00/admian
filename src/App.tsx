@@ -2806,7 +2806,7 @@ export default function App() {
                   <h1 className="text-2xl font-bold text-[#212529]">Withdraw Management</h1>
                 </div>
 
-                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 overflow-x-auto">
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                     <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
                       <tr>
@@ -2814,6 +2814,9 @@ export default function App() {
                         <th className="p-2.5 border-r border-[#DEE2E6]">OrderID</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">User Name</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">User Phone</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Bank Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Account / UPI Details</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">IFSC Code</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Requested Amount</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Requested Status</th>
                         <th className="p-2.5 text-right">Action</th>
@@ -2823,17 +2826,32 @@ export default function App() {
                       {withdrawals.map((w, i) => (
                         <tr key={i} className="hover:bg-[#F4F6F9]">
                           <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-xs">{w.id}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.user}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{w.userId}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px]">{w.id || w._id}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{w.user || w.name || 'User'}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{w.mobile || w.phone || w.userId || 'N/A'}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-semibold text-gray-700">{w.bank_name || w.bankName || 'Bank Transfer'}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">
+                            <div className="font-mono text-xs font-bold text-gray-900">{w.account_number || w.accountNumber || w.upi_id || w.payment_details || 'N/A'}</div>
+                            {w.account_name && <div className="text-[10px] text-gray-500">Name: {w.account_name}</div>}
+                          </td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-xs text-indigo-600 font-bold">{w.ifsc_code || w.ifscCode || 'N/A'}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[#DC3545] font-bold">₹ {w.amount}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{w.status}</span></td>
+                          <td className="p-2.5 border-r border-[#DEE2E6]">
+                            <span className={`px-2 py-0.5 rounded text-white text-[10px] font-bold ${
+                              (w.status === 'Approved' || w.status === 'approved') ? 'bg-[#28A745]' :
+                              (w.status === 'Rejected' || w.status === 'rejected') ? 'bg-[#DC3545]' : 'bg-[#FFC107] text-gray-900'
+                            }`}>
+                              {w.status || 'Pending'}
+                            </span>
+                          </td>
                           <td className="p-2.5 text-right space-x-1">
-                            {w.status === 'Pending' && (
+                            {(w.status === 'Pending' || w.status === 'pending') ? (
                               <>
-                                <button onClick={() => handleApproveWithdrawal(w.id)} className="bg-[#28A745] text-white px-2 py-1 rounded text-[10px] font-bold">Approve</button>
-                                <button onClick={() => handleRejectWithdrawal(w.id)} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Reject</button>
+                                <button onClick={() => handleApproveWithdrawal(w.id || w._id)} className="bg-[#28A745] hover:bg-[#218838] text-white px-2.5 py-1 rounded text-[11px] font-bold shadow-sm">Approve</button>
+                                <button onClick={() => handleRejectWithdrawal(w.id || w._id)} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[11px] font-bold shadow-sm">Reject</button>
                               </>
+                            ) : (
+                              <span className="text-gray-400 text-[10px] italic">Completed</span>
                             )}
                           </td>
                         </tr>
