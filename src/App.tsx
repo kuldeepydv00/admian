@@ -751,6 +751,28 @@ export default function App() {
     setShowAddUserModal(false);
   };
 
+  const [appVersionForm, setAppVersionForm] = useState({
+    latestVersionCode: 2,
+    latestVersionName: 'v1.0.2',
+    apkUrl: 'https://matka-website.vercel.app/app-debug.apk',
+    updateMessage: '🚀 A new performance update is available! Tap Update now to get the latest features & instant wallet sync.',
+    forceUpdate: false
+  });
+
+  const handleSaveAppVersionConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/update-app-version`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appVersionForm)
+      });
+      if (res.ok) {
+        setStatusMessage('🚀 App Auto-Update Configuration Saved & Live for all users!');
+      }
+    } catch (err) {}
+  };
+
   const handleSaveUserEdit = (e: React.FormEvent) => {
     e.preventDefault();
     setUsers(users.map(u => u.id === editUserForm.id ? { ...u, ...editUserForm } : u));
@@ -2990,15 +3012,100 @@ export default function App() {
               </div>
             )}
 
-            {/* 13. APP / PACKAGE MODULE */}
+            {/* 13. APP / PACKAGE MODULE (OPTION B IN-APP AUTO-UPDATER CONTROL) */}
             {activeTab === 'packages' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h1 className="text-2xl font-bold text-[#212529]">App/Package Management</h1>
-                  <button onClick={() => { setEditingPackage(null); setPackageForm({ packageName: '', appName: '', status: 'Active' }); setShowAddPackageModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                  <h1 className="text-2xl font-bold text-[#212529]">App Version & Package Management</h1>
                 </div>
 
+                {/* OPTION B: IN-APP AUTO-UPDATER ENGINE */}
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-6 space-y-4 text-xs">
+                  <div className="border-b pb-3 flex justify-between items-center">
+                    <div>
+                      <h3 className="font-bold text-sm text-[#212529]">📱 Option B: In-App Auto-Update System</h3>
+                      <p className="text-gray-500 text-[11px] mt-0.5">Control the update popup shown to users when they open the Android app on their phones.</p>
+                    </div>
+                    <span className="px-3 py-1 bg-indigo-100 text-indigo-700 font-bold rounded-full text-[10px]">ACTIVE ENGINE</span>
+                  </div>
+
+                  <form onSubmit={handleSaveAppVersionConfig} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-bold text-[#212529] mb-1">Latest Version Code (e.g. 2, 3, 4)</label>
+                        <input
+                          type="number"
+                          value={appVersionForm.latestVersionCode}
+                          onChange={(e) => setAppVersionForm({ ...appVersionForm, latestVersionCode: parseInt(e.target.value) || 1 })}
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs focus:outline-none focus:border-[#007BFF]"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-[#212529] mb-1">Version Display Name (e.g. v1.0.2)</label>
+                        <input
+                          type="text"
+                          value={appVersionForm.latestVersionName}
+                          onChange={(e) => setAppVersionForm({ ...appVersionForm, latestVersionName: e.target.value })}
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs focus:outline-none focus:border-[#007BFF]"
+                          required
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block font-bold text-[#212529] mb-1">Direct APK Download URL</label>
+                        <input
+                          type="url"
+                          value={appVersionForm.apkUrl}
+                          onChange={(e) => setAppVersionForm({ ...appVersionForm, apkUrl: e.target.value })}
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs font-mono focus:outline-none focus:border-[#007BFF]"
+                          required
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block font-bold text-[#212529] mb-1">In-App Update Notice Message</label>
+                        <textarea
+                          rows={2}
+                          value={appVersionForm.updateMessage}
+                          onChange={(e) => setAppVersionForm({ ...appVersionForm, updateMessage: e.target.value })}
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs focus:outline-none focus:border-[#007BFF]"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="checkbox"
+                          id="forceUpdateChk"
+                          checked={appVersionForm.forceUpdate}
+                          onChange={(e) => setAppVersionForm({ ...appVersionForm, forceUpdate: e.target.checked })}
+                          className="w-4 h-4 text-[#007BFF] rounded"
+                        />
+                        <label htmlFor="forceUpdateChk" className="font-bold text-[#212529]">
+                          Force Update (Users MUST update before playing)
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        type="submit"
+                        className="bg-[#28A745] hover:bg-[#218838] text-white px-5 py-2 rounded font-bold shadow-sm text-xs"
+                      >
+                        💾 Save & Trigger Update Notice to Users
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* PACKAGES TABLE */}
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <div className="flex justify-between items-center border-b pb-2">
+                    <h3 className="font-bold text-xs text-gray-700">Registered Packages</h3>
+                    <button onClick={() => { setEditingPackage(null); setPackageForm({ packageName: '', appName: '', status: 'Active' }); setShowAddPackageModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3 py-1 rounded text-xs font-bold shadow-sm">+ Add Package</button>
+                  </div>
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                     <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
                       <tr>
