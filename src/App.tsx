@@ -226,6 +226,8 @@ export default function App() {
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showAddResultModal, setShowAddResultModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showViewBidModal, setShowViewBidModal] = useState(false);
+  const [viewingBid, setViewingBid] = useState<any>(null);
 
   // Edit Item States
   const [editingBanner, setEditingBanner] = useState<any>(null);
@@ -939,7 +941,9 @@ export default function App() {
                           <td className="p-2.5 border-r border-[#DEE2E6]">{b.gameType}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-bold font-mono text-[#DC3545]">{b.number}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {b.amount}</td>
-                          <td className="p-2.5 text-right"><span className="px-2 py-0.5 rounded bg-[#FFC107] text-[#212529] text-[10px] font-bold">{b.status}</span></td>
+                          <td className="p-2.5 text-right space-x-1">
+                            <button onClick={() => { setViewingBid(b); setShowViewBidModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">View</button>
+                          </td>
                         </tr>
                       ))}
                       {bidsList.filter(b => {
@@ -1204,7 +1208,7 @@ export default function App() {
                           <td className="p-2.5 border-r border-[#DEE2E6] font-mono">₹ 0.00</td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#DC3545]">₹ {b.amount}.00</td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {b.status === 'Won' ? b.amount * 9 : 0}.00</td>
-                          <td className="p-2.5 text-right"><button className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px]">View</button></td>
+                          <td className="p-2.5 text-right"><button onClick={() => { setViewingBid(b); setShowViewBidModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3 py-1 rounded text-[10px] font-bold shadow-sm">View</button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -2501,6 +2505,78 @@ export default function App() {
                 <button type="submit" className="flex-1 bg-[#007BFF] text-white py-2 rounded font-bold">Submit</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* 9. VIEW BET BREAKDOWN & MONEY DISTRIBUTION MODAL */}
+      {showViewBidModal && viewingBid && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl space-y-4 border border-[#DEE2E6] shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 className="font-bold text-[#212529] text-base">Bet Breakdown & Money Distribution</h3>
+                <p className="text-xs text-[#007BFF] font-bold mt-0.5">Market: {viewingBid.category} ({viewingBid.gameType || 'Single Jodi'})</p>
+              </div>
+              <button onClick={() => setShowViewBidModal(false)} className="text-gray-500 hover:text-black font-bold text-lg">✕</button>
+            </div>
+
+            {/* PER NUMBER MONEY BREAKDOWN CARDS */}
+            <div className="space-y-2">
+              <h4 className="font-bold text-[#212529] text-xs uppercase tracking-wider">💰 Money Beted Per Number:</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {(() => {
+                  const targetBids = bidsList.filter(b => b.category === viewingBid.category);
+                  const numberTotals: { [num: string]: number } = {};
+                  targetBids.forEach(b => {
+                    numberTotals[b.number] = (numberTotals[b.number] || 0) + b.amount;
+                  });
+                  return Object.entries(numberTotals).map(([num, total], idx) => (
+                    <div key={idx} className="bg-amber-50 border border-amber-300 rounded p-3 text-center shadow-sm">
+                      <p className="text-xs text-gray-600 font-medium">Number:</p>
+                      <p className="text-xl font-bold font-mono text-[#DC3545]">{num}</p>
+                      <p className="text-xs font-bold font-mono text-[#28A745] mt-1">₹ {total}.00 Beted</p>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            {/* DETAILED USER BIDS LIST TABLE */}
+            <div className="space-y-2 pt-2">
+              <h4 className="font-bold text-[#212529] text-xs uppercase tracking-wider">👥 All User Bids on {viewingBid.category}:</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border border-[#DEE2E6]">
+                  <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                    <tr>
+                      <th className="p-2 border-r border-[#DEE2E6]">Sr. No</th>
+                      <th className="p-2 border-r border-[#DEE2E6]">User Name</th>
+                      <th className="p-2 border-r border-[#DEE2E6]">Phone</th>
+                      <th className="p-2 border-r border-[#DEE2E6]">Bid Number</th>
+                      <th className="p-2 border-r border-[#DEE2E6]">Amount</th>
+                      <th className="p-2 border-r border-[#DEE2E6]">Date & Time</th>
+                      <th className="p-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bidsList.filter(b => b.category === viewingBid.category).map((b, i) => (
+                      <tr key={i} className="hover:bg-[#F4F6F9]">
+                        <td className="p-2 border-r border-[#DEE2E6]">{i + 1}</td>
+                        <td className="p-2 border-r border-[#DEE2E6] font-bold">{b.user}</td>
+                        <td className="p-2 border-r border-[#DEE2E6] text-[#007BFF] font-bold">{b.phone}</td>
+                        <td className="p-2 border-r border-[#DEE2E6] font-bold font-mono text-[#DC3545] text-sm">{b.number}</td>
+                        <td className="p-2 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {b.amount}</td>
+                        <td className="p-2 border-r border-[#DEE2E6]">{b.date}</td>
+                        <td className="p-2"><span className="px-2 py-0.5 rounded bg-[#FFC107] text-[#212529] text-[10px] font-bold">{b.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t">
+              <button onClick={() => setShowViewBidModal(false)} className="bg-[#007BFF] text-white px-5 py-2 rounded font-bold">Close Breakdown</button>
+            </div>
           </div>
         </div>
       )}
