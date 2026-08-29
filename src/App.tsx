@@ -726,7 +726,7 @@ export default function App() {
     const merchantVal = paymentForm.merchant_name || 'Matka Official';
     const orderVal = paymentForm.ordering || 1;
     const statusVal = paymentForm.status || 'Active';
-    const targetId = editingPayment ? (editingPayment.id || editingPayment._id) : `pm_${Date.now()}`;
+    const targetId = editingPayment ? (editingPayment.id || editingPayment._id) : undefined;
 
     const newPMObj = {
       _id: targetId,
