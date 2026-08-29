@@ -264,7 +264,7 @@ export default function App() {
   const [bannerForm, setBannerForm] = useState({ name: '', type: 'Image', link: '', image: 'banner1.png', previewUrl: '', status: 'Active' });
   const [packageForm, setPackageForm] = useState({ packageName: '', appName: '', status: 'Active' });
   const [adminForm, setAdminForm] = useState({ name: '', username: '', mobile: '', password: '', role: 'Super Admin', status: 'Active' });
-  const [paymentForm, setPaymentForm] = useState({ name: '', ordering: 1, status: 'Active' });
+  const [paymentForm, setPaymentForm] = useState<any>({ name: 'PhonePe / GPay / Paytm UPI', upi_id: '8930507940@ybl', merchant_name: 'Matka Official', ordering: 1, status: 'Active' });
 
   const [resultForm, setResultForm] = useState({ category: 'Desawar', resultDate: '29-08-2026', resultNumber: '', reResultNumber: '' });
   const [categoryForm, setCategoryForm] = useState({ type: 'Matka', name: '', status: 'Active', seniority: 1, image: '', previewUrl: '', description: '' });
@@ -425,7 +425,7 @@ export default function App() {
   const fetchLiveData = async () => {
     try {
       const [
-        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes
+        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes
       ] = await Promise.all([
         fetch(`${API_BASE}/api/admin/stats`),
         fetch(`${API_BASE}/api/admin/users`),
@@ -433,10 +433,15 @@ export default function App() {
         fetch(`${API_BASE}/api/admin/deposits`),
         fetch(`${API_BASE}/api/admin/withdrawals`),
         fetch(`${API_BASE}/api/admin/bets`),
-        fetch(`${API_BASE}/api/admin/winnings`)
+        fetch(`${API_BASE}/api/admin/winnings`),
+        fetch(`${API_BASE}/api/admin/payment-methods`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
+      if (pmRes.ok) {
+        const pmData = await pmRes.json();
+        if (Array.isArray(pmData) && pmData.length > 0) setPaymentMethodsList(pmData);
+      }
       if (usersRes.ok) {
         const uList = await usersRes.json();
         if (Array.isArray(uList)) {
@@ -714,20 +719,44 @@ export default function App() {
   };
 
   // PAYMENT METHOD ADD / EDIT HANDLERS
-  const handleSavePayment = (e: React.FormEvent) => {
+  const handleSavePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paymentForm.name) return;
-    if (editingPayment) {
-      setPaymentMethodsList(paymentMethodsList.map(pm => pm.id === editingPayment.id ? { ...pm, ...paymentForm } : pm));
-      setStatusMessage(`🎉 Payment Method "${paymentForm.name}" updated!`);
-      setEditingPayment(null);
-    } else {
-      const newPM = { id: `${Date.now()}`, date: new Date().toISOString().split('T')[0], ...paymentForm };
-      setPaymentMethodsList([newPM, ...paymentMethodsList]);
-      setStatusMessage(`🎉 Payment Method "${paymentForm.name}" added!`);
+    if (!paymentForm.name || (!paymentForm.upi_id && !paymentForm.upiId)) return;
+    try {
+      const payload = {
+        id: editingPayment ? (editingPayment.id || editingPayment._id) : undefined,
+        _id: editingPayment ? (editingPayment._id || editingPayment.id) : undefined,
+        name: paymentForm.name,
+        upi_id: paymentForm.upi_id || paymentForm.upiId,
+        merchant_name: paymentForm.merchant_name || 'Matka Official',
+        ordering: paymentForm.ordering || 1,
+        status: paymentForm.status || 'Active'
+      };
+      const res = await fetch(`${API_BASE}/api/admin/payment-methods`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setStatusMessage(`🎉 Payment Method "${paymentForm.name}" saved & synced to MongoDB Atlas!`);
+        setShowAddPaymentModal(false);
+        setEditingPayment(null);
+        setPaymentForm({ name: '', upi_id: '', merchant_name: 'Matka Official', ordering: 1, status: 'Active' });
+        fetchLiveData();
+      }
+    } catch (err) {
+      console.error(err);
     }
-    setShowAddPaymentModal(false);
-    setPaymentForm({ name: '', ordering: 1, status: 'Active' });
+  };
+
+  const handleDeletePayment = async (pmId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/payment-methods/${pmId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setStatusMessage(`🗑️ Payment Method deleted.`);
+        fetchLiveData();
+      }
+    } catch (err) {}
   };
 
   const handleAddUserSubmit = async (e: React.FormEvent) => {
@@ -3875,15 +3904,25 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Payment Method</h1>
-                  <button onClick={() => { setEditingPayment(null); setPaymentForm({ name: '', ordering: 1, status: 'Active' }); setShowAddPaymentModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
+                  <button
+                    onClick={() => {
+                      setEditingPayment(null);
+                      setPaymentForm({ name: 'PhonePe / GPay / Paytm UPI', upi_id: '8930507940@ybl', merchant_name: 'Matka Official', ordering: 1, status: 'Active' });
+                      setShowAddPaymentModal(true);
+                    }}
+                    className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm"
+                  >
+                    + Add
+                  </button>
                 </div>
 
-                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4 overflow-x-auto">
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                     <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
                       <tr>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Name</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">UPI ID (VPA)</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">PayIn Ordering</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Update Date</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
@@ -3891,19 +3930,52 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paymentMethodsList.map((pm, i) => (
-                        <tr key={i} className="hover:bg-[#F4F6F9]">
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{pm.name}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{pm.ordering}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]">{pm.date}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{pm.status}</span></td>
-                          <td className="p-2.5 text-right space-x-1">
-                            <button onClick={() => { setEditingPayment(pm); setPaymentForm(pm); setShowAddPaymentModal(true); }} className="bg-[#007BFF] text-white px-2 py-1 rounded text-[10px] font-bold">Edit</button>
-                            <button onClick={() => setPaymentMethodsList(paymentMethodsList.filter(x => x.id !== pm.id))} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Delete</button>
-                          </td>
-                        </tr>
-                      ))}
+                      {paymentMethodsList.map((pm, i) => {
+                        const upiVal = pm.upi_id || pm.upiId || '8930507940@ybl';
+                        const pmId = pm._id || pm.id;
+                        return (
+                          <tr key={i} className="hover:bg-[#F4F6F9]">
+                            <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{pm.name}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-indigo-600">{upiVal}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{pm.ordering || 1}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] text-gray-600">{pm.updateDate || pm.date || 'Today'}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6]">
+                              <span className={`px-2 py-0.5 rounded text-white text-[10px] font-bold ${
+                                (pm.status === 'Active' || pm.status === 'active') ? 'bg-[#28A745]' : 'bg-gray-500'
+                              }`}>
+                                {pm.status || 'Active'}
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-right space-x-1.5 whitespace-nowrap">
+                              <button
+                                onClick={() => {
+                                  setEditingPayment(pm);
+                                  setPaymentForm({
+                                    id: pmId,
+                                    _id: pmId,
+                                    name: pm.name,
+                                    upi_id: upiVal,
+                                    merchant_name: pm.merchant_name || 'Matka Official',
+                                    ordering: pm.ordering || 1,
+                                    status: pm.status || 'Active'
+                                  });
+                                  setShowAddPaymentModal(true);
+                                }}
+                                className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeletePayment(pmId)}
+                                className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -4166,28 +4238,71 @@ export default function App() {
 
       {/* 6. PAYMENT METHOD ADD/EDIT MODAL */}
       {showAddPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
-          <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
-            <h3 className="font-bold text-[#212529] text-base border-b pb-2">{editingPayment ? 'Edit Payment Method' : 'Add Payment Method'}</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-[#212529] text-base">
+                {editingPayment ? '✏️ Edit Payment Method' : '➕ Add Payment Method'}
+              </h3>
+              <button onClick={() => setShowAddPaymentModal(false)} className="text-gray-400 hover:text-gray-600 font-bold text-base">✕</button>
+            </div>
             <form onSubmit={handleSavePayment} className="space-y-3">
               <div>
                 <label className="block text-[#495057] font-bold mb-1">Method Name *</label>
-                <input type="text" value={paymentForm.name} onChange={(e)=>setPaymentForm({...paymentForm, name: e.target.value})} required placeholder="UPI / PhonePe" className="w-full border border-[#CED4DA] p-2 rounded" />
+                <input
+                  type="text"
+                  value={paymentForm.name || ''}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, name: e.target.value })}
+                  required
+                  placeholder="PhonePe / GPay / Paytm UPI"
+                  className="w-full border border-[#CED4DA] p-2 rounded focus:outline-none focus:border-indigo-500 font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">UPI ID / VPA Address *</label>
+                <input
+                  type="text"
+                  value={paymentForm.upi_id || paymentForm.upiId || ''}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, upi_id: e.target.value, upiId: e.target.value })}
+                  required
+                  placeholder="8930507940@ybl or 7027709695@paytm"
+                  className="w-full border border-[#CED4DA] p-2 rounded font-mono font-bold text-indigo-600 focus:outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] text-gray-500 mt-0.5">This UPI ID is used to generate the dynamic Deposit QR code for users.</p>
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Merchant / Account Name</label>
+                <input
+                  type="text"
+                  value={paymentForm.merchant_name || 'Matka Official'}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, merchant_name: e.target.value })}
+                  placeholder="Matka Official"
+                  className="w-full border border-[#CED4DA] p-2 rounded focus:outline-none focus:border-indigo-500"
+                />
               </div>
               <div>
                 <label className="block text-[#495057] font-bold mb-1">PayIn Ordering</label>
-                <input type="number" value={paymentForm.ordering} onChange={(e)=>setPaymentForm({...paymentForm, ordering: parseInt(e.target.value)||1})} className="w-full border border-[#CED4DA] p-2 rounded" />
+                <input
+                  type="number"
+                  value={paymentForm.ordering || 1}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, ordering: parseInt(e.target.value) || 1 })}
+                  className="w-full border border-[#CED4DA] p-2 rounded font-mono"
+                />
               </div>
               <div>
                 <label className="block text-[#495057] font-bold mb-1">Status</label>
-                <select value={paymentForm.status} onChange={(e)=>setPaymentForm({...paymentForm, status: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded">
+                <select
+                  value={paymentForm.status || 'Active'}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, status: e.target.value })}
+                  className="w-full border border-[#CED4DA] p-2 rounded font-bold"
+                >
                   <option value="Active">Active</option>
-                  <option value="Deactive">Deactive</option>
+                  <option value="Inactive">Inactive</option>
                 </select>
               </div>
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={()=>setShowAddPaymentModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
-                <button type="submit" className="flex-1 bg-[#007BFF] text-white p-2 rounded font-bold">Save Method</button>
+              <div className="flex gap-2 pt-3 border-t">
+                <button type="button" onClick={() => setShowAddPaymentModal(false)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 p-2.5 rounded-lg font-bold transition-colors">Cancel</button>
+                <button type="submit" className="flex-1 bg-[#007BFF] hover:bg-[#0069D9] text-white p-2.5 rounded-lg font-bold transition-colors shadow-sm">Save UPI Method</button>
               </div>
             </form>
           </div>
