@@ -364,12 +364,29 @@ export default function App() {
   };
 
   // RESULT DECLARATION & WINNER CREDIT HANDLER
-  const handleDeclareResultSubmit = (e: React.FormEvent) => {
+  const handleDeclareResultSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resultForm.resultNumber || resultForm.resultNumber !== resultForm.reResultNumber) {
       alert("Result numbers do not match! Please re-enter.");
       return;
     }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/declare-result`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          game_name: resultForm.category,
+          number: resultForm.resultNumber
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok && data.isWindowOpen) {
+        alert(data.message || `⚠️ Betting window is currently OPEN for ${resultForm.category}! Result can only be declared after window closes.`);
+        return;
+      }
+    } catch (err) {}
 
     const newRes = {
       id: `res_${Date.now()}`,
@@ -390,7 +407,7 @@ export default function App() {
     setBidsList(prev => prev.map(b => (b.category === resultForm.category && b.number === resultForm.resultNumber) ? { ...b, status: 'Won' } : b));
 
     matchingBids.forEach(b => {
-      const winAmt = b.amount * 9;
+      const winAmt = b.amount * 9.5;
       winningSum += winAmt;
       
       // Add record to Wallet Winnings
@@ -411,12 +428,26 @@ export default function App() {
       setWinningsList(prev => [newWin, ...prev]);
 
       // Credit winning amount to user wallet
-      setUsers(prev => prev.map(u => u.name === b.user ? { ...u, balance: u.balance + winAmt, totalWinning: (u.totalWinning || 0) + winAmt } : u));
+      setUsers(prev => prev.map(u => (u.name === b.user || u.mobile === b.phone) ? { ...u, balance: u.balance + winAmt, totalWinning: (u.totalWinning || 0) + winAmt } : u));
     });
 
-    setStatusMessage(`🎉 Result "${resultForm.resultNumber}" declared for ${resultForm.category}! ${matchingBids.length} winners credited total ₹${winningSum}.`);
+    setStatusMessage(`🎉 Result "${resultForm.resultNumber}" declared for ${resultForm.category}! Winners credited automatically.`);
     setShowAddResultModal(false);
     setResultForm({ category: 'Desawar', resultDate: '29-08-2026', resultNumber: '', reResultNumber: '' });
+  };
+
+  // CLEAR / RESET RESULT HANDLER
+  const handleClearResult = async (r: any) => {
+    if (!confirm(`Are you sure you want to reset/clear result for ${r.category}?`)) return;
+    try {
+      await fetch(`${API_BASE}/api/admin/clear-result`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game_name: r.category })
+      });
+    } catch (err) {}
+    setResultsList(prev => prev.filter(x => x.id !== r.id));
+    setStatusMessage(`🗑️ Result for ${r.category} reset/cleared successfully.`);
   };
 
   // CATEGORY HANDLERS
@@ -1037,7 +1068,7 @@ export default function App() {
                           <td className="p-2.5 border-r border-[#DEE2E6]">{r.createdAt}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{r.resultBy}</td>
                           <td className="p-2.5 text-right">
-                            <button onClick={()=>setResultsList(resultsList.filter(x=>x.id!==r.id))} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">Delete</button>
+                            <button onClick={() => handleClearResult(r)} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Clear / Reset Result">🔄</button>
                           </td>
                         </tr>
                       ))}
