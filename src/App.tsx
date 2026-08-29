@@ -648,7 +648,7 @@ export default function App() {
     }
   };
 
-  const handleSaveBanner = (e: React.FormEvent) => {
+  const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bannerForm.name) return;
     if (editingBanner) {
@@ -660,6 +660,21 @@ export default function App() {
       setBannersList([newB, ...bannersList]);
       setStatusMessage(`🎉 Banner "${bannerForm.name}" added successfully!`);
     }
+
+    // Sync banner update to backend server & MongoDB Atlas Cloud
+    try {
+      await fetch(`${API_BASE}/api/admin/update-banner`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enabled: bannerForm.status === 'Active',
+          title: bannerForm.name,
+          subtitle: '95X MATKA SATTA',
+          imageUrl: bannerForm.previewUrl || bannerForm.link || ''
+        })
+      });
+    } catch (err) {}
+
     setShowAddBannerModal(false);
     setBannerForm({ name: '', type: 'Image', link: '', image: 'banner1.png', previewUrl: '', status: 'Active' });
   };
@@ -769,6 +784,31 @@ export default function App() {
       });
       if (res.ok) {
         setStatusMessage('🚀 App Auto-Update Configuration Saved & Live for all users!');
+      }
+    } catch (err) {}
+  };
+
+  const [bannerGlobalForm, setBannerGlobalForm] = useState({
+    enabled: true,
+    title: '95X MATKA SATTA',
+    subtitle: 'आपका भरोसा, हमारी पहचान',
+    referralText: 'केवल 5 प्लेइंग यूजर को रिफर करें और पाएं ₹500 बोनस',
+    commissionText: '4% लाइफटाइम कमिशन आपकी टीम के हर दांव पर',
+    minDeposit: '100',
+    minWithdrawal: '300',
+    imageUrl: ''
+  });
+
+  const handleSaveGlobalBannerConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/update-banner`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bannerGlobalForm)
+      });
+      if (res.ok) {
+        setStatusMessage('🖼️ Banner Configuration Saved & Synced to App & Website!');
       }
     } catch (err) {}
   };
@@ -2882,15 +2922,106 @@ export default function App() {
               </div>
             )}
 
-            {/* 12. BANNER MODULE (Matching media_1787949265283.png 100% WORKING!) */}
+            {/* 12. BANNER MODULE (100% LIVE SYNCED TO APP & WEBSITE!) */}
             {activeTab === 'banners' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h1 className="text-2xl font-bold text-[#212529]">Banner Management</h1>
-                  <button onClick={() => { setEditingBanner(null); setBannerForm({ name: '', type: 'Image', link: '', image: 'banner1.png', previewUrl: '', status: 'Active' }); setShowAddBannerModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3.5 py-1.5 rounded text-xs font-bold shadow-sm">+ Add</button>
                 </div>
 
+                {/* GLOBAL BANNER CONFIGURATION CARD */}
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-6 space-y-4 text-xs">
+                  <div className="border-b pb-3">
+                    <h3 className="font-bold text-sm text-[#212529]">🖼️ Live Promotional Banner Config</h3>
+                    <p className="text-gray-500 text-[11px] mt-0.5">Changes saved here are instantly displayed on both the Android App & Website in real-time.</p>
+                  </div>
+
+                  <form onSubmit={handleSaveGlobalBannerConfig} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-bold text-[#212529] mb-1">Banner Main Title / Header *</label>
+                        <input
+                          type="text"
+                          value={bannerGlobalForm.title}
+                          onChange={(e) => setBannerGlobalForm({ ...bannerGlobalForm, title: e.target.value })}
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs focus:outline-none focus:border-[#007BFF]"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-[#212529] mb-1">Banner Subtitle / Tagline *</label>
+                        <input
+                          type="text"
+                          value={bannerGlobalForm.subtitle}
+                          onChange={(e) => setBannerGlobalForm({ ...bannerGlobalForm, subtitle: e.target.value })}
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs focus:outline-none focus:border-[#007BFF]"
+                          required
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block font-bold text-[#212529] mb-1">Banner Image URL / Direct Link</label>
+                        <input
+                          type="text"
+                          value={bannerGlobalForm.imageUrl}
+                          onChange={(e) => setBannerGlobalForm({ ...bannerGlobalForm, imageUrl: e.target.value })}
+                          placeholder="https://example.com/banner.png or data:image/png;base64,..."
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs font-mono focus:outline-none focus:border-[#007BFF]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-[#212529] mb-1">Referral Promo Text</label>
+                        <input
+                          type="text"
+                          value={bannerGlobalForm.referralText}
+                          onChange={(e) => setBannerGlobalForm({ ...bannerGlobalForm, referralText: e.target.value })}
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs focus:outline-none focus:border-[#007BFF]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-[#212529] mb-1">Commission Info Text</label>
+                        <input
+                          type="text"
+                          value={bannerGlobalForm.commissionText}
+                          onChange={(e) => setBannerGlobalForm({ ...bannerGlobalForm, commissionText: e.target.value })}
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs focus:outline-none focus:border-[#007BFF]"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="checkbox"
+                          id="bannerEnabledChk"
+                          checked={bannerGlobalForm.enabled}
+                          onChange={(e) => setBannerGlobalForm({ ...bannerGlobalForm, enabled: e.target.checked })}
+                          className="w-4 h-4 text-[#007BFF] rounded"
+                        />
+                        <label htmlFor="bannerEnabledChk" className="font-bold text-[#212529]">
+                          Enable Banner on App & Website
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        type="submit"
+                        className="bg-[#28A745] hover:bg-[#218838] text-white px-5 py-2 rounded font-bold shadow-sm text-xs"
+                      >
+                        💾 Save Banner & Sync Live to App & Website
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* BANNERS LIST TABLE */}
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <div className="flex justify-between items-center border-b pb-2">
+                    <h3 className="font-bold text-xs text-gray-700">All Saved Banners</h3>
+                    <button onClick={() => { setEditingBanner(null); setBannerForm({ name: '', type: 'Image', link: '', image: 'banner1.png', previewUrl: '', status: 'Active' }); setShowAddBannerModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-3 py-1 rounded text-xs font-bold shadow-sm">+ Add Banner</button>
+                  </div>
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
                     <thead className="bg-[#F8F9FA] text-[#495057] uppercase text-[11px] font-bold border-b border-[#DEE2E6]">
                       <tr>
