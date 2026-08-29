@@ -740,26 +740,7 @@ export default function App() {
       updateDate: new Date().toLocaleDateString()
     };
 
-    // 1. Instantly update UI state & close modal!
-    setPaymentMethodsList(prev => {
-      let updatedList = [...prev];
-      if (statusVal === 'Active') {
-        updatedList = updatedList.map(p => ({ ...p, status: 'Inactive' }));
-      }
-      const existingIdx = updatedList.findIndex(p => String(p.id || p._id) === String(targetId));
-      if (existingIdx >= 0) {
-        updatedList[existingIdx] = newPMObj;
-      } else {
-        updatedList.unshift(newPMObj);
-      }
-      return updatedList;
-    });
-
-    setShowAddPaymentModal(false);
-    setEditingPayment(null);
-    setStatusMessage(`🎉 Payment Method "${nameVal}" (${upiVal}) saved successfully!`);
-
-    // 2. Persist to Backend API & MongoDB Atlas
+    // 1. Send POST request to backend API & MongoDB Atlas
     try {
       const res = await fetch(`${API_BASE}/api/admin/payment-methods`, {
         method: 'POST',
@@ -770,12 +751,20 @@ export default function App() {
         const data = await res.json();
         if (data.paymentMethods && Array.isArray(data.paymentMethods)) {
           setPaymentMethodsList(data.paymentMethods);
+        } else {
+          setPaymentMethodsList([newPMObj]);
         }
+      } else {
+        setPaymentMethodsList([newPMObj]);
       }
-      fetchLiveData();
     } catch (err) {
       console.error('[Save Payment Error]', err);
+      setPaymentMethodsList([newPMObj]);
     }
+
+    setShowAddPaymentModal(false);
+    setEditingPayment(null);
+    setStatusMessage(`🎉 Payment Method "${nameVal}" (${upiVal}) saved successfully!`);
   };
 
   const handleDeletePayment = async (pmId: string) => {
