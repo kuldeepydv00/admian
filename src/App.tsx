@@ -745,7 +745,7 @@ export default function App() {
       lastLoginOtp: '2026-08-29 01:20:00',
       apiCall: 'laravelNEW'
     };
-    setUsers(prev => [newUserObj, ...prev]);
+    setUsers(prev => [...prev, newUserObj]);
     setStatusMessage(`🎉 User ${newUserForm.name} created!`);
     setShowAddUserModal(false);
   };
