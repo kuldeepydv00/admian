@@ -759,6 +759,16 @@ export default function App() {
     } catch (err) {}
   };
 
+  const handleToggleActivePayment = async (pmId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/payment-methods/${pmId}/toggle`, { method: 'POST' });
+      if (res.ok) {
+        setStatusMessage(`⚡ Active UPI ID switched! Only this UPI ID is now ON for QR deposits.`);
+        fetchLiveData();
+      }
+    } catch (err) {}
+  };
+
   const handleAddUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserForm.name || !newUserForm.phone) return;
@@ -3941,11 +3951,26 @@ export default function App() {
                             <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{pm.ordering || 1}</td>
                             <td className="p-2.5 border-r border-[#DEE2E6] text-gray-600">{pm.updateDate || pm.date || 'Today'}</td>
                             <td className="p-2.5 border-r border-[#DEE2E6]">
-                              <span className={`px-2 py-0.5 rounded text-white text-[10px] font-bold ${
-                                (pm.status === 'Active' || pm.status === 'active') ? 'bg-[#28A745]' : 'bg-gray-500'
-                              }`}>
-                                {pm.status || 'Active'}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleToggleActivePayment(pmId)}
+                                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
+                                    (pm.status === 'Active' || pm.status === 'active') ? 'bg-[#28A745]' : 'bg-gray-300'
+                                  }`}
+                                  title="Click to toggle single active UPI for QR deposits"
+                                >
+                                  <span
+                                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                                      (pm.status === 'Active' || pm.status === 'active') ? 'translate-x-4.5' : 'translate-x-1'
+                                    }`}
+                                  />
+                                </button>
+                                <span className={`text-[11px] font-bold ${
+                                  (pm.status === 'Active' || pm.status === 'active') ? 'text-[#28A745]' : 'text-gray-400'
+                                }`}>
+                                  {(pm.status === 'Active' || pm.status === 'active') ? 'ACTIVE (QR ON)' : 'INACTIVE'}
+                                </span>
+                              </div>
                             </td>
                             <td className="p-2.5 text-right space-x-1.5 whitespace-nowrap">
                               <button
