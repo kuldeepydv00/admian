@@ -1864,11 +1864,27 @@ export default function App() {
                         <h2 className="text-xl font-bold text-[#212529]">{selectedUser.name}</h2>
                         <span className="px-2.5 py-0.5 bg-[#007BFF] text-white rounded text-[11px] font-bold">Active</span>
 
-                        <div className="text-center space-y-1.5 pt-4 text-base text-[#212529]">
-                          <p className="font-semibold">Total Deposit: <strong className="font-bold">{selectedUser.totalDeposit || 200}</strong></p>
-                          <p className="font-semibold">Total Winning: <strong className="font-bold">{selectedUser.totalWinning || 3168}</strong></p>
-                          <p className="font-semibold">Total Withdrawl: <strong className="font-bold">{selectedUser.totalWithdrawal || 0}</strong></p>
-                        </div>
+                        {(() => {
+                          const realDep = deposits
+                            .filter(d => (d.userId === selectedUser.id || d.user === selectedUser.name || (d.mobile && d.mobile.includes(selectedUser.mobile))) && d.status === 'Approved')
+                            .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0) || (selectedUser.deposit_balance !== undefined ? selectedUser.deposit_balance : 0);
+
+                          const realWin = (winningsList || [])
+                            .filter(w => w.user === selectedUser.name || w.phone === selectedUser.mobile)
+                            .reduce((sum, w) => sum + (parseFloat(w.win_amount || w.amount) || 0), 0) || (selectedUser.winning_balance !== undefined ? selectedUser.winning_balance : 0);
+
+                          const realWd = withdrawals
+                            .filter(w => (w.userId === selectedUser.id || w.user === selectedUser.name) && w.status === 'Approved')
+                            .reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+
+                          return (
+                            <div className="text-center space-y-1.5 pt-4 text-base text-[#212529]">
+                              <p className="font-semibold">Total Deposit: <strong className="font-bold">{realDep}</strong></p>
+                              <p className="font-semibold">Total Winning: <strong className="font-bold">{realWin}</strong></p>
+                              <p className="font-semibold">Total Withdrawl: <strong className="font-bold">{realWd}</strong></p>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       <div className="space-y-4 text-base text-[#212529]">
