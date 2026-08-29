@@ -105,7 +105,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'admins' | 'users' | 'gameLedger' | 'wallets' |
     'walletTransactions' | 'deposits' | 'withdraws' | 'commission' |
-    'leaderboard' | 'payouts' | 'banners' | 'packages' | 'paymentMethods' | 'settings' |
+    'leaderboard' | 'payouts' | 'banners' | 'referral' | 'packages' | 'paymentMethods' | 'settings' |
     'userDetails' | 'userEdit' | 'bids' | 'results' | 'winnings' | 'gameHistory' | 'categories'
   >('dashboard');
 
@@ -994,6 +994,8 @@ export default function App() {
               { id: 'dashboard', label: 'Dashboard', icon: '⏱️' },
               { id: 'admins', label: 'Admins', icon: '🛡️' },
               { id: 'users', label: 'Users', icon: '👥' },
+              { id: 'banners', label: 'Banner', icon: '🖼️' },
+              { id: 'referral', label: 'Refer & Earn', icon: '🎁' },
               { id: 'gameLedger', label: 'Game Ledger', icon: '📘' },
               { id: 'wallets', label: 'Wallet', icon: '👛' },
               { id: 'walletTransactions', label: 'Wallet Transactions', icon: '🧾' },
@@ -1002,7 +1004,6 @@ export default function App() {
               { id: 'commission', label: 'Commission Dashboard', icon: '🎁' },
               { id: 'leaderboard', label: 'Leader Board', icon: '🥇' },
               { id: 'payouts', label: 'Payout', icon: '💰' },
-              { id: 'banners', label: 'Banner', icon: '🖼️' },
               { id: 'packages', label: 'App/Package', icon: '📄' },
               { id: 'paymentMethods', label: 'Payment Methods', icon: '💳' },
               { id: 'settings', label: 'Settings', icon: '⚙️' }
@@ -2397,6 +2398,75 @@ export default function App() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {/* REFER & EARN MODULE */}
+            {activeTab === 'referral' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-[#212529]">Refer & Earn Management</h1>
+                </div>
+
+                <div className="bg-white p-5 rounded border border-[#DEE2E6] shadow-sm space-y-4 text-xs">
+                  <h3 className="font-bold text-[#212529] text-base border-b pb-2">Referral System Configuration</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block font-bold text-[#495057] mb-1">Signup Bonus (₹)</label>
+                      <input type="number" defaultValue={50} className="w-full border border-[#CED4DA] p-2 rounded font-bold font-mono text-[#28A745]" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-[#495057] mb-1">Lifetime Commission (%)</label>
+                      <input type="number" defaultValue={4} className="w-full border border-[#CED4DA] p-2 rounded font-bold font-mono text-[#007BFF]" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-[#495057] mb-1">Referral Status</label>
+                      <select className="w-full border border-[#CED4DA] p-2 rounded font-bold">
+                        <option value="Active">Active</option>
+                        <option value="Deactive">Deactive</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#495057] mb-1">Referral Promo Text</label>
+                    <input type="text" defaultValue="केवल 5 प्लेइंग यूजर को रिफर करें और पाएं ₹500 बोनस" className="w-full border border-[#CED4DA] p-2 rounded font-bold" />
+                  </div>
+                  <button onClick={() => setStatusMessage('Referral settings updated successfully!')} className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-2 rounded font-bold shadow-sm">Save Referral Settings</button>
+                </div>
+
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
+                  <h3 className="font-bold text-[#212529] text-sm">User Referral Statistics</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6] whitespace-nowrap">
+                      <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+                        <tr>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">User Name</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Mobile</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Referral Code</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Total Referrals</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Referred By</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Bonus Balance</th>
+                          <th className="p-2.5 border-r border-[#DEE2E6]">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((u, i) => (
+                          <tr key={i} className="hover:bg-[#F4F6F9]">
+                            <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{u.name || 'User'}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] text-[#007BFF] font-bold font-mono">{u.mobile}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-slate-700">{u.referral_code || `REF${u.mobile}`}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] text-center font-bold font-mono">{u.referrals || 0}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{u.referred_by || u.referBy || '-'}</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {u.bonus_balance !== undefined ? u.bonus_balance : 200}.00</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">Active</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
