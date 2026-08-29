@@ -1612,32 +1612,40 @@ export default function App() {
 
                   {(() => {
                     const now = new Date();
-                    const todayDateStr = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
-                    const todayISOStr = now.toISOString().split('T')[0];
+                    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-                    const isToday = (dateStr?: string) => {
-                      if (!dateStr) return false;
-                      return dateStr.includes(todayDateStr) || dateStr.includes(todayISOStr);
+                    const isToday = (dateVal?: any) => {
+                      if (!dateVal) return false;
+                      try {
+                        const d = new Date(dateVal);
+                        if (!isNaN(d.getTime())) return d >= startOfToday && d <= endOfToday;
+                        const str = String(dateVal);
+                        const todayDateStr = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+                        const todayISOStr = now.toISOString().split('T')[0];
+                        return str.includes(todayDateStr) || str.includes(todayISOStr);
+                      } catch (e) {
+                        return false;
+                      }
                     };
 
-                    const totalUsersVal = users.length || stats.users || 12;
-                    let todayNewUsersVal = users.filter(u => isToday(u.createdAt)).length;
-                    if (todayNewUsersVal === 0 && totalUsersVal > 0) todayNewUsersVal = stats.dailyNewUsers || 1;
+                    const totalUsersVal = stats.users !== undefined ? stats.users : users.length;
+                    const todayNewUsersVal = stats.dailyNewUsers !== undefined ? stats.dailyNewUsers : users.filter(u => isToday(u.createdAt || u.created_at)).length;
 
-                    const totalDepVal = deposits.reduce((s, d) => s + (parseFloat(d.amount) || 0), 0) || stats.totalDeposite || 200;
-                    const todayDepVal = deposits.filter(d => isToday(d.date || d.created_at)).reduce((s, d) => s + (parseFloat(d.amount) || 0), 0) || stats.todayDeposite || 0;
+                    const totalDepVal = stats.totalDeposite !== undefined ? stats.totalDeposite : deposits.reduce((s, d) => s + (parseFloat(d.amount) || 0), 0);
+                    const todayDepVal = stats.todayDeposite !== undefined ? stats.todayDeposite : deposits.filter(d => isToday(d.date || d.created_at)).reduce((s, d) => s + (parseFloat(d.amount) || 0), 0);
 
-                    const totalWinVal = winningsList.reduce((s, w) => s + (parseFloat(w.amount) || 0), 0) || stats.totalWinnings || 3168;
-                    const todayWinVal = winningsList.filter(w => isToday(w.dateOfWinning || w.date)).reduce((s, w) => s + (parseFloat(w.amount) || 0), 0) || stats.todayWinnings || 0;
+                    const totalWinVal = stats.totalWinnings !== undefined ? stats.totalWinnings : winningsList.reduce((s, w) => s + (parseFloat(w.amount) || 0), 0);
+                    const todayWinVal = stats.todayWinnings !== undefined ? stats.todayWinnings : winningsList.filter(w => isToday(w.dateOfWinning || w.date)).reduce((s, w) => s + (parseFloat(w.amount) || 0), 0);
 
-                    const totalBetVal = bidsList.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0) || stats.totalBetting || 3570;
-                    const todayBetVal = bidsList.filter(b => isToday(b.date)).reduce((s, b) => s + (parseFloat(b.amount) || 0), 0) || stats.todayBetting || 0;
+                    const totalBetVal = stats.totalBetting !== undefined ? stats.totalBetting : bidsList.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
+                    const todayBetVal = stats.todayBetting !== undefined ? stats.todayBetting : bidsList.filter(b => isToday(b.date)).reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
 
-                    const totalBalVal = users.reduce((s, u) => s + (parseFloat(u.balance) || 0), 0) || stats.totalBalanceWallet || 132;
-                    const totalDepBalVal = users.reduce((s, u) => s + (parseFloat(u.deposit_balance) || 0), 0) || stats.totalDepositWallet || 0;
-                    const totalWinBalVal = users.reduce((s, u) => s + (parseFloat(u.winning_balance) || 0), 0) || stats.totalWinningWallet || 132;
-                    const totalCommVal = (totalBetVal * 0.04) || stats.totalCommissionWallet || 0;
-                    const totalBonusVal = users.reduce((s, u) => s + (parseFloat(u.bonus_balance !== undefined ? u.bonus_balance : 200) || 0), 0) || stats.totalBonusWallet || 2000;
+                    const totalBalVal = stats.totalBalanceWallet !== undefined ? stats.totalBalanceWallet : users.reduce((s, u) => s + (parseFloat(u.balance) || 0), 0);
+                    const totalDepBalVal = stats.totalDepositWallet !== undefined ? stats.totalDepositWallet : users.reduce((s, u) => s + (parseFloat(u.deposit_balance) || 0), 0);
+                    const totalWinBalVal = stats.totalWinningWallet !== undefined ? stats.totalWinningWallet : users.reduce((s, u) => s + (parseFloat(u.winning_balance) || 0), 0);
+                    const totalCommVal = stats.totalCommissionWallet !== undefined ? stats.totalCommissionWallet : (totalBetVal * 0.04);
+                    const totalBonusVal = stats.totalBonusWallet !== undefined ? stats.totalBonusWallet : users.reduce((s, u) => s + (parseFloat(u.bonus_balance !== undefined ? u.bonus_balance : 200) || 0), 0);
 
                     const dashboardCards = [
                       { title: 'Total Users', value: totalUsersVal, bg: 'bg-[#17A2B8]', icon: '👥' },
