@@ -116,9 +116,8 @@ export default function App() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userDetailsTab, setUserDetailsTab] = useState<'profile' | 'bankDetails' | 'walletTransaction' | 'gameHistory' | 'referHistory' | 'gameLedger'>('profile');
 
-  // Sidebar Open State
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
+  const setStatusMessage = (_msg: string) => {};
 
   // Table Page Entries Limit
   const [entriesPerPage, setEntriesPerPage] = useState('10');
@@ -1027,12 +1026,6 @@ export default function App() {
 
         {/* WORKSPACE CONTENT AREA */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          {statusMessage && (
-            <div className="bg-[#28A745] text-white px-4 py-2 flex justify-between items-center text-xs font-bold shadow-sm">
-              <span>{statusMessage}</span>
-              <button onClick={() => setStatusMessage('')} className="text-white font-bold">✕</button>
-            </div>
-          )}
 
           <main className="p-6 space-y-6">
 
