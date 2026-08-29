@@ -137,38 +137,9 @@ export default function App() {
   const [filterEndDate, setFilterEndDate] = useState('29-08-2026');
   const [searchNumberInput, setSearchNumberInput] = useState('');
 
-  // Data Lists State
+  // Data Lists State (Populated dynamically from live backend API)
   const [stats, setStats] = useState<any>({});
-  const [users, setUsers] = useState<any[]>([
-    {
-      id: '8113',
-      name: 'Udgam',
-      email: 'abc@pk.com',
-      mobile: '1212121212',
-      createdAt: '2024-07-25 17:36:48',
-      referrals: 0,
-      referBy: '',
-      deactiveReason: '',
-      status: 'Active',
-      source: 'Play Store',
-      balance: 132,
-      totalDeposit: 200,
-      totalWinning: 3168,
-      totalWithdrawal: 0,
-      referralCode: '66a24031439e4',
-      gender: 'Male',
-      dob: '1998-05-15',
-      address: 'Mumbai, India',
-      bankName: 'sate bank',
-      accountNumber: '0000000000',
-      branchName: 'Main Branch',
-      ifscCode: '000000000',
-      upi: 'udgam@upi',
-      multipleWithdraw: 'No',
-      lastLoginOtp: '2025-05-20 19:20:04',
-      apiCall: 'laravelNEW'
-    }
-  ]);
+  const [users, setUsers] = useState<any[]>([]);
 
   const [categoriesList, setCategoriesList] = useState<any[]>([
     { id: '1', name: 'Desawar', seniority: 1, image: '', status: 'Active' },
@@ -180,50 +151,15 @@ export default function App() {
     { id: '7', name: 'Dubai market', seniority: 3, image: '', status: 'Active' }
   ]);
 
-  const [bidsList, setBidsList] = useState<any[]>([
-    { id: 'bid_201', date: '2026-08-29 09:51:51', user: 'VikasBhardwaj', phone: '6230888020', category: 'Delhi Bazar', gameType: 'jodi', number: '21', amount: 10, status: 'Pending' },
-    { id: 'bid_202', date: '2026-08-29 09:51:51', user: 'VikasBhardwaj', phone: '6230888020', category: 'Delhi Bazar', gameType: 'jodi', number: '12', amount: 10, status: 'Pending' },
-    { id: 'bid_203', date: '2026-08-29 09:47:48', user: 'VikasBhardwaj', phone: '6230888020', category: 'Delhi Bazar', gameType: 'jodi', number: '10', amount: 10, status: 'Pending' },
-    { id: 'bid_204', date: '2026-08-29 09:47:48', user: 'VikasBhardwaj', phone: '6230888020', category: 'Delhi Bazar', gameType: 'jodi', number: '01', amount: 10, status: 'Pending' },
-    { id: 'bid_205', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '97', amount: 5, status: 'Pending' },
-    { id: 'bid_206', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '79', amount: 5, status: 'Pending' },
-    { id: 'bid_207', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '27', amount: 5, status: 'Pending' },
-    { id: 'bid_208', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '72', amount: 5, status: 'Pending' },
-    { id: 'bid_209', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '57', amount: 5, status: 'Pending' },
-    { id: 'bid_210', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '75', amount: 5, status: 'Pending' }
-  ]);
-
-  const [resultsList, setResultsList] = useState<any[]>([
-    { id: 'res_1', date: '28-08-2026', category: 'Desawar', resultNumber: '45', createdAt: '2026-08-28 05:00 PM', resultBy: 'Johnsnow' }
-  ]);
-
-  const [winningsList, setWinningsList] = useState<any[]>([
-    { id: 'win_101', category: 'Desawar', user: 'Udgam', email: 'abc@pk.com', mobile: '1212121212', userId: '8113', amount: 450, txnId: 'TXN_WIN_99', txnType: 'WINNING', status: 'Credited', dateOfWinning: '28-08-2026', dateOfTxn: '28-08-2026 05:01 PM' }
-  ]);
-
-  const [adminsList, setAdminsList] = useState<any[]>([
-    { id: '1', name: 'John Snow Admin', username: 'Johnsnow', mobile: '9876543210', role: 'Super Admin', status: 'Active' }
-  ]);
-
-  const [bannersList, setBannersList] = useState<any[]>([
-    { id: '1', image: 'banner1.png', name: 'Main Promo Banner', type: 'Image', link: 'https://matka-website.vercel.app', previewUrl: '', status: 'Active' }
-  ]);
-
-  const [packagesList, setPackagesList] = useState<any[]>([
-    { id: '1', packageName: 'com.example.numberbetting', appName: '95X MATKA', status: 'Active' }
-  ]);
-
-  const [paymentMethodsList, setPaymentMethodsList] = useState<any[]>([
-    { id: '1', name: 'UPI / PhonePe', ordering: 1, date: '2026-08-28', status: 'Active' }
-  ]);
-
-  const [deposits, setDeposits] = useState<any[]>([
-    { id: 'dep_101', user: 'Udgam', userId: '1212121212', amount: 200, utr: 'UTR99882211', method: 'DEPOSIT', status: 'Approved', date: '2026-08-28' }
-  ]);
-
-  const [withdrawals, setWithdrawals] = useState<any[]>([
-    { id: 'wd_201', user: 'Udgam', userId: '1212121212', amount: 500, status: 'Approved', date: '2026-08-28' }
-  ]);
+  const [bidsList, setBidsList] = useState<any[]>([]);
+  const [resultsList, setResultsList] = useState<any[]>([]);
+  const [winningsList, setWinningsList] = useState<any[]>([]);
+  const [adminsList, setAdminsList] = useState<any[]>([]);
+  const [bannersList, setBannersList] = useState<any[]>([]);
+  const [packagesList, setPackagesList] = useState<any[]>([]);
+  const [paymentMethodsList, setPaymentMethodsList] = useState<any[]>([]);
+  const [deposits, setDeposits] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
 
   // Modals Control
   const [showAddUserModal, setShowAddUserModal] = useState(false);
