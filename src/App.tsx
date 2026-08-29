@@ -761,11 +761,17 @@ export default function App() {
 
     // 2. Persist to Backend API & MongoDB Atlas
     try {
-      await fetch(`${API_BASE}/api/admin/payment-methods`, {
+      const res = await fetch(`${API_BASE}/api/admin/payment-methods`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPMObj)
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.paymentMethods && Array.isArray(data.paymentMethods)) {
+          setPaymentMethodsList(data.paymentMethods);
+        }
+      }
       fetchLiveData();
     } catch (err) {
       console.error('[Save Payment Error]', err);
