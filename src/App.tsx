@@ -128,7 +128,7 @@ export default function App() {
   const [graphEndDate, setGraphEndDate] = useState('29-08-2026');
   const [chartType, setChartType] = useState<'line' | 'column' | 'bar' | 'pie' | 'doughnut'>('line');
 
-  // Generic Filter Bar States
+  // Generic Filter Bar Input States
   const [filterSearch, setFilterSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterGameType, setFilterGameType] = useState('All');
@@ -136,6 +136,42 @@ export default function App() {
   const [filterStartDate, setFilterStartDate] = useState('29-08-2026');
   const [filterEndDate, setFilterEndDate] = useState('29-08-2026');
   const [searchNumberInput, setSearchNumberInput] = useState('');
+
+  // Applied Active Filter States (Triggered by clicking Search button or submitting filter form)
+  const [appliedCategory, setAppliedCategory] = useState('All');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [appliedGameType, setAppliedGameType] = useState('All');
+  const [appliedStartDate, setAppliedStartDate] = useState('');
+  const [appliedEndDate, setAppliedEndDate] = useState('');
+  const [appliedSearchNumber, setAppliedSearchNumber] = useState('');
+
+  // Search & Clear Handlers
+  const handleExecuteSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAppliedCategory(filterCategory);
+    setAppliedSearch(filterSearch);
+    setAppliedGameType(filterGameType);
+    setAppliedStartDate(filterStartDate);
+    setAppliedEndDate(filterEndDate);
+    setAppliedSearchNumber(searchNumberInput);
+  };
+
+  const handleClearFilters = () => {
+    setFilterSearch('');
+    setFilterCategory('All');
+    setFilterGameType('All');
+    setFilterTxnType('All');
+    setFilterStartDate('');
+    setFilterEndDate('');
+    setSearchNumberInput('');
+
+    setAppliedCategory('All');
+    setAppliedSearch('');
+    setAppliedGameType('All');
+    setAppliedStartDate('');
+    setAppliedEndDate('');
+    setAppliedSearchNumber('');
+  };
 
   // Data Lists State (Populated dynamically from live backend API)
   const [stats, setStats] = useState<any>({});
@@ -899,21 +935,21 @@ export default function App() {
                   <h1 className="text-2xl font-bold text-[#212529]">Bids Management</h1>
                 </div>
 
-                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-6 gap-3 items-end text-xs">
+                <form onSubmit={handleExecuteSearch} className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm grid grid-cols-1 md:grid-cols-6 gap-3 items-end text-xs">
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Search Fields</label>
                     <input type="text" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} placeholder="Name/Email/Phone" className="w-full border border-[#CED4DA] p-1.5 rounded" />
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Category</label>
-                    <select value={filterCategory} onChange={(e)=>setFilterCategory(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded">
+                    <select value={filterCategory} onChange={(e)=>{ setFilterCategory(e.target.value); setAppliedCategory(e.target.value); }} className="w-full border border-[#CED4DA] p-1.5 rounded">
                       <option value="All">All</option>
                       {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Game Type</label>
-                    <select value={filterGameType} onChange={(e)=>setFilterGameType(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded">
+                    <select value={filterGameType} onChange={(e)=>{ setFilterGameType(e.target.value); setAppliedGameType(e.target.value); }} className="w-full border border-[#CED4DA] p-1.5 rounded">
                       <option value="All">All</option>
                       <option value="Single Jodi">Single Jodi</option>
                       <option value="Single Panna">Single Panna</option>
@@ -923,17 +959,17 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Start Date</label>
-                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded" />
+                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} placeholder="DD-MM-YYYY" className="w-full border border-[#CED4DA] p-1.5 rounded" />
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Search Number</label>
                     <input type="text" value={searchNumberInput} onChange={(e)=>setSearchNumberInput(e.target.value)} placeholder="Number e.g. 45" className="w-full border border-[#CED4DA] p-1.5 rounded font-mono" />
                   </div>
                   <div className="flex gap-2">
-                    <button className="flex-1 bg-[#28A745] hover:bg-[#218838] text-white py-1.5 rounded font-bold shadow-sm">Search</button>
-                    <button onClick={()=>{ setFilterSearch(''); setFilterCategory('All'); setFilterGameType('All'); setSearchNumberInput(''); }} className="flex-1 bg-white border border-[#CED4DA] text-[#212529] py-1.5 rounded font-bold shadow-sm">Clear</button>
+                    <button type="submit" onClick={handleExecuteSearch} className="flex-1 bg-[#28A745] hover:bg-[#218838] text-white py-1.5 rounded font-bold shadow-sm">Search</button>
+                    <button type="button" onClick={handleClearFilters} className="flex-1 bg-white border border-[#CED4DA] text-[#212529] py-1.5 rounded font-bold shadow-sm hover:bg-gray-100">Clear</button>
                   </div>
-                </div>
+                </form>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
                   <div className="flex justify-between items-center text-xs font-bold text-[#212529]">
@@ -956,15 +992,29 @@ export default function App() {
                     </thead>
                     <tbody>
                       {bidsList.filter(b => {
-                        if (filterCategory !== 'All' && b.category !== filterCategory) return false;
-                        if (filterGameType !== 'All' && b.gameType !== filterGameType) return false;
-                        if (searchNumberInput.trim() && b.number !== searchNumberInput.trim()) return false;
-                        if (filterSearch.trim()) {
-                          const q = filterSearch.toLowerCase().trim();
-                          return (b.user && b.user.toLowerCase().includes(q)) ||
-                                 (b.phone && b.phone.includes(q)) ||
-                                 (b.category && b.category.toLowerCase().includes(q));
+                        const targetCat = appliedCategory !== 'All' ? appliedCategory : filterCategory;
+                        if (targetCat !== 'All' && b.category !== targetCat) return false;
+
+                        const targetGT = appliedGameType !== 'All' ? appliedGameType : filterGameType;
+                        if (targetGT !== 'All' && b.gameType !== targetGT) return false;
+
+                        const numQ = (appliedSearchNumber || searchNumberInput).trim();
+                        if (numQ && b.number !== numQ && b.number !== numQ.padStart(2, '0')) return false;
+
+                        const q = (appliedSearch || filterSearch).toLowerCase().trim();
+                        if (q) {
+                          const matches = (b.user && b.user.toLowerCase().includes(q)) ||
+                                          (b.phone && b.phone.includes(q)) ||
+                                          (b.category && b.category.toLowerCase().includes(q));
+                          if (!matches) return false;
                         }
+
+                        // Date check
+                        const sDate = appliedStartDate || filterStartDate;
+                        const eDate = appliedEndDate || filterEndDate;
+                        if (sDate && sDate.trim() && b.date && !b.date.includes(sDate.trim())) return false;
+                        if (eDate && eDate.trim() && b.date && !b.date.includes(eDate.trim())) return false;
+
                         return true;
                       }).map((b, i) => (
                         <tr key={i} className="hover:bg-[#F4F6F9]">
@@ -1102,31 +1152,31 @@ export default function App() {
                   <h1 className="text-2xl font-bold text-[#212529]">Wallet Winning</h1>
                 </div>
 
-                <div className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm flex flex-wrap gap-3 items-end text-xs">
+                <form onSubmit={handleExecuteSearch} className="bg-white p-4 rounded border border-[#DEE2E6] shadow-sm flex flex-wrap gap-3 items-end text-xs">
                   <div className="min-w-[150px]">
                     <label className="block font-bold text-[#212529] mb-1">Category</label>
-                    <select value={filterCategory} onChange={(e)=>setFilterCategory(e.target.value)} className="w-full border border-[#CED4DA] p-1.5 rounded">
+                    <select value={filterCategory} onChange={(e)=>{ setFilterCategory(e.target.value); setAppliedCategory(e.target.value); }} className="w-full border border-[#CED4DA] p-1.5 rounded">
                       <option value="All">All</option>
                       {categoriesList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Name / Email / Phone</label>
-                    <input type="text" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                    <input type="text" value={filterSearch} onChange={(e)=>setFilterSearch(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter') handleExecuteSearch();}} placeholder="Search name/phone/id" className="border border-[#CED4DA] p-1.5 rounded" />
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Start Date</label>
-                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} placeholder="DD-MM-YYYY" className="border border-[#CED4DA] p-1.5 rounded" />
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">End Date</label>
-                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} placeholder="DD-MM-YYYY" className="border border-[#CED4DA] p-1.5 rounded" />
                   </div>
                   <div className="flex gap-2">
-                    <button className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
-                    <button onClick={()=>{ setFilterCategory('All'); setFilterSearch(''); }} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm">Clear</button>
+                    <button type="submit" onClick={handleExecuteSearch} className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
+                    <button type="button" onClick={handleClearFilters} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm hover:bg-gray-100">Clear</button>
                   </div>
-                </div>
+                </form>
 
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
                   <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6]">
@@ -1144,15 +1194,26 @@ export default function App() {
                     </thead>
                     <tbody>
                       {winningsList.filter(w => {
-                        if (filterCategory !== 'All' && w.category !== filterCategory) return false;
-                        if (filterSearch.trim()) {
-                          const q = filterSearch.toLowerCase().trim();
-                          return (w.user && w.user.toLowerCase().includes(q)) ||
-                                 (w.email && w.email.toLowerCase().includes(q)) ||
-                                 (w.mobile && w.mobile.includes(q)) ||
-                                 (w.userId && w.userId.includes(q)) ||
-                                 (w.category && w.category.toLowerCase().includes(q));
+                        const targetCat = appliedCategory !== 'All' ? appliedCategory : filterCategory;
+                        if (targetCat !== 'All' && w.category !== targetCat) return false;
+
+                        const q = (appliedSearch || filterSearch).toLowerCase().trim();
+                        if (q) {
+                          const matches = (w.user && w.user.toLowerCase().includes(q)) ||
+                                          (w.email && w.email.toLowerCase().includes(q)) ||
+                                          (w.mobile && w.mobile.includes(q)) ||
+                                          (w.userId && w.userId.includes(q)) ||
+                                          (w.txnId && w.txnId.toLowerCase().includes(q)) ||
+                                          (w.category && w.category.toLowerCase().includes(q));
+                          if (!matches) return false;
                         }
+
+                        // Date range check
+                        const sDate = appliedStartDate || filterStartDate;
+                        const eDate = appliedEndDate || filterEndDate;
+                        if (sDate && sDate.trim() && w.dateOfWinning && !w.dateOfWinning.includes(sDate.trim())) return false;
+                        if (eDate && eDate.trim() && w.dateOfWinning && !w.dateOfWinning.includes(eDate.trim())) return false;
+
                         return true;
                       }).map((w, i) => (
                         <tr key={i} className="hover:bg-[#F4F6F9]">
@@ -1167,14 +1228,17 @@ export default function App() {
                         </tr>
                       ))}
                       {winningsList.filter(w => {
-                        if (filterCategory !== 'All' && w.category !== filterCategory) return false;
-                        if (filterSearch.trim()) {
-                          const q = filterSearch.toLowerCase().trim();
-                          return (w.user && w.user.toLowerCase().includes(q)) ||
-                                 (w.email && w.email.toLowerCase().includes(q)) ||
-                                 (w.mobile && w.mobile.includes(q)) ||
-                                 (w.userId && w.userId.includes(q)) ||
-                                 (w.category && w.category.toLowerCase().includes(q));
+                        const targetCat = appliedCategory !== 'All' ? appliedCategory : filterCategory;
+                        if (targetCat !== 'All' && w.category !== targetCat) return false;
+                        const q = (appliedSearch || filterSearch).toLowerCase().trim();
+                        if (q) {
+                          const matches = (w.user && w.user.toLowerCase().includes(q)) ||
+                                          (w.email && w.email.toLowerCase().includes(q)) ||
+                                          (w.mobile && w.mobile.includes(q)) ||
+                                          (w.userId && w.userId.includes(q)) ||
+                                          (w.txnId && w.txnId.toLowerCase().includes(q)) ||
+                                          (w.category && w.category.toLowerCase().includes(q));
+                          if (!matches) return false;
                         }
                         return true;
                       }).length === 0 && (
