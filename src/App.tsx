@@ -181,8 +181,16 @@ export default function App() {
   ]);
 
   const [bidsList, setBidsList] = useState<any[]>([
-    { id: 'bid_101', date: '29-08-2026 10:15 AM', user: 'Udgam', phone: '1212121212', category: 'Desawar', gameType: 'Single Jodi', number: '45', amount: 50, status: 'Pending' },
-    { id: 'bid_102', date: '29-08-2026 11:30 AM', user: 'Udgam', phone: '1212121212', category: 'Gali', gameType: 'Single Panna', number: '789', amount: 100, status: 'Pending' }
+    { id: 'bid_201', date: '2026-08-29 09:51:51', user: 'VikasBhardwaj', phone: '6230888020', category: 'Delhi Bazar', gameType: 'jodi', number: '21', amount: 10, status: 'Pending' },
+    { id: 'bid_202', date: '2026-08-29 09:51:51', user: 'VikasBhardwaj', phone: '6230888020', category: 'Delhi Bazar', gameType: 'jodi', number: '12', amount: 10, status: 'Pending' },
+    { id: 'bid_203', date: '2026-08-29 09:47:48', user: 'VikasBhardwaj', phone: '6230888020', category: 'Delhi Bazar', gameType: 'jodi', number: '10', amount: 10, status: 'Pending' },
+    { id: 'bid_204', date: '2026-08-29 09:47:48', user: 'VikasBhardwaj', phone: '6230888020', category: 'Delhi Bazar', gameType: 'jodi', number: '01', amount: 10, status: 'Pending' },
+    { id: 'bid_205', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '97', amount: 5, status: 'Pending' },
+    { id: 'bid_206', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '79', amount: 5, status: 'Pending' },
+    { id: 'bid_207', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '27', amount: 5, status: 'Pending' },
+    { id: 'bid_208', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '72', amount: 5, status: 'Pending' },
+    { id: 'bid_209', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '57', amount: 5, status: 'Pending' },
+    { id: 'bid_210', date: '2026-08-29 09:28:20', user: 'Kk singh', phone: '9927859007', category: 'Delhi Bazar', gameType: 'jodi', number: '75', amount: 5, status: 'Pending' }
   ]);
 
   const [resultsList, setResultsList] = useState<any[]>([
@@ -228,6 +236,8 @@ export default function App() {
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showViewBidModal, setShowViewBidModal] = useState(false);
   const [viewingBid, setViewingBid] = useState<any>(null);
+  const [showEditBidModal, setShowEditBidModal] = useState(false);
+  const [editBidForm, setEditBidForm] = useState({ id: '', number: '', amount: 10, category: '', gameType: '', user: '', phone: '' });
 
   // Edit Item States
   const [editingBanner, setEditingBanner] = useState<any>(null);
@@ -363,6 +373,15 @@ export default function App() {
       return () => clearInterval(interval);
     }
   }, [isAuthenticated]);
+
+  // EDIT BID NUMBER HANDLER
+  const handleSaveEditBid = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editBidForm.number) return;
+    setBidsList(prev => prev.map(b => b.id === editBidForm.id ? { ...b, number: editBidForm.number, amount: editBidForm.amount } : b));
+    setStatusMessage(`🎉 Bid #${editBidForm.id} number changed to "${editBidForm.number}" successfully!`);
+    setShowEditBidModal(false);
+  };
 
   // RESULT DECLARATION & WINNER CREDIT HANDLER
   const handleDeclareResultSubmit = (e: React.FormEvent) => {
@@ -942,7 +961,11 @@ export default function App() {
                           <td className="p-2.5 border-r border-[#DEE2E6] font-bold font-mono text-[#DC3545]">{b.number}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-[#28A745]">₹ {b.amount}</td>
                           <td className="p-2.5 text-right space-x-1">
-                            <button onClick={() => { setViewingBid(b); setShowViewBidModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">View</button>
+                            {/* ✏️ EDIT BID NUMBER BUTTON MATCHING MEDIA_1787978845834.PNG */}
+                            <button onClick={() => { setEditBidForm(b); setShowEditBidModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Edit Bid Number">✏️</button>
+                            
+                            {/* 🗑️ DELETE BID BUTTON MATCHING MEDIA_1787978845834.PNG */}
+                            <button onClick={() => setBidsList(bidsList.filter(x => x.id !== b.id))} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Delete Bid">🗑️</button>
                           </td>
                         </tr>
                       ))}
@@ -962,6 +985,12 @@ export default function App() {
                       )}
                     </tbody>
                   </table>
+
+                  {/* SUMMARY CARD MATCHING MEDIA_1787978845834.PNG 100% */}
+                  <div className="bg-white rounded border border-[#DEE2E6] p-5 space-y-2 mt-4">
+                    <h2 className="text-2xl font-bold text-[#212529]">Summary</h2>
+                    <p className="text-sm font-bold text-[#212529]">Total Amount : ₹ {bidsList.reduce((s,b)=>s+b.amount,0)}.00</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -2577,6 +2606,57 @@ export default function App() {
             <div className="flex justify-end pt-3 border-t">
               <button onClick={() => setShowViewBidModal(false)} className="bg-[#007BFF] text-white px-5 py-2 rounded font-bold">Close Breakdown</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 10. EDIT BID NUMBER MODAL MATCHING MEDIA_1787978845834.PNG 100% */}
+      {showEditBidModal && editBidForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
+            <div className="flex justify-between items-center border-b pb-2">
+              <h3 className="font-bold text-[#212529] text-base">Edit Bid Details</h3>
+              <button onClick={() => setShowEditBidModal(false)} className="text-gray-500 hover:text-black font-bold">✕</button>
+            </div>
+            <form onSubmit={handleSaveEditBid} className="space-y-3">
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">User Name</label>
+                <input type="text" value={editBidForm.user || ''} readOnly className="w-full border border-[#CED4DA] p-2 rounded bg-gray-50 font-bold" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Phone Number</label>
+                <input type="text" value={editBidForm.phone || ''} readOnly className="w-full border border-[#CED4DA] p-2 rounded bg-gray-50 font-bold text-[#007BFF]" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Category & Game Type</label>
+                <input type="text" value={`${editBidForm.category || ''} - ${editBidForm.gameType || ''}`} readOnly className="w-full border border-[#CED4DA] p-2 rounded bg-gray-50" />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Bid Number * (Change Number)</label>
+                <input
+                  type="text"
+                  value={editBidForm.number || ''}
+                  onChange={(e) => setEditBidForm({ ...editBidForm, number: e.target.value })}
+                  required
+                  placeholder="e.g. 21 or 12"
+                  className="w-full border border-[#007BFF] p-2 rounded font-mono font-bold text-center text-xl text-[#DC3545] focus:outline-none focus:border-[#80BDFF]"
+                />
+              </div>
+              <div>
+                <label className="block text-[#495057] font-bold mb-1">Bet Amount (₹) *</label>
+                <input
+                  type="number"
+                  value={editBidForm.amount || 10}
+                  onChange={(e) => setEditBidForm({ ...editBidForm, amount: parseFloat(e.target.value) || 0 })}
+                  required
+                  className="w-full border border-[#CED4DA] p-2 rounded font-mono font-bold text-[#28A745]"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setShowEditBidModal(false)} className="flex-1 bg-gray-500 text-white p-2 rounded font-bold">Cancel</button>
+                <button type="submit" className="flex-1 bg-[#28A745] hover:bg-[#218838] text-white p-2 rounded font-bold shadow-sm">Update Bid Number</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
