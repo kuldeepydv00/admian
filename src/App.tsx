@@ -769,14 +769,29 @@ export default function App() {
         if (data.paymentMethods && Array.isArray(data.paymentMethods)) {
           setPaymentMethodsList(data.paymentMethods);
         } else {
-          setPaymentMethodsList(prev => [payload, ...prev]);
+          setPaymentMethodsList(prev => {
+            if (isEdit) {
+              return prev.map(p => (p.id === targetId || p._id === targetId) ? payload : p);
+            }
+            return [payload, ...prev];
+          });
         }
       } else {
-        setPaymentMethodsList(prev => [payload, ...prev]);
+        setPaymentMethodsList(prev => {
+          if (isEdit) {
+            return prev.map(p => (p.id === targetId || p._id === targetId) ? payload : p);
+          }
+          return [payload, ...prev];
+        });
       }
     } catch (err) {
       console.error('[Save Payment Error]', err);
-      setPaymentMethodsList(prev => [payload, ...prev]);
+      setPaymentMethodsList(prev => {
+        if (isEdit) {
+          return prev.map(p => (p.id === targetId || p._id === targetId) ? payload : p);
+        }
+        return [payload, ...prev];
+      });
     }
 
     setShowAddPaymentModal(false);
