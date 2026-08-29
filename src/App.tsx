@@ -2873,10 +2873,17 @@ export default function App() {
               return (
                 <div className="space-y-6">
 
-                  {/* 1. JODI GAME SECTION (SQUARE BOXES WITH 95X PAYOUT DISPLAY) */}
+                  {/* 1. JODI GAME SECTION (PREMIUM SQUARES WITH CSS POLISH) */}
                   <div className="space-y-3 border-t pt-4">
-                    <h4 className="font-bold text-[#212529] text-sm">Jodi Game</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 justify-items-center">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-bold text-[#212529] text-sm flex items-center gap-2">
+                        <span className="w-2 h-4 bg-[#E67E22] rounded-full inline-block"></span>
+                        Jodi Game (00 - 99)
+                      </h4>
+                      <span className="bg-orange-100 text-orange-800 text-[10px] font-bold px-2 py-0.5 rounded-full">95x Multiplier</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                       {Array.from({ length: 100 }).map((_, idx) => {
                         const numStr = String(idx).padStart(2, '0');
                         const amt = bd.jodiMap[numStr] || 0;
@@ -2885,36 +2892,56 @@ export default function App() {
                         return (
                           <div
                             key={numStr}
-                            className={`w-full py-2 px-1.5 rounded-lg flex flex-col items-center justify-center text-center p-1 font-bold shadow-sm transition-all border ${
+                            className={`relative rounded-xl p-2.5 flex flex-col items-center justify-between text-center transition-all duration-200 border ${
                               isWinner
-                                ? 'bg-[#28A745] text-white border-[#1E7E34] ring-2 ring-[#28A745]/40'
-                                : (amt > 0 ? 'bg-[#E67E22] text-white border-[#D35400]' : 'bg-[#F8F9FA] text-[#495057] border-[#DEE2E6]')
+                                ? 'bg-gradient-to-br from-[#2ECC71] via-[#27AE60] to-[#1E8449] text-white border-emerald-400 shadow-lg shadow-emerald-500/30 ring-4 ring-emerald-400/30'
+                                : (amt > 0
+                                    ? 'bg-gradient-to-br from-[#F39C12] via-[#E67E22] to-[#D35400] text-white border-orange-600/30 shadow-md shadow-orange-500/20 hover:scale-[1.02]'
+                                    : 'bg-white text-gray-800 border-gray-200/90 shadow-sm hover:border-gray-300 hover:shadow')
                             }`}
                           >
-                            <span className="text-sm font-black font-mono leading-none">{numStr}</span>
-                            <span className="text-[10px] mt-1 font-mono">Rs = {amt}</span>
-                            <span className="text-[9px] mt-0.5 font-mono opacity-90">95x = Rs. {payout95}</span>
+                            {isWinner && (
+                              <span className="absolute -top-2 -right-1 bg-amber-300 text-black text-[8px] font-black px-1.5 py-0.5 rounded-full shadow border border-amber-400">
+                                👑 WINNER
+                              </span>
+                            )}
+                            <span className={`text-base font-black font-mono leading-none tracking-tight ${isWinner || amt > 0 ? 'text-white' : 'text-slate-800'}`}>
+                              {numStr}
+                            </span>
+                            <span className={`text-[11px] font-mono font-bold mt-1.5 ${isWinner || amt > 0 ? 'text-white/95' : 'text-gray-500'}`}>
+                              Rs = {amt}
+                            </span>
+                            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded mt-1 w-full ${isWinner || amt > 0 ? 'bg-black/20 text-yellow-200' : 'bg-gray-100 text-gray-400'}`}>
+                              95x = Rs. {payout95}
+                            </span>
                           </div>
                         );
                       })}
                     </div>
 
-                    <div className="bg-[#F8F9FA] border border-[#DEE2E6] p-3 rounded space-y-1 font-bold text-xs mt-3">
-                      <div className="flex justify-between">
-                        <span>Total</span>
-                        <span className="font-mono">Rs. {bd.jodiTotal}</span>
+                    <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-1.5 font-bold text-xs mt-4">
+                      <div className="flex justify-between text-gray-700">
+                        <span>Total Jodi Beted</span>
+                        <span className="font-mono text-slate-900">Rs. {bd.jodiTotal}</span>
                       </div>
                       <div className="flex justify-between text-[#28A745]">
-                        <span>Winning Amount Total (95x)</span>
-                        <span className="font-mono">Rs. {bd.jodiWinTotal}</span>
+                        <span>Winning Amount Total (95x Payout)</span>
+                        <span className="font-mono text-base">Rs. {bd.jodiWinTotal}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* 2. CROSS GAME SECTION (SQUARE BOXES WITH 95X PAYOUT DISPLAY) */}
+                  {/* 2. CROSS GAME SECTION (PREMIUM CARDS WITH CSS POLISH) */}
                   <div className="space-y-3 border-t pt-4">
-                    <h4 className="font-bold text-[#212529] text-sm">Cross Game</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-bold text-[#212529] text-sm flex items-center gap-2">
+                        <span className="w-2 h-4 bg-slate-600 rounded-full inline-block"></span>
+                        Cross Game (00 - 99)
+                      </h4>
+                      <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">95x Multiplier</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                       {Array.from({ length: 100 }).map((_, idx) => {
                         const numStr = String(idx).padStart(2, '0');
                         const amt = bd.crossMap[numStr] || 0;
@@ -2923,90 +2950,119 @@ export default function App() {
                         return (
                           <div
                             key={numStr}
-                            className={`p-2 rounded-lg text-center font-mono border ${
+                            className={`p-2.5 rounded-xl text-center font-mono border transition-all ${
                               isWinner
-                                ? 'bg-[#28A745] text-white font-bold'
-                                : (amt > 0 ? 'bg-[#E67E22] text-white font-bold' : 'bg-gray-100 text-gray-800')
+                                ? 'bg-gradient-to-br from-[#2ECC71] to-[#1E8449] text-white font-bold border-emerald-400 shadow-md ring-2 ring-emerald-400/30'
+                                : (amt > 0
+                                    ? 'bg-gradient-to-br from-[#F39C12] to-[#D35400] text-white font-bold border-orange-500/30 shadow-sm'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200')
                             }`}
                           >
                             <div className="text-xs font-bold">{numStr} Rs = {amt}</div>
-                            <div className="text-[9px] opacity-90 mt-0.5">95x = Rs. {payout95}</div>
+                            <div className={`text-[10px] font-bold mt-1 px-1 py-0.5 rounded ${isWinner || amt > 0 ? 'bg-black/20 text-yellow-200' : 'bg-slate-200 text-slate-500'}`}>
+                              95x = Rs. {payout95}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    <div className="bg-[#F8F9FA] border border-[#DEE2E6] p-3 rounded space-y-1 font-bold text-xs mt-3">
-                      <div className="flex justify-between">
-                        <span>Total</span>
-                        <span className="font-mono">Rs. {bd.crossTotal}</span>
+                    <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-1.5 font-bold text-xs mt-4">
+                      <div className="flex justify-between text-gray-700">
+                        <span>Total Cross Beted</span>
+                        <span className="font-mono text-slate-900">Rs. {bd.crossTotal}</span>
                       </div>
                       <div className="flex justify-between text-[#28A745]">
-                        <span>Cross Winning Amount Total (95x)</span>
-                        <span className="font-mono">Rs. {bd.crossWinTotal}</span>
+                        <span>Cross Winning Amount Total (95x Payout)</span>
+                        <span className="font-mono text-base">Rs. {bd.crossWinTotal}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* 3. HAROOP GAME SECTION (MATCHING MEDIA_1787981960032.JPG) */}
+                  {/* 3. HAROOP GAME SECTION (MATCHING MEDIA_1787981960032.JPG 100%) */}
                   <div className="space-y-3 border-t pt-4">
-                    <h4 className="font-bold text-[#212529] text-sm">Haroop Game</h4>
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-bold text-[#212529] text-sm flex items-center gap-2">
+                        <span className="w-2 h-4 bg-amber-500 rounded-full inline-block"></span>
+                        Haroop Game (Ander / Bahar)
+                      </h4>
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">9.5x Multiplier</span>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       {/* INNER (AHEDR) */}
-                      <div className="space-y-1.5">
-                        <div className="bg-[#F8F9FA] p-2 font-bold text-center border-b">Inner (Ahedr)</div>
+                      <div className="space-y-2">
+                        <div className="bg-amber-50 text-amber-900 p-2 font-black text-center rounded-lg border border-amber-200 text-xs">
+                          Inner (Ahedr)
+                        </div>
                         {Array.from({ length: 10 }).map((_, idx) => {
                           const digitKey = `A${idx}`;
                           const amt = bd.haroofAnderMap[digitKey] || 0;
-                          const isWin = digitKey === bd.winningAnderDigit;
+                          const isWin = bd.winningAnderDigit !== null && digitKey === bd.winningAnderDigit;
                           return (
-                            <div key={digitKey} className={`flex justify-between p-2 rounded font-bold text-xs ${isWin ? 'bg-[#28A745] text-white' : 'bg-[#E67E22] text-white'}`}>
-                              <span>{digitKey}</span>
-                              <span className="font-mono">{amt}</span>
+                            <div
+                              key={digitKey}
+                              className={`flex justify-between items-center p-2.5 rounded-lg font-bold text-xs transition-all border ${
+                                isWin
+                                  ? 'bg-gradient-to-r from-[#2ECC71] to-[#1E8449] text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/30'
+                                  : (amt > 0 ? 'bg-gradient-to-r from-[#F39C12] to-[#E67E22] text-white border-orange-500/30' : 'bg-gray-50 text-gray-700 border-gray-200')
+                              }`}
+                            >
+                              <span className="font-mono text-sm">{digitKey}</span>
+                              <span className="font-mono">Rs = {amt}</span>
                             </div>
                           );
                         })}
                       </div>
 
                       {/* OUTER (BAHAR) */}
-                      <div className="space-y-1.5">
-                        <div className="bg-[#F8F9FA] p-2 font-bold text-center border-b">Outer (Bahar)</div>
+                      <div className="space-y-2">
+                        <div className="bg-amber-50 text-amber-900 p-2 font-black text-center rounded-lg border border-amber-200 text-xs">
+                          Outer (Bahar)
+                        </div>
                         {Array.from({ length: 10 }).map((_, idx) => {
                           const digitKey = `B${idx}`;
                           const amt = bd.haroofBaharMap[digitKey] || 0;
-                          const isWin = digitKey === bd.winningBaharDigit;
+                          const isWin = bd.winningBaharDigit !== null && digitKey === bd.winningBaharDigit;
                           return (
-                            <div key={digitKey} className={`flex justify-between p-2 rounded font-bold text-xs ${isWin ? 'bg-[#28A745] text-white' : 'bg-[#E67E22] text-white'}`}>
-                              <span>{digitKey}</span>
-                              <span className="font-mono">{amt}</span>
+                            <div
+                              key={digitKey}
+                              className={`flex justify-between items-center p-2.5 rounded-lg font-bold text-xs transition-all border ${
+                                isWin
+                                  ? 'bg-gradient-to-r from-[#2ECC71] to-[#1E8449] text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/30'
+                                  : (amt > 0 ? 'bg-gradient-to-r from-[#F39C12] to-[#E67E22] text-white border-orange-500/30' : 'bg-gray-50 text-gray-700 border-gray-200')
+                              }`}
+                            >
+                              <span className="font-mono text-sm">{digitKey}</span>
+                              <span className="font-mono">Rs = {amt}</span>
                             </div>
                           );
                         })}
                       </div>
                     </div>
 
-                    <div className="bg-[#F8F9FA] border border-[#DEE2E6] p-3 rounded space-y-1 font-bold text-xs mt-3">
-                      <div className="flex justify-between">
-                        <span>Total</span>
-                        <span className="font-mono">Rs. {bd.haroofTotal}</span>
+                    <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-1.5 font-bold text-xs mt-4">
+                      <div className="flex justify-between text-gray-700">
+                        <span>Total Haroof Beted</span>
+                        <span className="font-mono text-slate-900">Rs. {bd.haroofTotal}</span>
                       </div>
                       <div className="flex justify-between text-[#28A745]">
-                        <span>Winning Amount Total (9.5x)</span>
-                        <span className="font-mono">Rs. {bd.haroofWinTotal}</span>
+                        <span>Haroof Winning Amount Total (9.5x Payout)</span>
+                        <span className="font-mono text-base">Rs. {bd.haroofWinTotal}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* 4. AMOUNT HISTORY BOX (MATCHING MEDIA_1787981960032.JPG 100%) */}
-                  <div className="bg-[#F8F9FA] border border-[#DEE2E6] p-4 rounded space-y-2 text-xs font-bold border-t-2 border-t-[#007BFF]">
-                    <h5 className="text-gray-700 uppercase tracking-wider text-[10px]">Amount History</h5>
-                    <div className="flex justify-between text-sm">
-                      <span>Total Investment</span>
-                      <span className="font-mono text-gray-900">Rs. {bd.totalInvestment}</span>
+                  <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3 text-xs font-bold border border-slate-800 shadow-xl">
+                    <h5 className="text-slate-400 uppercase tracking-widest text-[10px] font-black">Market Summary & Payable Payout</h5>
+                    <div className="flex justify-between text-sm border-b border-slate-800 pb-2">
+                      <span className="text-slate-300">Total Investment (Stakes)</span>
+                      <span className="font-mono text-white text-base font-black">Rs. {bd.totalInvestment}</span>
                     </div>
-                    <div className="flex justify-between text-sm text-[#28A745]">
-                      <span>Total Winning Amount (Payable Payout 95x / 9.5x)</span>
-                      <span className="font-mono">Rs. {bd.totalWinningAmount}</span>
+                    <div className="flex justify-between text-sm text-emerald-400">
+                      <span>Total Winning Amount (Payable Payout)</span>
+                      <span className="font-mono text-lg font-black">Rs. {bd.totalWinningAmount}</span>
                     </div>
                   </div>
 
