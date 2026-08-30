@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // API Base URL
-const API_BASE = 'https://matka-r6mz.onrender.com';
+const API_BASE = typeof window !== 'undefined' ? (window.location.origin.includes('localhost') ? 'http://localhost:5001' : window.location.origin) : 'https://matka-r6mz.onrender.com';
 
 // Canvas Chart Component for Deposits, Withdraws, etc.
 function CanvasChart({ title, color, dataPoints, chartType }: { title: string; color: string; dataPoints: number[]; chartType: string }) {
