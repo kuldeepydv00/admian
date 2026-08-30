@@ -2665,19 +2665,65 @@ export default function App() {
 
                           // Process each user's transactions chronologically to calculate dynamic balances
                           Object.keys(userTxns).forEach(mob => {
-                            const txns = userTxns[mob].sort((a, b) => a.rawDate - b.rawDate);
-                            
-                            let wallet = 0;
-                            let deposit = 0;
-                            let winning = 0;
-                            let commission = 0;
-                            let bonus = 200; // default joining bonus
-                            let referral = 0;
+                            // Sort chronologically (oldest-first) using date and unique ID as a tie-breaker
+                            const txns = userTxns[mob].sort((a, b) => {
+                              if (a.rawDate !== b.rawDate) {
+                                return a.rawDate - b.rawDate;
+                              }
+                              const idA = a.original._id || a.original.id || '';
+                              const idB = b.original._id || b.original.id || '';
+                              return idA.localeCompare(idB);
+                            });
 
                             const userObj = users.find(u => u.mobile.slice(-10) === mob);
                             const name = userObj ? userObj.name : 'User';
                             const email = userObj ? userObj.email : `${mob}@gmail.com`;
 
+                            // Fetch current balances from user profile
+                            const currentWallet = userObj ? (userObj.balance || 0) : 0;
+                            const currentDeposit = userObj ? (userObj.deposit_balance || 0) : 0;
+                            const currentWinning = userObj ? (userObj.winning_balance || 0) : 0;
+                            const currentCommission = userObj ? (userObj.commission_balance || 0) : 0;
+                            const currentBonus = userObj ? (userObj.bonus_balance !== undefined ? userObj.bonus_balance : 200) : 200;
+                            const currentReferral = userObj ? (userObj.referral_balance || 0) : 0;
+
+                            // 1. Dry run of forward loop to compute final values starting from 0
+                            let tempWallet = 0;
+                            let tempDeposit = 0;
+                            let tempWinning = 0;
+                            let tempCommission = 0;
+                            let tempBonus = 200; // default initial bonus
+                            let tempReferral = 0;
+
+                            txns.forEach(tx => {
+                              if (tx.type === 'deposit') {
+                                tempWallet += tx.amount;
+                                tempDeposit += tx.amount;
+                              } else if (tx.type === 'bid') {
+                                if (tempDeposit >= tx.amount) {
+                                  tempWallet -= tx.amount;
+                                  tempDeposit -= tx.amount;
+                                } else {
+                                  const diff = tx.amount - tempDeposit;
+                                  tempDeposit = 0;
+                                  tempWallet -= tx.amount;
+                                  tempWinning -= diff;
+                                }
+                              } else if (tx.type === 'withdrawal') {
+                                tempWallet -= tx.amount;
+                                tempWinning -= tx.amount;
+                              }
+                            });
+
+                            // 2. Calculate offsets so that final matches current exactly
+                            let wallet = currentWallet - tempWallet;
+                            let deposit = currentDeposit - tempDeposit;
+                            let winning = currentWinning - tempWinning;
+                            let commission = currentCommission - tempCommission;
+                            let bonus = currentBonus - tempBonus;
+                            let referral = currentReferral - tempReferral;
+
+                            // 3. Process actual loop with correct starting balances
                             txns.forEach((tx, idx) => {
                               const oldBal = {
                                 wallet: wallet.toFixed(2),
@@ -2774,8 +2820,12 @@ export default function App() {
                             });
                           });
 
-                          // Sort ledger items overall by date descending (newest first)
-                          ledgerItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                          // Sort ledger items overall by date descending (newest first). If same date, use unique ID descending.
+                          ledgerItems.sort((a, b) => {
+                            const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+                            if (dateDiff !== 0) return dateDiff;
+                            return b.id.localeCompare(a.id);
+                          });
 
                           const filteredLedger = ledgerItems.filter(item => {
                             const targetTxn = appliedGameType !== 'All' ? appliedGameType : filterTxnType;
