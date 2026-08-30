@@ -2615,7 +2615,7 @@ export default function App() {
                           const userTxns: Record<string, any[]> = {};
 
                           // Add bids
-                          bidsList.forEach((b, idx) => {
+                          bidsList.forEach((b) => {
                             const rawMob = (b.phone || b.mobile || b.user || '').replace(/[^0-9]/g, '');
                             const mob = rawMob.length >= 10 ? rawMob.slice(-10) : '';
                             if (!mob) return;
@@ -2630,7 +2630,7 @@ export default function App() {
                           });
 
                           // Add deposits
-                          deposits.forEach((d, idx) => {
+                          deposits.forEach((d) => {
                             if (d.status === 'Approved') {
                               const rawMob = (d.mobile || d.phone || d.user || '').replace(/[^0-9]/g, '');
                               const mob = rawMob.length >= 10 ? rawMob.slice(-10) : '';
@@ -2647,7 +2647,7 @@ export default function App() {
                           });
 
                           // Add withdrawals
-                          withdrawals.forEach((w, idx) => {
+                          withdrawals.forEach((w) => {
                             if (w.status === 'Approved') {
                               const rawMob = (w.mobile || w.phone || w.user || '').replace(/[^0-9]/g, '');
                               const mob = rawMob.length >= 10 ? rawMob.slice(-10) : '';
