@@ -215,12 +215,13 @@ export default function App() {
 
   const [categoriesList, setCategoriesList] = useState<any[]>([
     { id: '1', name: 'Desawar', seniority: 1, image: '', status: 'Active' },
-    { id: '2', name: 'Gali', seniority: 7, image: '', status: 'Active' },
-    { id: '3', name: 'Faridabad', seniority: 5, image: '', status: 'Active' },
-    { id: '4', name: 'Ghaziabad', seniority: 6, image: '', status: 'Active' },
-    { id: '5', name: 'Shree Ganesh', seniority: 4, image: '', status: 'Active' },
-    { id: '6', name: 'Delhi Bazar', seniority: 2, image: '', status: 'Active' },
-    { id: '7', name: 'Dubai market', seniority: 3, image: '', status: 'Active' }
+    { id: '8', name: 'Shiv Parwati', seniority: 2, image: '', status: 'Active' },
+    { id: '6', name: 'Delhi Bazar', seniority: 3, image: '', status: 'Active' },
+    { id: '7', name: 'Dubai Market', seniority: 4, image: '', status: 'Active' },
+    { id: '5', name: 'Shree Ganesh', seniority: 5, image: '', status: 'Active' },
+    { id: '3', name: 'Faridabad', seniority: 6, image: '', status: 'Active' },
+    { id: '4', name: 'Ghaziabad', seniority: 7, image: '', status: 'Active' },
+    { id: '2', name: 'Gali', seniority: 8, image: '', status: 'Active' }
   ]);
 
   const [bidsList, setBidsList] = useState<any[]>([]);
