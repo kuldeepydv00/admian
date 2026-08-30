@@ -2594,7 +2594,7 @@ export default function App() {
                 <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-4 space-y-4">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs text-[#212529] border border-[#DEE2E6] whitespace-nowrap">
-                      <thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
+<thead className="bg-[#F8F9FA] text-[#495057] font-bold border-b border-[#DEE2E6]">
                         <tr>
                           <th className="p-2.5 border-r border-[#DEE2E6]">Sr. No.</th>
                           <th className="p-2.5 border-r border-[#DEE2E6]">User</th>
@@ -2608,69 +2608,174 @@ export default function App() {
                       </thead>
                       <tbody>
                         {(() => {
-                          // Generate dynamic ledger list combining bids, deposits, withdrawals
+                          // Generate dynamic ledger list combining bids, deposits, withdrawals chronologically per user
                           let ledgerItems: any[] = [];
 
-                          // 1. Convert bids to ledger items
+                          // Group transactions by user mobile so we can compute historical balances chronologically
+                          const userTxns: Record<string, any[]> = {};
+
+                          // Add bids
                           bidsList.forEach((b, idx) => {
                             const rawMob = (b.phone || b.mobile || b.user || '').replace(/[^0-9]/g, '');
                             const mob = rawMob.length >= 10 ? rawMob.slice(-10) : '';
-                            const user = b.user || 'User';
-                            ledgerItems.push({
-                              id: `ldg_b_${b._id || b.id || idx}`,
-                              user: user,
-                              email: `${user.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-                              phone: mob,
-                              amount: `-${b.amount}.00`,
-                              date: b.date || (b.created_at ? new Date(b.created_at).toLocaleString() : new Date().toLocaleString()),
-                              transactType: 'Bid Place',
-                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
-                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
-                              gameType: b.gameType || 'Single Jodi'
+                            if (!mob) return;
+                            if (!userTxns[mob]) userTxns[mob] = [];
+                            userTxns[mob].push({
+                              type: 'bid',
+                              amount: b.amount,
+                              date: b.date || (b.created_at ? new Date(b.created_at).toISOString() : new Date().toISOString()),
+                              rawDate: b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0),
+                              original: b
                             });
                           });
 
-                          // 2. Convert approved deposits to ledger items
+                          // Add deposits
                           deposits.forEach((d, idx) => {
                             if (d.status === 'Approved') {
                               const rawMob = (d.mobile || d.phone || d.user || '').replace(/[^0-9]/g, '');
                               const mob = rawMob.length >= 10 ? rawMob.slice(-10) : '';
-                              const user = d.user || d.name || 'User';
-                              ledgerItems.push({
-                                id: `ldg_d_${d._id || d.id || idx}`,
-                                user: user,
-                                email: `${user.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-                                phone: mob,
-                                amount: `+${d.amount}.00`,
-                                date: d.date || (d.createdAt ? new Date(d.createdAt).toLocaleString() : new Date().toLocaleString()),
-                                transactType: 'Deposit',
-                                oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
-                                newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
-                                gameType: '-'
+                              if (!mob) return;
+                              if (!userTxns[mob]) userTxns[mob] = [];
+                              userTxns[mob].push({
+                                type: 'deposit',
+                                amount: d.amount,
+                                date: d.date || (d.createdAt ? new Date(d.createdAt).toISOString() : new Date().toISOString()),
+                                rawDate: d.createdAt ? new Date(d.createdAt).getTime() : (d.date ? new Date(d.date).getTime() : 0),
+                                original: d
                               });
                             }
                           });
 
-                          // 3. Convert approved withdrawals to ledger items
+                          // Add withdrawals
                           withdrawals.forEach((w, idx) => {
                             if (w.status === 'Approved') {
                               const rawMob = (w.mobile || w.phone || w.user || '').replace(/[^0-9]/g, '');
                               const mob = rawMob.length >= 10 ? rawMob.slice(-10) : '';
-                              const user = w.user || w.name || 'User';
-                              ledgerItems.push({
-                                id: `ldg_w_${w._id || w.id || idx}`,
-                                user: user,
-                                email: `${user.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-                                phone: mob,
-                                amount: `-${w.amount}.00`,
-                                date: w.date || (w.createdAt ? new Date(w.createdAt).toLocaleString() : new Date().toLocaleString()),
-                                transactType: 'Withdrawal',
-                                oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
-                                newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
-                                gameType: '-'
+                              if (!mob) return;
+                              if (!userTxns[mob]) userTxns[mob] = [];
+                              userTxns[mob].push({
+                                type: 'withdrawal',
+                                amount: w.amount,
+                                date: w.date || (w.createdAt ? new Date(w.createdAt).toISOString() : new Date().toISOString()),
+                                rawDate: w.createdAt ? new Date(w.createdAt).getTime() : (w.date ? new Date(w.date).getTime() : 0),
+                                original: w
                               });
                             }
                           });
+
+                          // Process each user's transactions chronologically to calculate dynamic balances
+                          Object.keys(userTxns).forEach(mob => {
+                            const txns = userTxns[mob].sort((a, b) => a.rawDate - b.rawDate);
+                            
+                            let wallet = 0;
+                            let deposit = 0;
+                            let winning = 0;
+                            let commission = 0;
+                            let bonus = 200; // default joining bonus
+                            let referral = 0;
+
+                            const userObj = users.find(u => u.mobile.slice(-10) === mob);
+                            const name = userObj ? userObj.name : 'User';
+                            const email = userObj ? userObj.email : `${mob}@gmail.com`;
+
+                            txns.forEach((tx, idx) => {
+                              const oldBal = {
+                                wallet: wallet.toFixed(2),
+                                deposit: deposit.toFixed(2),
+                                winning: winning.toFixed(2),
+                                commission: commission.toFixed(2),
+                                bonus: bonus.toFixed(2),
+                                referral: referral.toFixed(2)
+                              };
+
+                              const formattedDate = (() => {
+                                try {
+                                  const d = new Date(tx.date);
+                                  return isNaN(d.getTime()) ? tx.date : d.toLocaleString();
+                                } catch (e) {
+                                  return tx.date;
+                                }
+                              })();
+
+                              if (tx.type === 'deposit') {
+                                wallet += tx.amount;
+                                deposit += tx.amount;
+                                ledgerItems.push({
+                                  id: `ldg_d_${tx.original._id || tx.original.id || idx}`,
+                                  user: name,
+                                  email: email,
+                                  phone: mob,
+                                  amount: `+${tx.amount}.00`,
+                                  date: formattedDate,
+                                  transactType: 'Deposit',
+                                  oldBal: oldBal,
+                                  newBal: {
+                                    wallet: wallet.toFixed(2),
+                                    deposit: deposit.toFixed(2),
+                                    winning: winning.toFixed(2),
+                                    commission: commission.toFixed(2),
+                                    bonus: bonus.toFixed(2),
+                                    referral: referral.toFixed(2)
+                                  },
+                                  gameType: '-'
+                                });
+                              } else if (tx.type === 'bid') {
+                                if (deposit >= tx.amount) {
+                                  wallet -= tx.amount;
+                                  deposit -= tx.amount;
+                                } else {
+                                  const diff = tx.amount - deposit;
+                                  deposit = 0;
+                                  wallet -= tx.amount;
+                                  winning -= diff;
+                                }
+                                ledgerItems.push({
+                                  id: `ldg_b_${tx.original._id || tx.original.id || idx}`,
+                                  user: name,
+                                  email: email,
+                                  phone: mob,
+                                  amount: `-${tx.amount}.00`,
+                                  date: formattedDate,
+                                  transactType: 'Bid Place',
+                                  oldBal: oldBal,
+                                  newBal: {
+                                    wallet: wallet.toFixed(2),
+                                    deposit: deposit.toFixed(2),
+                                    winning: winning.toFixed(2),
+                                    commission: commission.toFixed(2),
+                                    bonus: bonus.toFixed(2),
+                                    referral: referral.toFixed(2)
+                                  },
+                                  gameType: tx.original.gameType || 'Single Jodi'
+                                });
+                              } else if (tx.type === 'withdrawal') {
+                                wallet -= tx.amount;
+                                winning -= tx.amount;
+                                ledgerItems.push({
+                                  id: `ldg_w_${tx.original._id || tx.original.id || idx}`,
+                                  user: name,
+                                  email: email,
+                                  phone: mob,
+                                  amount: `-${tx.amount}.00`,
+                                  date: formattedDate,
+                                  transactType: 'Withdrawal',
+                                  oldBal: oldBal,
+                                  newBal: {
+                                    wallet: wallet.toFixed(2),
+                                    deposit: deposit.toFixed(2),
+                                    winning: winning.toFixed(2),
+                                    commission: commission.toFixed(2),
+                                    bonus: bonus.toFixed(2),
+                                    referral: referral.toFixed(2)
+                                  },
+                                  gameType: '-'
+                                });
+                              }
+                            });
+                          });
+
+                          // Sort ledger items overall by date descending (newest first)
+                          ledgerItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
                           const filteredLedger = ledgerItems.filter(item => {
                             const targetTxn = appliedGameType !== 'All' ? appliedGameType : filterTxnType;
