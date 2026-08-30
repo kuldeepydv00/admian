@@ -2608,88 +2608,69 @@ export default function App() {
                       </thead>
                       <tbody>
                         {(() => {
-                          // Generate dynamic ledger list combining bids, deposits, withdrawals, & commission
+                          // Generate dynamic ledger list combining bids, deposits, withdrawals
                           let ledgerItems: any[] = [];
 
                           // 1. Convert bids to ledger items
                           bidsList.forEach((b, idx) => {
+                            const rawMob = (b.phone || b.mobile || b.user || '').replace(/[^0-9]/g, '');
+                            const mob = rawMob.length >= 10 ? rawMob.slice(-10) : '';
+                            const user = b.user || 'User';
                             ledgerItems.push({
-                              id: `ldg_b_${idx}`,
-                              user: b.user || 'NasibAnsari',
-                              email: `${(b.user || 'nasib').toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-                              phone: b.phone || '9007724336',
+                              id: `ldg_b_${b._id || b.id || idx}`,
+                              user: user,
+                              email: `${user.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+                              phone: mob,
                               amount: `-${b.amount}.00`,
-                              date: b.date || '2026-08-29 11:51:10',
+                              date: b.date || (b.created_at ? new Date(b.created_at).toLocaleString() : new Date().toLocaleString()),
                               transactType: 'Bid Place',
-                              oldBal: { wallet: '500.00', deposit: '500.00', winning: '0.00', commission: '0.00', bonus: '200.00', referral: '0.00' },
-                              newBal: { wallet: `${500 - b.amount}.00`, deposit: `${500 - b.amount}.00`, winning: '0.00', commission: '0.00', bonus: '200.00', referral: '0.00' },
+                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
+                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
                               gameType: b.gameType || 'Single Jodi'
                             });
                           });
 
-                          // 2. Sample commission logs matching Screenshot 1 100%
-                          ledgerItems.push(
-                            {
-                              id: 'ldg_comm_1',
-                              user: 'NasibAnsari',
-                              email: 'na0193354@gmail.com',
-                              phone: '9007724336',
-                              amount: '+0.25',
-                              date: '2026-08-29 11:51:10',
-                              transactType: 'Commission',
-                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.60', bonus: '0.00', referral: '99.10' },
-                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.85', bonus: '0.00', referral: '99.10' },
-                              gameType: '-'
-                            },
-                            {
-                              id: 'ldg_comm_2',
-                              user: 'NasibAnsari',
-                              email: 'na0193354@gmail.com',
-                              phone: '9007724336',
-                              amount: '+0.75',
-                              date: '2026-08-29 11:50:55',
-                              transactType: 'Commission',
-                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.85', bonus: '0.00', referral: '99.10' },
-                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '8.60', bonus: '0.00', referral: '99.10' },
-                              gameType: '-'
-                            },
-                            {
-                              id: 'ldg_comm_3',
-                              user: 'NasibAnsari',
-                              email: 'na0193354@gmail.com',
-                              phone: '9007724336',
-                              amount: '+0.5',
-                              date: '2026-08-29 11:50:36',
-                              transactType: 'Commission',
-                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.35', bonus: '0.00', referral: '99.10' },
-                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.85', bonus: '0.00', referral: '99.10' },
-                              gameType: '-'
-                            },
-                            {
-                              id: 'ldg_comm_4',
-                              user: 'NasibAnsari',
-                              email: 'na0193354@gmail.com',
-                              phone: '9007724336',
-                              amount: '+0.25',
-                              date: '2026-08-29 07:55:25',
-                              transactType: 'Commission',
-                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.10', bonus: '0.00', referral: '99.10' },
-                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.35', bonus: '0.00', referral: '99.10' },
-                              gameType: '-'
-                            },
-                            {
-                              id: 'ldg_comm_5',
-                              user: 'NasibAnsari',
-                              email: 'na0193354@gmail.com',
-                              phone: '9007724336',
-                              amount: '+0.5',
-                              date: '2026-08-29 07:54:58',
-                              transactType: 'Commission',
-                              oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '6.60', bonus: '0.00', referral: '99.10' },
-                              newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '7.10', bonus: '0.00', referral: '99.10' },
-                              gameType: '-'
+                          // 2. Convert approved deposits to ledger items
+                          deposits.forEach((d, idx) => {
+                            if (d.status === 'Approved') {
+                              const rawMob = (d.mobile || d.phone || d.user || '').replace(/[^0-9]/g, '');
+                              const mob = rawMob.length >= 10 ? rawMob.slice(-10) : '';
+                              const user = d.user || d.name || 'User';
+                              ledgerItems.push({
+                                id: `ldg_d_${d._id || d.id || idx}`,
+                                user: user,
+                                email: `${user.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+                                phone: mob,
+                                amount: `+${d.amount}.00`,
+                                date: d.date || (d.createdAt ? new Date(d.createdAt).toLocaleString() : new Date().toLocaleString()),
+                                transactType: 'Deposit',
+                                oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
+                                newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
+                                gameType: '-'
+                              });
                             }
-                          );
+                          });
+
+                          // 3. Convert approved withdrawals to ledger items
+                          withdrawals.forEach((w, idx) => {
+                            if (w.status === 'Approved') {
+                              const rawMob = (w.mobile || w.phone || w.user || '').replace(/[^0-9]/g, '');
+                              const mob = rawMob.length >= 10 ? rawMob.slice(-10) : '';
+                              const user = w.user || w.name || 'User';
+                              ledgerItems.push({
+                                id: `ldg_w_${w._id || w.id || idx}`,
+                                user: user,
+                                email: `${user.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+                                phone: mob,
+                                amount: `-${w.amount}.00`,
+                                date: w.date || (w.createdAt ? new Date(w.createdAt).toLocaleString() : new Date().toLocaleString()),
+                                transactType: 'Withdrawal',
+                                oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
+                                newBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
+                                gameType: '-'
+                              });
+                            }
+                          });
 
                           const filteredLedger = ledgerItems.filter(item => {
                             const targetTxn = appliedGameType !== 'All' ? appliedGameType : filterTxnType;
