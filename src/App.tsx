@@ -424,7 +424,7 @@ export default function App() {
   const fetchLiveData = async () => {
     try {
       const [
-        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes
+        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes, notifRes, bannerRes
       ] = await Promise.all([
         fetch(`${API_BASE}/api/admin/stats`),
         fetch(`${API_BASE}/api/admin/users`),
@@ -434,13 +434,42 @@ export default function App() {
         fetch(`${API_BASE}/api/admin/bets`),
         fetch(`${API_BASE}/api/admin/winnings`),
         fetch(`${API_BASE}/api/admin/payment-methods`),
-        fetch(`${API_BASE}/api/admin/notifications`)
+        fetch(`${API_BASE}/api/admin/notifications`),
+        fetch(`${API_BASE}/api/game/banner`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
-      if (arguments.length > 8 && arguments[8] && (arguments[8] as Response).ok) {
-        const notifData = await (arguments[8] as Response).json();
+      if (notifRes.ok) {
+        const notifData = await notifRes.json();
         if (Array.isArray(notifData)) setNotificationsList(notifData);
+      }
+      if (bannerRes && bannerRes.ok) {
+        try {
+          const bData = await bannerRes.json();
+          if (bData) {
+            setBannerGlobalForm({
+              title: bData.title || '',
+              subtitle: bData.subtitle || '',
+              referralText: bData.referralText || '',
+              commissionText: bData.commissionText || '',
+              minDeposit: bData.minDeposit || '100',
+              minWithdrawal: bData.minWithdrawal || '300',
+              imageUrl: bData.imageUrl || '',
+              enabled: bData.enabled !== undefined ? bData.enabled : true
+            });
+            if (bData.imageUrl) {
+              setBannersList([{
+                id: 'active_banner',
+                name: bData.title || 'Active Banner',
+                type: 'Image',
+                link: bData.imageUrl,
+                image: '',
+                previewUrl: bData.imageUrl,
+                status: bData.enabled ? 'Active' : 'Inactive'
+              }]);
+            }
+          }
+        } catch (e) {}
       }
       if (pmRes.ok) {
         const pmData = await pmRes.json();
@@ -676,16 +705,23 @@ export default function App() {
 
     // Sync banner update to backend server & MongoDB Atlas Cloud
     try {
+      const imgUrl = bannerForm.previewUrl || bannerForm.link || '';
       await fetch(`${API_BASE}/api/admin/update-banner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           enabled: bannerForm.status === 'Active',
           title: bannerForm.name,
-          subtitle: '95X MATKA SATTA',
-          imageUrl: bannerForm.previewUrl || bannerForm.link || ''
+          subtitle: bannerGlobalForm.subtitle || '95X MATKA SATTA',
+          imageUrl: imgUrl
         })
       });
+      setBannerGlobalForm(prev => ({
+        ...prev,
+        title: bannerForm.name,
+        imageUrl: imgUrl,
+        enabled: bannerForm.status === 'Active'
+      }));
     } catch (err) {}
 
     setShowAddBannerModal(false);
