@@ -424,7 +424,7 @@ export default function App() {
   const fetchLiveData = async () => {
     try {
       const [
-        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes, notifRes, bannerRes, versionRes
+        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes, notifRes, bannerRes, versionRes, settingsRes
       ] = await Promise.all([
         fetch(`${API_BASE}/api/admin/stats`),
         fetch(`${API_BASE}/api/admin/users`),
@@ -436,7 +436,8 @@ export default function App() {
         fetch(`${API_BASE}/api/admin/payment-methods`),
         fetch(`${API_BASE}/api/admin/notifications`),
         fetch(`${API_BASE}/api/game/banner`),
-        fetch(`${API_BASE}/api/app/version`)
+        fetch(`${API_BASE}/api/app/version`),
+        fetch(`${API_BASE}/api/app/settings`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
@@ -454,6 +455,22 @@ export default function App() {
               apkUrl: vData.apkUrl || 'https://95xmatka.com/app-debug.apk',
               updateMessage: vData.updateMessage || '🚀 A new performance update is available! Tap Update now to get the latest features.',
               forceUpdate: vData.forceUpdate !== undefined ? vData.forceUpdate : false
+            });
+          }
+        } catch (e) {}
+      }
+      if (settingsRes && settingsRes.ok) {
+        try {
+          const sData = await settingsRes.json();
+          if (sData) {
+            setSettingsForm({
+              whatsapp_number: sData.whatsapp_number || '+917027709695',
+              whatsapp_call_number: sData.whatsapp_call_number || '+917027709695',
+              app_download_link: sData.app_download_link || 'https://95xmatka.com/app-debug.apk',
+              app_version: sData.app_version || '1.0.0',
+              bank_withdrawal_enable: sData.bank_withdrawal_enable !== undefined ? sData.bank_withdrawal_enable : true,
+              upi_withdrawal_enable: sData.upi_withdrawal_enable !== undefined ? sData.upi_withdrawal_enable : true,
+              lucky_card_maintenance: sData.lucky_card_maintenance !== undefined ? sData.lucky_card_maintenance : false
             });
           }
         } catch (e) {}
@@ -970,6 +987,20 @@ export default function App() {
       });
       if (res.ok) {
         setStatusMessage('🚀 App Auto-Update Configuration Saved & Live for all users!');
+      }
+    } catch (err) {}
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    if (e) e.preventDefault();
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/update-settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settingsForm)
+      });
+      if (res.ok) {
+        setStatusMessage('🚀 Settings Configuration Saved & Live!');
       }
     } catch (err) {}
   };
@@ -4421,26 +4452,26 @@ export default function App() {
                   <h1 className="text-2xl font-bold text-[#212529]">Site and App Settings</h1>
                 </div>
 
-                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-5 max-w-2xl space-y-4">
-                  <div className="space-y-3 text-xs">
+                <div className="bg-white rounded border border-[#DEE2E6] shadow-sm p-5 max-w-2xl">
+                  <form onSubmit={handleSaveSettings} className="space-y-3 text-xs">
                     <div>
                       <label className="block text-[#495057] font-semibold mb-1">Whatsapp Message Number</label>
-                      <input type="text" value={settingsForm.whatsapp_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
+                      <input type="text" value={settingsForm.whatsapp_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" required />
                     </div>
                     <div>
                       <label className="block text-[#495057] font-semibold mb-1">Whatsapp Call Number</label>
-                      <input type="text" value={settingsForm.whatsapp_call_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_call_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
+                      <input type="text" value={settingsForm.whatsapp_call_number} onChange={(e)=>setSettingsForm({...settingsForm, whatsapp_call_number: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" required />
                     </div>
                     <div>
                       <label className="block text-[#495057] font-semibold mb-1">App Download Link</label>
-                      <input type="text" value={settingsForm.app_download_link} onChange={(e)=>setSettingsForm({...settingsForm, app_download_link: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" />
+                      <input type="text" value={settingsForm.app_download_link} onChange={(e)=>setSettingsForm({...settingsForm, app_download_link: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded" required />
                     </div>
                     <div>
                       <label className="block text-[#495057] font-semibold mb-1">App Version</label>
-                      <input type="text" value={settingsForm.app_version} onChange={(e)=>setSettingsForm({...settingsForm, app_version: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded font-mono" />
+                      <input type="text" value={settingsForm.app_version} onChange={(e)=>setSettingsForm({...settingsForm, app_version: e.target.value})} className="w-full border border-[#CED4DA] p-2 rounded font-mono" required />
                     </div>
-                    <button onClick={()=>setStatusMessage('Settings updated successfully!')} className="bg-[#007BFF] text-white font-bold px-4 py-2 rounded text-xs shadow-sm">Save Settings</button>
-                  </div>
+                    <button type="submit" className="bg-[#007BFF] hover:bg-[#0069D9] text-white font-bold px-4 py-2 rounded text-xs shadow-sm">Save Settings</button>
+                  </form>
                 </div>
               </div>
             )}
