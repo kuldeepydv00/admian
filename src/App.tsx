@@ -2243,29 +2243,40 @@ export default function App() {
                   )}
 
                   {/* TAB 2: BANK DETAILS */}
-                  {userDetailsTab === 'bankDetails' && (
-                    <div className="p-6 space-y-4 text-xs">
-                      <h3 className="font-bold text-[#212529] text-sm border-b pb-2">Bank & Payment Accounts</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-[#F8F9FA] p-4 rounded border border-[#DEE2E6] space-y-2">
-                          <p className="text-gray-500 font-semibold">Account Holder:</p>
-                          <p className="text-sm font-bold text-[#212529]">{selectedUser.name}</p>
-                          <p className="text-gray-500 font-semibold pt-2">Bank Name:</p>
-                          <p className="text-sm font-bold text-[#007BFF]">{selectedUser.bankName || 'State Bank of India'}</p>
-                          <p className="text-gray-500 font-semibold pt-2">Account Number:</p>
-                          <p className="text-sm font-mono font-bold text-gray-800">{selectedUser.accountNumber || '394857102948'}</p>
-                        </div>
-                        <div className="bg-[#F8F9FA] p-4 rounded border border-[#DEE2E6] space-y-2">
-                          <p className="text-gray-500 font-semibold">Branch Name:</p>
-                          <p className="text-sm font-bold text-gray-800">{selectedUser.branchName || 'Main City Branch'}</p>
-                          <p className="text-gray-500 font-semibold pt-2">IFSC Code:</p>
-                          <p className="text-sm font-mono font-bold text-[#28A745]">{selectedUser.ifscCode || 'SBIN0001234'}</p>
-                          <p className="text-gray-500 font-semibold pt-2">UPI ID / PhonePe / GPay:</p>
-                          <p className="text-sm font-mono font-bold text-[#007BFF]">{selectedUser.upi || `${selectedUser.mobile}@upi`}</p>
+                  {userDetailsTab === 'bankDetails' && (() => {
+                    const userWds = withdrawals.filter(w => w.userId === selectedUser.id || w.user === selectedUser.name || (w.mobile && w.mobile.includes(selectedUser.mobile)));
+                    const lastWdWithBank = userWds.find(w => w.account_number || w.accountNumber || w.upi_id || w.upi);
+                    
+                    const bankName = selectedUser.bankName || lastWdWithBank?.bank_name || lastWdWithBank?.bankName || 'Not Provided';
+                    const accountNumber = selectedUser.accountNumber || lastWdWithBank?.account_number || lastWdWithBank?.accountNumber || 'Not Provided';
+                    const branchName = selectedUser.branchName || lastWdWithBank?.branch_name || lastWdWithBank?.branchName || 'Not Provided';
+                    const ifscCode = selectedUser.ifscCode || lastWdWithBank?.ifsc_code || lastWdWithBank?.ifscCode || 'Not Provided';
+                    const upiId = selectedUser.upi || lastWdWithBank?.upi_id || lastWdWithBank?.upi || 'Not Provided';
+
+                    return (
+                      <div className="p-6 space-y-4 text-xs">
+                        <h3 className="font-bold text-[#212529] text-sm border-b pb-2">Bank & Payment Accounts</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-[#F8F9FA] p-4 rounded border border-[#DEE2E6] space-y-2">
+                            <p className="text-gray-500 font-semibold">Account Holder:</p>
+                            <p className="text-sm font-bold text-[#212529]">{selectedUser.name}</p>
+                            <p className="text-gray-500 font-semibold pt-2">Bank Name:</p>
+                            <p className="text-sm font-bold text-[#007BFF]">{bankName}</p>
+                            <p className="text-gray-500 font-semibold pt-2">Account Number:</p>
+                            <p className="text-sm font-mono font-bold text-gray-800">{accountNumber}</p>
+                          </div>
+                          <div className="bg-[#F8F9FA] p-4 rounded border border-[#DEE2E6] space-y-2">
+                            <p className="text-gray-500 font-semibold">Branch Name:</p>
+                            <p className="text-sm font-bold text-gray-800">{branchName}</p>
+                            <p className="text-gray-500 font-semibold pt-2">IFSC Code:</p>
+                            <p className="text-sm font-mono font-bold text-[#28A745]">{ifscCode}</p>
+                            <p className="text-gray-500 font-semibold pt-2">UPI ID / PhonePe / GPay:</p>
+                            <p className="text-sm font-mono font-bold text-[#007BFF]">{upiId}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* TAB 3: WALLET TRANSACTIONS */}
                   {userDetailsTab === 'walletTransaction' && (
