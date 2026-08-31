@@ -424,7 +424,7 @@ export default function App() {
   const fetchLiveData = async () => {
     try {
       const [
-        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes, notifRes, bannerRes
+        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes, notifRes, bannerRes, versionRes
       ] = await Promise.all([
         fetch(`${API_BASE}/api/admin/stats`),
         fetch(`${API_BASE}/api/admin/users`),
@@ -435,13 +435,28 @@ export default function App() {
         fetch(`${API_BASE}/api/admin/winnings`),
         fetch(`${API_BASE}/api/admin/payment-methods`),
         fetch(`${API_BASE}/api/admin/notifications`),
-        fetch(`${API_BASE}/api/game/banner`)
+        fetch(`${API_BASE}/api/game/banner`),
+        fetch(`${API_BASE}/api/app/version`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
       if (notifRes.ok) {
         const notifData = await notifRes.json();
         if (Array.isArray(notifData)) setNotificationsList(notifData);
+      }
+      if (versionRes && versionRes.ok) {
+        try {
+          const vData = await versionRes.json();
+          if (vData) {
+            setAppVersionForm({
+              latestVersionCode: vData.latestVersionCode !== undefined ? vData.latestVersionCode : 1,
+              latestVersionName: vData.latestVersionName || 'v1.0.0',
+              apkUrl: vData.apkUrl || 'https://95xmatka.com/app-debug.apk',
+              updateMessage: vData.updateMessage || '🚀 A new performance update is available! Tap Update now to get the latest features.',
+              forceUpdate: vData.forceUpdate !== undefined ? vData.forceUpdate : false
+            });
+          }
+        } catch (e) {}
       }
       if (bannerRes && bannerRes.ok) {
         try {
@@ -938,9 +953,9 @@ export default function App() {
   };
 
   const [appVersionForm, setAppVersionForm] = useState({
-    latestVersionCode: 2,
-    latestVersionName: 'v1.0.2',
-    apkUrl: 'https://matka-website.vercel.app/app-debug.apk',
+    latestVersionCode: 1,
+    latestVersionName: 'v1.0.0',
+    apkUrl: 'https://95xmatka.com/app-debug.apk',
     updateMessage: '🚀 A new performance update is available! Tap Update now to get the latest features & instant wallet sync.',
     forceUpdate: false
   });
