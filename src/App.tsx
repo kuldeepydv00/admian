@@ -424,7 +424,7 @@ export default function App() {
   const fetchLiveData = async () => {
     try {
       const [
-        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes, notifRes, bannerRes, versionRes, settingsRes
+        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes, notifRes, bannerRes, versionRes, settingsRes, bannersListRes
       ] = await Promise.all([
         fetch(`${API_BASE}/api/admin/stats`),
         fetch(`${API_BASE}/api/admin/users`),
@@ -437,7 +437,8 @@ export default function App() {
         fetch(`${API_BASE}/api/admin/notifications`),
         fetch(`${API_BASE}/api/game/banner`),
         fetch(`${API_BASE}/api/app/version`),
-        fetch(`${API_BASE}/api/app/settings`)
+        fetch(`${API_BASE}/api/app/settings`),
+        fetch(`${API_BASE}/api/admin/banners`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
@@ -475,31 +476,39 @@ export default function App() {
           }
         } catch (e) {}
       }
+      let activeBannerData = null;
       if (bannerRes && bannerRes.ok) {
         try {
-          const bData = await bannerRes.json();
-          if (bData) {
+          activeBannerData = await bannerRes.json();
+          if (activeBannerData) {
             setBannerGlobalForm({
-              title: bData.title || '',
-              subtitle: bData.subtitle || '',
-              referralText: bData.referralText || '',
-              commissionText: bData.commissionText || '',
-              minDeposit: bData.minDeposit || '100',
-              minWithdrawal: bData.minWithdrawal || '300',
-              imageUrl: bData.imageUrl || '',
-              enabled: bData.enabled !== undefined ? bData.enabled : true
+              title: activeBannerData.title || '',
+              subtitle: activeBannerData.subtitle || '',
+              referralText: activeBannerData.referralText || '',
+              commissionText: activeBannerData.commissionText || '',
+              minDeposit: activeBannerData.minDeposit || '100',
+              minWithdrawal: activeBannerData.minWithdrawal || '300',
+              imageUrl: activeBannerData.imageUrl || '',
+              enabled: activeBannerData.enabled !== undefined ? activeBannerData.enabled : true
             });
-            if (bData.imageUrl) {
-              setBannersList([{
-                id: 'active_banner',
-                name: bData.title || 'Active Banner',
-                type: 'Image',
-                link: bData.imageUrl,
-                image: '',
-                previewUrl: bData.imageUrl,
-                status: bData.enabled ? 'Active' : 'Inactive'
-              }]);
-            }
+          }
+        } catch (e) {}
+      }
+      if (bannersListRes && bannersListRes.ok) {
+        try {
+          const blData = await bannersListRes.json();
+          if (Array.isArray(blData) && blData.length > 0) {
+            setBannersList(blData);
+          } else if (activeBannerData && activeBannerData.imageUrl) {
+            setBannersList([{
+              id: 'active_banner',
+              name: activeBannerData.title || 'Active Banner',
+              type: 'Image',
+              link: activeBannerData.imageUrl,
+              image: '',
+              previewUrl: activeBannerData.imageUrl,
+              status: activeBannerData.enabled ? 'Active' : 'Inactive'
+            }]);
           }
         } catch (e) {}
       }
@@ -725,13 +734,17 @@ export default function App() {
   const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bannerForm.name) return;
+    
+    let updatedList = [];
     if (editingBanner) {
-      setBannersList(bannersList.map(b => b.id === editingBanner.id ? { ...b, ...bannerForm } : b));
+      updatedList = bannersList.map(b => b.id === editingBanner.id ? { ...b, ...bannerForm } : b);
+      setBannersList(updatedList);
       setStatusMessage(`🎉 Banner "${bannerForm.name}" updated!`);
       setEditingBanner(null);
     } else {
       const newB = { id: `${Date.now()}`, ...bannerForm };
-      setBannersList([newB, ...bannersList]);
+      updatedList = [newB, ...bannersList];
+      setBannersList(updatedList);
       setStatusMessage(`🎉 Banner "${bannerForm.name}" added successfully!`);
     }
 
@@ -755,6 +768,17 @@ export default function App() {
         enabled: bannerForm.status === 'Active'
       }));
     } catch (err) {}
+
+    // Sync the entire banners list to backend
+    try {
+      await fetch(`${API_BASE}/api/admin/update-banners-list`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ banners: updatedList })
+      });
+    } catch (err) {
+      console.error('[Sync Banners List Error]', err);
+    }
 
     setShowAddBannerModal(false);
     setBannerForm({ name: '', type: 'Image', link: '', image: 'banner1.png', previewUrl: '', status: 'Active' });
@@ -4005,7 +4029,20 @@ export default function App() {
                           <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{b.status}</span></td>
                           <td className="p-2.5 text-right space-x-1">
                             <button onClick={() => { setEditingBanner(b); setBannerForm({ ...b, previewUrl: b.previewUrl || '' }); setShowAddBannerModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">Edit</button>
-                            <button onClick={() => setBannersList(bannersList.filter(x => x.id !== b.id))} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">Delete</button>
+                            <button onClick={async () => {
+                              const updatedList = bannersList.filter(x => x.id !== b.id);
+                              setBannersList(updatedList);
+                              try {
+                                await fetch(`${API_BASE}/api/admin/update-banners-list`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ banners: updatedList })
+                                });
+                                setStatusMessage('🎉 Banner deleted successfully!');
+                              } catch (err) {
+                                console.error('[Delete Banner Sync Error]', err);
+                              }
+                            }} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">Delete</button>
                           </td>
                         </tr>
                       ))}
