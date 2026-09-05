@@ -1,6 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // API Base URL
+
+const safeToISO = (val: any) => {
+  if (!val) return new Date().toISOString();
+  try {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  } catch (e) {}
+  return new Date().toISOString();
+};
+
+const safeGetTime = (val: any, fallback = 0) => {
+  if (!val) return fallback;
+  try {
+    const d = new Date(val);
+    const t = d.getTime();
+    if (!isNaN(t)) return t;
+  } catch (e) {}
+  return fallback;
+};
+
 const API_BASE = typeof window !== 'undefined' ? (window.location.origin.includes('localhost') ? 'http://localhost:5001' : window.location.origin) : 'https://matka-r6mz.onrender.com';
 
 // Canvas Chart Component for Deposits, Withdraws, etc.
@@ -102,12 +122,17 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
 
   // Active Tab State
-  const [activeTab, setActiveTab] = useState<
+  const [activeTab, setActiveTabRaw] = useState<
     'dashboard' | 'admins' | 'users' | 'gameLedger' | 'wallets' |
     'walletTransactions' | 'deposits' | 'withdraws' | 'commission' |
     'leaderboard' | 'payouts' | 'banners' | 'referral' | 'packages' | 'paymentMethods' | 'pushNotifications' | 'settings' |
     'userDetails' | 'userEdit' | 'bids' | 'results' | 'winnings' | 'gameHistory' | 'categories'
-  >('dashboard');
+  >(() => {
+    const saved = localStorage.getItem('adminActiveTab');
+    const validTabs = ['dashboard', 'admins', 'users', 'gameLedger', 'wallets', 'walletTransactions', 'deposits', 'withdraws', 'commission', 'leaderboard', 'payouts', 'banners', 'referral', 'packages', 'paymentMethods', 'pushNotifications', 'settings', 'bids', 'results', 'winnings', 'gameHistory', 'categories'];
+    return (saved && validTabs.includes(saved)) ? saved as any : 'dashboard';
+  });
+  const setActiveTab = (tab: any) => { localStorage.setItem('adminActiveTab', tab); setActiveTabRaw(tab); };
 
   // Matka Game Header Dropdown Open State
   const [matkaDropdownOpen, setMatkaDropdownOpen] = useState(false);
@@ -138,37 +163,33 @@ export default function App() {
   const [searchNumberInput, setSearchNumberInput] = useState('');
 
   // Smart Date Matching Helper to prevent date format mismatch
-  const isDateMatch = (recordDate?: string, filterDate?: string) => {
-    if (!filterDate || !filterDate.trim()) return true;
+  const isDateInRange = (recordDate?: string, startDateStr?: string, endDateStr?: string) => {
     if (!recordDate) return false;
-
-    const fTrim = filterDate.trim();
-    if (recordDate.includes(fTrim)) return true;
-
-    const fParts = fTrim.split(/[-/]/);
-    if (fParts.length === 3) {
-      let fDay = parseInt(fParts[0]);
-      let fMonth = parseInt(fParts[1]);
-      let fYear = parseInt(fParts[2]);
-
-      if (fParts[0].length === 4) {
-        fYear = parseInt(fParts[0]);
-        fMonth = parseInt(fParts[1]);
-        fDay = parseInt(fParts[2]);
+    const rDate = new Date(recordDate);
+    if (isNaN(rDate.getTime())) return true;
+    
+    rDate.setHours(0,0,0,0);
+    
+    const parseFilterDate = (dStr: string) => {
+      const parts = dStr.trim().split(/[-/]/);
+      if (parts.length === 3) {
+        if (parts[0].length === 4) return new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+        return new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
       }
+      return new Date(dStr);
+    };
 
-      const rDate = new Date(recordDate);
-      if (!isNaN(rDate.getTime())) {
-        if (
-          rDate.getDate() === fDay &&
-          rDate.getMonth() + 1 === fMonth &&
-          rDate.getFullYear() === fYear
-        ) {
-          return true;
-        }
-      }
+    if (startDateStr && startDateStr.trim()) {
+      const sDate = parseFilterDate(startDateStr);
+      if (!isNaN(sDate.getTime()) && rDate < sDate) return false;
     }
-    return false;
+    
+    if (endDateStr && endDateStr.trim()) {
+      const eDate = parseFilterDate(endDateStr);
+      if (!isNaN(eDate.getTime()) && rDate > eDate) return false;
+    }
+    
+    return true;
   };
 
   // Applied Active Filter States (Triggered by clicking Search button or submitting filter form)
@@ -211,6 +232,10 @@ export default function App() {
   const [stats, setStats] = useState<any>({});
   const [users, setUsers] = useState<any[]>([]);
 
+  const [gameSchedules, setGameSchedules] = useState<Record<string, any>>({});
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editScheduleForm, setEditScheduleForm] = useState({ open: '', close: '', result: '' });
+  
   const [categoriesList, setCategoriesList] = useState<any[]>([
     { id: '1', name: 'Desawar', seniority: 1, image: '', status: 'Active' },
     { id: '8', name: 'Shiv Parwati', seniority: 2, image: '', status: 'Active' },
@@ -224,6 +249,8 @@ export default function App() {
 
   const [bidsList, setBidsList] = useState<any[]>([]);
   const [resultsList, setResultsList] = useState<any[]>([]);
+  const [editingResult, setEditingResult] = useState<any>(null);
+  const [editResultNumber, setEditResultNumber] = useState('');
   const [winningsList, setWinningsList] = useState<any[]>([]);
   const [adminsList, setAdminsList] = useState<any[]>([]);
   const [bannersList, setBannersList] = useState<any[]>([]);
@@ -265,7 +292,7 @@ export default function App() {
   const [adminForm, setAdminForm] = useState({ name: '', username: '', mobile: '', password: '', role: 'Super Admin', status: 'Active' });
   const [paymentForm, setPaymentForm] = useState<any>({ name: 'PhonePe / GPay / Paytm UPI', upi_id: '8930507940@ybl', merchant_name: 'Matka Official', ordering: 1, status: 'Active' });
 
-  const [resultForm, setResultForm] = useState({ category: 'Desawar', resultDate: '29-08-2026', resultNumber: '', reResultNumber: '' });
+  const [resultForm, setResultForm] = useState({ category: 'Desawar', resultDate: new Date().toISOString().split('T')[0], resultNumber: '', reResultNumber: '' });
   const [categoryForm, setCategoryForm] = useState({ type: 'Matka', name: '', status: 'Active', seniority: 1, image: '', previewUrl: '', description: '' });
   const [referralCommissionPct, setReferralCommissionPct] = useState(4);
 
@@ -274,11 +301,12 @@ export default function App() {
   const [walletAmtInput, setWalletAmtInput] = useState('500');
 
   // Settings State
+  const settingsLoadedRef = useRef(false);
   const [settingsForm, setSettingsForm] = useState({
-    whatsapp_number: '+912121212121',
-    whatsapp_call_number: '+912121212121',
-    app_download_link: 'https://matka-website.vercel.app/app-debug.apk',
-    app_version: '3.0',
+    whatsapp_number: '+917027709695',
+    whatsapp_call_number: '+917027709695',
+    app_download_link: 'https://95xmatka.com/app-debug.apk',
+    app_version: '1.0.0',
     bank_withdrawal_enable: true,
     upi_withdrawal_enable: true,
     lucky_card_maintenance: false
@@ -315,7 +343,7 @@ export default function App() {
   };
 
   // Get market game breakdown totals & per-number stakes
-  const getMarketBreakdown = (categoryName: string) => {
+  const getMarketBreakdown = (categoryName: string, startDate?: string, endDate?: string) => {
     const jodiMap: { [key: string]: number } = {};
     const crossMap: { [key: string]: number } = {};
     const haroofAnderMap: { [key: string]: number } = {};
@@ -327,19 +355,25 @@ export default function App() {
 
     bidsList.forEach(b => {
       if (b.category === categoryName) {
+        if (startDate || endDate) {
+          const bDate = b.rawDate || b.date || safeToISO(b.created_at);
+          if (!isDateInRange(bDate, startDate, endDate)) return;
+        }
         const amt = parseFloat(b.amount) || 0;
-        const numStr = String(b.number !== undefined ? b.number : '00').padStart(2, '0');
         const gType = (b.gameType || '').toUpperCase();
+        const isHar = gType.includes('HAROOF') || gType.includes('HAROP') || gType.includes('HROPE') || gType.includes('ANDER') || gType.includes('BAHAR') || gType.includes('HARUF');
+        const numStr = isHar ? String(b.number !== undefined ? b.number : '0') : String(b.number !== undefined ? b.number : '00').padStart(2, '0');
 
         if (gType.includes('CROSS')) {
           crossMap[numStr] = (crossMap[numStr] || 0) + amt;
           crossTotal += amt;
-        } else if (gType.includes('HAROOF') || gType.includes('HAROP') || gType.includes('HROPE') || gType.includes('ANDER') || gType.includes('BAHAR')) {
-          if (gType.includes('BAHAR')) {
-            const digit = `B${numStr.slice(-1)}`;
+        } else if (isHar) {
+          const digitNum = parseInt(numStr) % 10;
+          if (gType.includes('BAHAR') || gType.includes('HAROOF_B')) {
+            const digit = `B${digitNum}`;
             haroofBaharMap[digit] = (haroofBaharMap[digit] || 0) + amt;
           } else {
-            const digit = `A${numStr.slice(-1)}`;
+            const digit = `A${digitNum}`;
             haroofAnderMap[digit] = (haroofAnderMap[digit] || 0) + amt;
           }
           haroofTotal += amt;
@@ -424,8 +458,8 @@ export default function App() {
   const fetchLiveData = async () => {
     try {
       const [
-        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes, notifRes, bannerRes, versionRes, settingsRes, bannersListRes
-      ] = await Promise.all([
+        statsRes, usersRes, adminsRes, depRes, wdRes, bidsRes, winRes, pmRes, notifRes, bannerRes, versionRes, settingsRes, bannersListRes, resultsRes
+      , schedRes] = await Promise.all([
         fetch(`${API_BASE}/api/admin/stats`),
         fetch(`${API_BASE}/api/admin/users`),
         fetch(`${API_BASE}/api/admin/admins`),
@@ -438,7 +472,9 @@ export default function App() {
         fetch(`${API_BASE}/api/game/banner`),
         fetch(`${API_BASE}/api/app/version`),
         fetch(`${API_BASE}/api/app/settings`),
-        fetch(`${API_BASE}/api/admin/banners`)
+        fetch(`${API_BASE}/api/admin/banners`),
+        fetch(`${API_BASE}/api/admin/results-history`),
+        fetch(`${API_BASE}/api/game/schedules`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
@@ -446,6 +482,8 @@ export default function App() {
         const notifData = await notifRes.json();
         if (Array.isArray(notifData)) setNotificationsList(notifData);
       }
+      if (schedRes && schedRes.ok) setGameSchedules(await schedRes.json());
+      
       if (versionRes && versionRes.ok) {
         try {
           const vData = await versionRes.json();
@@ -463,7 +501,8 @@ export default function App() {
       if (settingsRes && settingsRes.ok) {
         try {
           const sData = await settingsRes.json();
-          if (sData) {
+          if (sData && (!settingsLoadedRef.current || activeTab !== 'settings')) {
+            settingsLoadedRef.current = true;
             setSettingsForm({
               whatsapp_number: sData.whatsapp_number || '+917027709695',
               whatsapp_call_number: sData.whatsapp_call_number || '+917027709695',
@@ -543,18 +582,42 @@ export default function App() {
       if (bidsRes.ok) {
         const rawBids = await bidsRes.json();
         if (Array.isArray(rawBids)) {
-          const formatted = rawBids.map((b: any, idx: number) => ({
-            id: b._id || b.id || `bid_${idx}_${Date.now()}`,
-            date: b.created_at ? new Date(b.created_at).toLocaleString() : '2026-08-29 09:51:51',
-            user: b.user || b.username || 'User',
-            phone: b.mobile || (b.user && b.user.includes('(') ? b.user.split('(')[1].replace(')', '') : '7027709695'),
-            category: b.game_name || b.category || 'Delhi Bazar',
-            gameType: b.bet_type || b.gameType || 'jodi',
-            number: String(b.number !== undefined ? b.number : '00').padStart(2, '0'),
-            amount: b.bet_amount || b.amount || 10,
-            status: b.status === 'won' ? 'Won' : (b.status === 'lost' ? 'Lost' : 'Pending')
-          }));
+          const formatted = rawBids.map((b: any, idx: number) => {
+            const gType = String(b.bet_type || b.gameType || 'jodi').toUpperCase();
+            const isHaroof = gType.includes('HAR') || gType.includes('ANDER') || gType.includes('BAHAR');
+            const numStr = isHaroof 
+              ? String(b.number !== undefined ? b.number : '0') 
+              : (String(b.number) === '0' || String(b.number) === '100' ? '00' : String(b.number !== undefined ? b.number : '00').padStart(2, '0'));
+            
+            return {
+              id: b._id || b.id || `bid_${idx}_${Date.now()}`,
+              date: b.created_at ? new Date(b.created_at).toLocaleString() : '2026-08-29 09:51:51',
+              rawDate: safeToISO(b.created_at),
+              user: b.user || b.username || 'User',
+              phone: b.mobile || (b.user && b.user.includes('(') ? b.user.split('(')[1].replace(')', '') : '7027709695'),
+              category: b.game_name || b.category || 'Delhi Bazar',
+              gameType: b.bet_type || b.gameType || 'jodi',
+              number: numStr,
+              amount: b.bet_amount || b.amount || 10,
+              status: b.status === 'won' ? 'Won' : (b.status === 'lost' ? 'Lost' : 'Pending')
+            };
+          });
           setBidsList(formatted);
+        }
+      }
+      if (resultsRes && resultsRes.ok) {
+        const rData = await resultsRes.json();
+        if (Array.isArray(rData)) {
+          const mappedResults = rData.map(r => ({
+            id: r._id || r.id,
+            date: r.date || r.created_at ? new Date(r.created_at || r.date).toLocaleDateString() : 'N/A',
+            rawDate: safeToISO(r.created_at || r.date),
+            category: r.game_name || r.category,
+            resultNumber: String(r.number || r.resultNumber || '00').padStart(2, '0'),
+            createdAt: r.created_at ? new Date(r.created_at).toLocaleString() : 'N/A',
+            resultBy: r.declared_by || r.resultBy || 'Admin'
+          }));
+          setResultsList(mappedResults);
         }
       }
     } catch (err) {}
@@ -569,10 +632,28 @@ export default function App() {
   }, [isAuthenticated]);
 
   // EDIT BID NUMBER HANDLER
+  const handleDeleteBid = async (b: any) => {
+    if (!confirm(`Are you sure you want to delete bid for ${b.number}?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/bids/${b.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setBidsList(prev => prev.filter(x => x.id !== b.id));
+        setStatusMessage(`🗑️ Bid deleted successfully.`);
+        // Refund handled by backend
+      } else {
+        alert('Failed to delete bid');
+      }
+    } catch (err) {
+      alert('Network error');
+    }
+  };
+
   const handleSaveEditBid = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editBidForm.number) return;
-    const newNum = String(editBidForm.number).padStart(2, '0');
+    if (!editBidForm.number && editBidForm.number !== '0') return;
+    const gType = String(editBidForm.gameType || '').toUpperCase();
+    const isHar = gType.includes('HAR') || gType.includes('ANDER') || gType.includes('BAHAR');
+    const newNum = isHar ? String(parseInt(editBidForm.number) % 10) : (String(editBidForm.number) === '0' || String(editBidForm.number) === '100' ? '00' : String(editBidForm.number).padStart(2, '0'));
     const newAmt = parseFloat(editBidForm.amount as any) || 10;
 
     // 1. Instantly update React state
@@ -632,11 +713,29 @@ export default function App() {
     setResultsList([newRes, ...resultsList]);
 
     // Check for winning bids matching declared number
-    const matchingBids = bidsList.filter(b => b.category === resultForm.category && b.number === resultForm.resultNumber);
+    const resNumPadded = String(resultForm.resultNumber).padStart(2, '0');
+    const anderDigit = resNumPadded.charAt(0);
+    const baharDigit = resNumPadded.charAt(1);
+
+    const isWinningBid = (b: any) => {
+      if (b.category !== resultForm.category) return false;
+      const gType = (b.gameType || '').toUpperCase();
+      const isHar = gType.includes('HAR') || gType.includes('ANDER') || gType.includes('BAHAR');
+      if (isHar) {
+        if (gType.includes('BAHAR') || gType.includes('HAROOF_B')) {
+          return String(b.number) === baharDigit;
+        } else {
+          return String(b.number) === anderDigit;
+        }
+      }
+      return b.number === resNumPadded || b.number === resultForm.resultNumber;
+    };
+
+    const matchingBids = bidsList.filter(isWinningBid);
     let winningSum = 0;
 
     // Update winning bids status to 'Won'
-    setBidsList(prev => prev.map(b => (b.category === resultForm.category && b.number === resultForm.resultNumber) ? { ...b, status: 'Won' } : b));
+    setBidsList(prev => prev.map(b => isWinningBid(b) ? { ...b, status: 'Won' } : b));
 
     matchingBids.forEach(b => {
       const winAmt = b.amount * 9.5;
@@ -665,10 +764,37 @@ export default function App() {
 
     setStatusMessage(`🎉 Result "${resultForm.resultNumber}" declared for ${resultForm.category}! Winners credited automatically.`);
     setShowAddResultModal(false);
-    setResultForm({ category: 'Desawar', resultDate: '29-08-2026', resultNumber: '', reResultNumber: '' });
+    setResultForm({ category: 'Desawar', resultDate: new Date().toISOString().split('T')[0], resultNumber: '', reResultNumber: '' });
   };
 
   // CLEAR / RESET RESULT HANDLER
+  const handleEditResultSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingResult) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/edit-result`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: editingResult.id, 
+          game_name: editingResult.category, 
+          new_number: editResultNumber,
+          date_key: editingResult.date
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatusMessage(`✅ Result for ${editingResult.category} updated to ${editResultNumber}`);
+        setResultsList(prev => prev.map(x => x.id === editingResult.id ? { ...x, resultNumber: String(editResultNumber).padStart(2, '0') } : x));
+        setEditingResult(null);
+      } else {
+        alert(data.message || 'Error updating result');
+      }
+    } catch(err) {
+      alert('Network error');
+    }
+  };
+
   const handleClearResult = async (r: any) => {
     if (!confirm(`Are you sure you want to reset/clear result for ${r.category}?`)) return;
     try {
@@ -683,6 +809,33 @@ export default function App() {
   };
 
   // CATEGORY HANDLERS
+  const handleEditScheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCategory) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/update-schedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          name: editingCategory.name,
+          open: editScheduleForm.open,
+          close: editScheduleForm.close,
+          result: editScheduleForm.result
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatusMessage(`✅ Schedule updated for ${editingCategory.name}`);
+        setGameSchedules(data.schedules);
+        setEditingCategory(null);
+      } else {
+        alert(data.message || 'Error updating schedule');
+      }
+    } catch(err) {
+      alert('Network error');
+    }
+  };
+
   const handleSaveCategory = (e: React.FormEvent) => {
     e.preventDefault();
     if (!categoryForm.name) return;
@@ -1025,8 +1178,13 @@ export default function App() {
       });
       if (res.ok) {
         setStatusMessage('🚀 Settings Configuration Saved & Live!');
+        alert('Settings updated successfully! WhatsApp numbers synced across App and Website.');
+      } else {
+        alert('Failed to save settings');
       }
-    } catch (err) {}
+    } catch (err: any) {
+      alert('Error saving settings: ' + (err.message || err));
+    }
   };
 
   const [bannerGlobalForm, setBannerGlobalForm] = useState({
@@ -1133,11 +1291,36 @@ export default function App() {
     } catch (err) {}
   };
 
-  // Calculate Market Total Beted Amount for Result Declaration Modal
-  const getMarketBetTotal = (catName: string) => {
+  // Calculate Market Total Beted Amount for Result Declaration Modal (date-specific)
+  const getMarketBetTotal = (catName: string, dateStr?: string) => {
+    const targetDate = dateStr || resultForm.resultDate || new Date().toISOString().split('T')[0];
     return bidsList
-      .filter(b => b.category.toLowerCase() === catName.toLowerCase())
-      .reduce((sum, b) => sum + (b.amount || 0), 0);
+      .filter(b => {
+        const catMatch = String(b.category || '').trim().toLowerCase() === String(catName || '').trim().toLowerCase();
+        if (!catMatch) return false;
+        
+        const bDateVal = b.rawDate || b.date || b.created_at;
+        if (!bDateVal) return false;
+
+        try {
+          const d = new Date(bDateVal);
+          if (!isNaN(d.getTime())) {
+            const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            if (dStr === targetDate) return true;
+          }
+          const str = String(bDateVal);
+          if (str.includes(targetDate)) return true;
+        } catch (e) {}
+
+        return false;
+      })
+      .reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0);
+  };
+
+  const getMarketLifetimeTotal = (catName: string) => {
+    return bidsList
+      .filter(b => String(b.category || '').trim().toLowerCase() === String(catName || '').trim().toLowerCase())
+      .reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0);
   };
 
   // LOGIN SCREEN
@@ -1370,15 +1553,26 @@ export default function App() {
                     <label className="block font-bold text-[#212529] mb-1">Game Type</label>
                     <select value={filterGameType} onChange={(e)=>{ setFilterGameType(e.target.value); setAppliedGameType(e.target.value); }} className="w-full border border-[#CED4DA] p-1.5 rounded">
                       <option value="All">All</option>
-                      <option value="Single Jodi">Single Jodi</option>
-                      <option value="Single Panna">Single Panna</option>
-                      <option value="Double Panna">Double Panna</option>
-                      <option value="Triple Panna">Triple Panna</option>
+                      <option value="Jodi">Jodi</option>
+                      <option value="Crossing">Crossing</option>
+                      <option value="Haroof Ander">Haroof Ander</option>
+                      <option value="Haroof Bahar">Haroof Bahar</option>
                     </select>
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Start Date</label>
-                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} placeholder="DD-MM-YYYY" className="w-full border border-[#CED4DA] p-1.5 rounded" />
+                    <div className="relative flex items-center w-full">
+                      <input 
+                        type="date" 
+                        value={filterStartDate} 
+                        onChange={(e)=>setFilterStartDate(e.target.value)} 
+                        onClick={(e) => (e.target as any).showPicker && (e.target as any).showPicker()}
+                        className="w-full border border-[#CED4DA] p-1.5 rounded pr-8"
+                      />
+                      <svg className="absolute right-2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                    </div>
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Search Number</label>
@@ -1431,8 +1625,7 @@ export default function App() {
                         // Date check
                         const sDate = appliedStartDate || filterStartDate;
                         const eDate = appliedEndDate || filterEndDate;
-                        if (sDate && sDate.trim() && !isDateMatch(b.date, sDate)) return false;
-                        if (eDate && eDate.trim() && !isDateMatch(b.date, eDate)) return false;
+                        if (!isDateInRange(b.rawDate || b.date, sDate, eDate)) return false;
 
                         return true;
                       }).map((b, i) => (
@@ -1450,7 +1643,7 @@ export default function App() {
                             <button onClick={() => { setEditBidForm(b); setShowEditBidModal(true); }} className="bg-[#007BFF] hover:bg-[#0069D9] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Edit Bid Number">✏️</button>
                             
                             {/* 🗑️ DELETE BID BUTTON MATCHING MEDIA_1787978845834.PNG */}
-                            <button onClick={() => setBidsList(bidsList.filter(x => x.id !== b.id))} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Delete Bid">🗑️</button>
+                            <button onClick={() => handleDeleteBid(b)} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Delete Bid">🗑️</button>
                           </td>
                         </tr>
                       ))}
@@ -1498,15 +1691,37 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Start Date</label>
-                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                    <div className="relative flex items-center w-full">
+                      <input 
+                        type="date" 
+                        value={filterStartDate} 
+                        onChange={(e)=>setFilterStartDate(e.target.value)} 
+                        onClick={(e) => (e.target as any).showPicker && (e.target as any).showPicker()}
+                        className="border border-[#CED4DA] p-1.5 rounded pr-8"
+                      />
+                      <svg className="absolute right-2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                    </div>
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">End Date</label>
-                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} className="border border-[#CED4DA] p-1.5 rounded" />
+                    <div className="relative flex items-center w-full">
+                      <input 
+                        type="date" 
+                        value={filterEndDate} 
+                        onChange={(e)=>setFilterEndDate(e.target.value)} 
+                        onClick={(e) => (e.target as any).showPicker && (e.target as any).showPicker()}
+                        className="border border-[#CED4DA] p-1.5 rounded pr-8"
+                      />
+                      <svg className="absolute right-2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                    </div>
                   </div>
                   <div className="flex gap-2">
-                    <button className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
-                    <button onClick={()=>{ setFilterCategory('All'); }} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm">Clear</button>
+                    <button onClick={handleExecuteSearch} className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
+                    <button onClick={handleClearFilters} className="bg-white border border-[#CED4DA] text-[#212529] px-4 py-1.5 rounded font-bold shadow-sm">Clear</button>
                   </div>
                 </div>
 
@@ -1525,13 +1740,21 @@ export default function App() {
                     </thead>
                     <tbody>
                       {resultsList.filter(r => {
-                        if (filterCategory !== 'All' && r.category !== filterCategory) return false;
-                        if (filterSearch.trim()) {
-                          const q = filterSearch.toLowerCase().trim();
-                          return (r.category && r.category.toLowerCase().includes(q)) ||
+                        const targetCat = appliedCategory !== 'All' ? appliedCategory : filterCategory;
+                        if (targetCat !== 'All' && r.category !== targetCat) return false;
+                        
+                        const q = (appliedSearch || filterSearch).toLowerCase().trim();
+                        if (q) {
+                          const matches = (r.category && r.category.toLowerCase().includes(q)) ||
                                  (r.resultNumber && r.resultNumber.includes(q)) ||
                                  (r.resultBy && r.resultBy.toLowerCase().includes(q));
+                          if (!matches) return false;
                         }
+
+                        const sDate = appliedStartDate || filterStartDate;
+                        const eDate = appliedEndDate || filterEndDate;
+                        if (!isDateInRange(r.date, sDate, eDate)) return false;
+
                         return true;
                       }).map((r, i) => (
                         <tr key={i} className="hover:bg-[#F4F6F9]">
@@ -1541,7 +1764,8 @@ export default function App() {
                           <td className="p-2.5 border-r border-[#DEE2E6] font-mono font-bold text-lg text-[#007BFF]">{r.resultNumber}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6]">{r.createdAt}</td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{r.resultBy}</td>
-                          <td className="p-2.5 text-right">
+                          <td className="p-2.5 text-right flex justify-end gap-1">
+                            <button onClick={() => { setEditingResult(r); setEditResultNumber(r.resultNumber); }} className="bg-[#FFC107] hover:bg-[#E0A800] text-black px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Edit Result">✏️</button>
                             <button onClick={() => handleClearResult(r)} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Clear / Reset Result">🔄</button>
                           </td>
                         </tr>
@@ -1585,11 +1809,33 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Start Date</label>
-                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} placeholder="DD-MM-YYYY" className="border border-[#CED4DA] p-1.5 rounded" />
+                    <div className="relative flex items-center w-full">
+                      <input 
+                        type="date" 
+                        value={filterStartDate} 
+                        onChange={(e)=>setFilterStartDate(e.target.value)} 
+                        onClick={(e) => (e.target as any).showPicker && (e.target as any).showPicker()}
+                        className="border border-[#CED4DA] p-1.5 rounded pr-8"
+                      />
+                      <svg className="absolute right-2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                    </div>
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">End Date</label>
-                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} placeholder="DD-MM-YYYY" className="border border-[#CED4DA] p-1.5 rounded" />
+                    <div className="relative flex items-center w-full">
+                      <input 
+                        type="date" 
+                        value={filterEndDate} 
+                        onChange={(e)=>setFilterEndDate(e.target.value)} 
+                        onClick={(e) => (e.target as any).showPicker && (e.target as any).showPicker()}
+                        className="border border-[#CED4DA] p-1.5 rounded pr-8"
+                      />
+                      <svg className="absolute right-2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button type="submit" onClick={handleExecuteSearch} className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
@@ -1630,8 +1876,7 @@ export default function App() {
                         // Date range check
                         const sDate = appliedStartDate || filterStartDate;
                         const eDate = appliedEndDate || filterEndDate;
-                        if (sDate && sDate.trim() && !isDateMatch(w.dateOfWinning, sDate)) return false;
-                        if (eDate && eDate.trim() && !isDateMatch(w.dateOfWinning, eDate)) return false;
+                        if (!isDateInRange(w.dateOfWinning, sDate, eDate)) return false;
 
                         return true;
                       }).map((w, i) => (
@@ -1693,11 +1938,33 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">Start Date</label>
-                    <input type="text" value={filterStartDate} onChange={(e)=>setFilterStartDate(e.target.value)} placeholder="DD-MM-YYYY" className="border border-[#CED4DA] p-1.5 rounded" />
+                    <div className="relative flex items-center w-full">
+                      <input 
+                        type="date" 
+                        value={filterStartDate} 
+                        onChange={(e)=>setFilterStartDate(e.target.value)} 
+                        onClick={(e) => (e.target as any).showPicker && (e.target as any).showPicker()}
+                        className="border border-[#CED4DA] p-1.5 rounded pr-8"
+                      />
+                      <svg className="absolute right-2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                    </div>
                   </div>
                   <div>
                     <label className="block font-bold text-[#212529] mb-1">End Date</label>
-                    <input type="text" value={filterEndDate} onChange={(e)=>setFilterEndDate(e.target.value)} placeholder="DD-MM-YYYY" className="border border-[#CED4DA] p-1.5 rounded" />
+                    <div className="relative flex items-center w-full">
+                      <input 
+                        type="date" 
+                        value={filterEndDate} 
+                        onChange={(e)=>setFilterEndDate(e.target.value)} 
+                        onClick={(e) => (e.target as any).showPicker && (e.target as any).showPicker()}
+                        className="border border-[#CED4DA] p-1.5 rounded pr-8"
+                      />
+                      <svg className="absolute right-2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button type="submit" onClick={handleExecuteSearch} className="bg-[#28A745] hover:bg-[#218838] text-white px-4 py-1.5 rounded font-bold shadow-sm">Search</button>
@@ -1725,12 +1992,19 @@ export default function App() {
                         if (targetCat !== 'All' && c.name !== targetCat) return false;
                         return true;
                       }).map((c, i) => {
-                        const bd = getMarketBreakdown(c.name);
+                        const sDate = appliedStartDate || filterStartDate;
+                        const eDate = appliedEndDate || filterEndDate;
+                        const bd = getMarketBreakdown(c.name, sDate, eDate);
                         const bonusAmt = (bd.totalInvestment * 0.0005).toFixed(2);
+                        
+                        let displayDate = 'All Time';
+                        if (sDate && eDate && sDate === eDate) displayDate = sDate;
+                        else if (sDate || eDate) displayDate = `${sDate || '?'} to ${eDate || '?'}`;
+                        
                         return (
                           <tr key={i} className="hover:bg-[#F4F6F9] align-top">
                             <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
-                            <td className="p-2.5 border-r border-[#DEE2E6]">2026-08-29</td>
+                            <td className="p-2.5 border-r border-[#DEE2E6] font-mono whitespace-nowrap">{displayDate}</td>
                             <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{c.name}</td>
                             <td className="p-2.5 border-r border-[#DEE2E6] font-mono space-y-1">
                               {bd.crossTotal > 0 && <div>Cross Amount:- {bd.crossTotal}</div>}
@@ -1764,7 +2038,11 @@ export default function App() {
                     let totalBet = 0;
                     let totalWin = 0;
                     categoriesList.forEach(c => {
-                      const bd = getMarketBreakdown(c.name);
+                      const targetCat = appliedCategory !== 'All' ? appliedCategory : filterCategory;
+                      if (targetCat !== 'All' && c.name !== targetCat) return;
+                      const sDate = appliedStartDate || filterStartDate;
+                      const eDate = appliedEndDate || filterEndDate;
+                      const bd = getMarketBreakdown(c.name, sDate, eDate);
                       totalBet += bd.totalInvestment;
                       totalWin += bd.totalWinningAmount;
                     });
@@ -1821,7 +2099,9 @@ export default function App() {
                         <th className="p-2.5 border-r border-[#DEE2E6]">Category Status ⇅</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Category Image</th>
                         <th className="p-2.5 border-r border-[#DEE2E6]">Category Name ⇅</th>
-                        <th className="p-2.5 border-r border-[#DEE2E6]">Category Seniority ⇅</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Open Time</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Close Time</th>
+                        <th className="p-2.5 border-r border-[#DEE2E6]">Result Time</th>
                         <th className="p-2.5 text-center">Action</th>
                       </tr>
                     </thead>
@@ -1838,11 +2118,16 @@ export default function App() {
                             )}
                           </td>
                           <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{c.name}</td>
-                          <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{c.seniority}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px]">{(gameSchedules[c.name] && gameSchedules[c.name].open) || 'N/A'}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px]">{(gameSchedules[c.name] && gameSchedules[c.name].close) || 'N/A'}</td>
+                          <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-[11px] text-[#28A745]">{(gameSchedules[c.name] && gameSchedules[c.name].result) || 'N/A'}</td>
                           <td className="p-2.5 text-center space-x-1">
-                            <button className="bg-[#FFC107] text-[#212529] px-2 py-1 rounded text-[10px] font-bold">👁️</button>
-                            <button className="bg-[#17A2B8] text-white px-2 py-1 rounded text-[10px] font-bold">✏️</button>
-                            <button onClick={()=>setCategoriesList(categoriesList.filter(x=>x.id!==c.id))} className="bg-[#DC3545] text-white px-2 py-1 rounded text-[10px] font-bold">🗑️</button>
+                            <button onClick={() => {
+                              setEditingCategory(c);
+                              const sched = gameSchedules[c.name] || { open: '', close: '', result: '' };
+                              setEditScheduleForm({ open: sched.open, close: sched.close, result: sched.result });
+                            }} className="bg-[#17A2B8] hover:bg-[#138496] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm" title="Edit Schedule">✏️ Edit</button>
+                            <button onClick={()=>setCategoriesList(categoriesList.filter(x=>x.id!==c.id))} className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm">🗑️</button>
                           </td>
                         </tr>
                       ))}
@@ -1888,7 +2173,7 @@ export default function App() {
                     const todayWinVal = stats.todayWinnings !== undefined ? stats.todayWinnings : winningsList.filter(w => isToday(w.dateOfWinning || w.date)).reduce((s, w) => s + (parseFloat(w.amount) || 0), 0);
 
                     const totalBetVal = stats.totalBetting !== undefined ? stats.totalBetting : bidsList.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
-                    const todayBetVal = stats.todayBetting !== undefined ? stats.todayBetting : bidsList.filter(b => isToday(b.date)).reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
+                    const todayBetVal = stats.todayBetting !== undefined ? stats.todayBetting : bidsList.filter(b => isToday(b.rawDate || b.date || b.created_at)).reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
 
                     const totalBalVal = stats.totalBalanceWallet !== undefined ? stats.totalBalanceWallet : users.reduce((s, u) => s + (parseFloat(u.balance) || 0), 0);
                     const totalDepBalVal = stats.totalDepositWallet !== undefined ? stats.totalDepositWallet : users.reduce((s, u) => s + (parseFloat(u.deposit_balance) || 0), 0);
@@ -2113,7 +2398,22 @@ export default function App() {
                                   ✏️
                                 </button>
                                 <button
-                                  onClick={() => setUsers(users.filter(x => x.id !== u.id))}
+                                  onClick={async () => {
+                                    if (window.confirm('Are you sure you want to permanently delete this user?')) {
+                                      try {
+                                        const res = await fetch(`${API_BASE}/api/admin/users/${u.id}`, { method: 'DELETE' });
+                                        const data = await res.json();
+                                        if (data.success) {
+                                          setUsers(users.filter(x => x.id !== u.id));
+                                          alert('User deleted permanently.');
+                                        } else {
+                                          alert('Failed to delete user.');
+                                        }
+                                      } catch (err) {
+                                        alert('Error deleting user.');
+                                      }
+                                    }
+                                  }}
                                   className="bg-[#DC3545] hover:bg-[#C82333] text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm"
                                   title="Delete User"
                                 >
@@ -2184,16 +2484,34 @@ export default function App() {
                         <span className="px-2.5 py-0.5 bg-[#007BFF] text-white rounded text-[11px] font-bold">Active</span>
 
                         {(() => {
-                          const realDep = deposits
-                            .filter(d => (d.userId === selectedUser.id || d.user === selectedUser.name || (d.mobile && d.mobile.includes(selectedUser.mobile))) && d.status === 'Approved')
-                            .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0) || (selectedUser.deposit_balance !== undefined ? selectedUser.deposit_balance : 0);
+                          const cleanMobile = String(selectedUser.mobile || '').replace(/[^0-9]/g, '').slice(-10);
+
+                          const recordedDep = deposits
+                            .filter(d => {
+                              const dm = String(d.mobile || d.userPhone || d.user || '').replace(/[^0-9]/g, '').slice(-10);
+                              return dm === cleanMobile && d.status === 'Approved';
+                            })
+                            .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+
+                          const userBidsForDep = bidsList.filter(b => {
+                            const bm = String(b.mobile || b.phone || b.user || '').replace(/[^0-9]/g, '').slice(-10);
+                            return bm === cleanMobile;
+                          });
+                          const totalBetSpent = userBidsForDep.reduce((sum, b) => sum + ((parseFloat(b.amount) || 10) * 0.9), 0);
+                          const realDep = Math.max(recordedDep, (parseFloat(selectedUser.deposit_balance) || 0) + totalBetSpent);
 
                           const realWin = (winningsList || [])
-                            .filter(w => w.user === selectedUser.name || w.phone === selectedUser.mobile)
-                            .reduce((sum, w) => sum + (parseFloat(w.win_amount || w.amount) || 0), 0) || (selectedUser.winning_balance !== undefined ? selectedUser.winning_balance : 0);
+                            .filter(w => {
+                              const wm = String(w.mobile || w.phone || w.user || '').replace(/[^0-9]/g, '').slice(-10);
+                              return wm === cleanMobile;
+                            })
+                            .reduce((sum, w) => sum + (parseFloat(w.win_amount || w.amount) || 0), 0);
 
                           const realWd = withdrawals
-                            .filter(w => (w.userId === selectedUser.id || w.user === selectedUser.name) && w.status === 'Approved')
+                            .filter(w => {
+                              const wm = String(w.mobile || w.userPhone || w.user || '').replace(/[^0-9]/g, '').slice(-10);
+                              return wm === cleanMobile && w.status === 'Approved';
+                            })
                             .reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
 
                           return (
@@ -2296,29 +2614,65 @@ export default function App() {
                           </thead>
                           <tbody>
                             {(() => {
-                              const userDeps = deposits.filter(d => d.userId === selectedUser.id || d.user === selectedUser.name || (d.mobile && d.mobile.includes(selectedUser.mobile)));
-                              const userWds = withdrawals.filter(w => w.userId === selectedUser.id || w.user === selectedUser.name || (w.mobile && w.mobile.includes(selectedUser.mobile)));
+                              const cleanMob = String(selectedUser.mobile || '').replace(/[^0-9]/g, '').slice(-10);
 
-                              const realTxns = [
+                              const matchesUser = (item: any) => {
+                                const raw = String(item.mobile || item.phone || item.userPhone || item.user || item.username || '').replace(/[^0-9]/g, '');
+                                const m = raw.length >= 10 ? raw.slice(-10) : '';
+                                if (m && cleanMob && m === cleanMob) return true;
+                                if (item.userId && String(item.userId) === String(selectedUser.id)) return true;
+                                return false;
+                              };
+
+                              const userDeps = (deposits || []).filter(d => matchesUser(d));
+                              const userWds = (withdrawals || []).filter(w => matchesUser(w));
+                              const userBids = (bidsList || []).filter(b => matchesUser(b));
+
+                              const allTxns: any[] = [
                                 {
                                   id: `bonus_${selectedUser.id || selectedUser.mobile}`,
                                   type: 'Joining Bonus',
                                   amount: '+₹200.00',
-                                  date: selectedUser.createdAt ? selectedUser.createdAt.replace('T', ' ').slice(0, 19) : '2026-08-29 09:50:00',
-                                  status: 'Approved'
+                                  date: selectedUser.createdAt ? selectedUser.createdAt.replace('T', ' ').slice(0, 19) : 'Today',
+                                  status: 'Approved',
+                                  rawDate: selectedUser.createdAt ? new Date(selectedUser.createdAt).getTime() : 0
                                 },
-                                ...userDeps.map((d, idx) => ({ id: `dep_${d.id || idx}`, type: d.payment_method ? `Deposit (${d.payment_method})` : 'Deposit UPI', amount: `+₹${d.amount}.00`, date: d.date || d.created_at || 'Today', status: d.status || 'Approved' })),
-                                ...userWds.map((w, idx) => ({ id: `wd_${w.id || idx}`, type: 'Withdrawal', amount: `-₹${w.amount}.00`, date: w.date || w.created_at || 'Today', status: w.status || 'Approved' }))
+                                ...userDeps.map((d, idx) => ({
+                                  id: String(d._id || d.id || `dep_${idx}`),
+                                  type: d.method || d.payment_method ? `Deposit (${d.method || d.payment_method})` : 'Deposit',
+                                  amount: `+₹${(parseFloat(d.amount) || 0).toFixed(2)}`,
+                                  date: d.date || d.createdAt || 'Today',
+                                  status: d.status || 'Approved',
+                                  rawDate: d.createdAt ? new Date(d.createdAt).getTime() : 1
+                                })),
+                                ...userBids.map((b, idx) => ({
+                                  id: String(b.id || `bet_${idx}`),
+                                  type: `Bet Placed (${b.category || 'Game'} - #${b.number})`,
+                                  amount: `-₹${(parseFloat(b.amount) || 0).toFixed(2)}`,
+                                  date: b.date || 'Today',
+                                  status: b.status || 'Pending',
+                                  rawDate: b.rawDate ? new Date(b.rawDate).getTime() : 2
+                                })),
+                                ...userWds.map((w, idx) => ({
+                                  id: String(w._id || w.id || `wd_${idx}`),
+                                  type: 'Withdrawal',
+                                  amount: `-₹${(parseFloat(w.amount) || 0).toFixed(2)}`,
+                                  date: w.date || w.createdAt || 'Today',
+                                  status: w.status || 'Pending',
+                                  rawDate: w.createdAt ? new Date(w.createdAt).getTime() : 3
+                                }))
                               ];
 
-                              return realTxns.map((item, i) => (
+                              allTxns.sort((a, b) => b.rawDate - a.rawDate);
+
+                              return allTxns.map((item, i) => (
                                 <tr key={i} className="hover:bg-[#F4F6F9]">
                                   <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
                                   <td className="p-2.5 border-r border-[#DEE2E6] font-mono">{item.id}</td>
                                   <td className="p-2.5 border-r border-[#DEE2E6] font-bold">{item.type}</td>
                                   <td className={`p-2.5 border-r border-[#DEE2E6] font-mono font-bold ${item.amount.startsWith('+') ? 'text-[#28A745]' : 'text-[#DC3545]'}`}>{item.amount}</td>
                                   <td className="p-2.5 border-r border-[#DEE2E6] font-mono text-gray-600">{item.date}</td>
-                                  <td className="p-2.5 border-r border-[#DEE2E6]"><span className="px-2 py-0.5 rounded bg-[#28A745] text-white text-[10px] font-bold">{item.status}</span></td>
+                                  <td className="p-2.5 border-r border-[#DEE2E6]"><span className={`px-2 py-0.5 rounded text-white text-[10px] font-bold ${item.status === 'Approved' || item.status === 'Won' ? 'bg-[#28A745]' : (item.status === 'Rejected' || item.status === 'Lost' ? 'bg-[#DC3545]' : 'bg-[#007BFF]')}`}>{item.status}</span></td>
                                 </tr>
                               ));
                             })()}
@@ -2443,32 +2797,195 @@ export default function App() {
                           </thead>
                           <tbody>
                             {(() => {
-                              const realLedger: any[] = [];
+                              const cleanMob = String(selectedUser.mobile || '').replace(/[^0-9]/g, '').slice(-10);
 
-                              // 1. Initial Joining Bonus Entry (+200.00)
-                              realLedger.push({
-                                amount: '+200.00',
-                                date: selectedUser.createdAt ? selectedUser.createdAt.replace('T', ' ').slice(0, 19) : '2026-08-29 09:50:00',
+                              const matchesUser = (item: any) => {
+                                const raw = String(item.mobile || item.phone || item.userPhone || item.user || item.username || '').replace(/[^0-9]/g, '');
+                                const m = raw.length >= 10 ? raw.slice(-10) : '';
+                                if (m && cleanMob && m === cleanMob) return true;
+                                if (item.userId && String(item.userId) === String(selectedUser.id)) return true;
+                                return false;
+                              };
+
+                              const events: any[] = [];
+                              const signupDate = selectedUser.createdAt ? new Date(selectedUser.createdAt).getTime() : Date.now() - 86400000;
+
+                              // 1. Initial Signup (Joining Bonus +200)
+                              events.push({
+                                timestamp: isNaN(signupDate) ? 0 : signupDate,
+                                dateStr: selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : '01:21:00 AM',
                                 type: 'Joining Bonus',
-                                oldBal: { wallet: '0.00', deposit: '0.00', winning: '0.00', commission: '0.00', bonus: '0.00', referral: '0.00' },
-                                newBal: { wallet: `${selectedUser.balance || 0}.00`, deposit: `${selectedUser.deposit_balance || 0}.00`, winning: `${selectedUser.winning_balance || 0}.00`, commission: `${selectedUser.commission_balance || 0}.00`, bonus: '200.00', referral: '0.00' },
-                                gameType: '-'
+                                amount: 200,
+                                amountStr: '+200.00',
+                                gameType: '-',
+                                kind: 'BONUS'
                               });
 
-                              // 2. Real User Bids
-                              const userBids = bidsList.filter(b => b.user === selectedUser.name || b.phone === selectedUser.mobile);
-                              userBids.forEach(b => {
-                                realLedger.push({
-                                  amount: `-${b.amount}.00`,
-                                  date: b.date || '2026-08-29 11:51:10',
-                                  type: 'Bid Place',
-                                  oldBal: { wallet: `${(selectedUser.balance || 0) + b.amount}.00`, deposit: `${(selectedUser.deposit_balance || 0) + b.amount}.00`, winning: '0.00', commission: '0.00', bonus: '200.00', referral: '0.00' },
-                                  newBal: { wallet: `${selectedUser.balance || 0}.00`, deposit: `${selectedUser.deposit_balance || 0}.00`, winning: '0.00', commission: '0.00', bonus: '200.00', referral: '0.00' },
-                                  gameType: b.gameType || 'Single Jodi'
+                              // 2. Approved Deposits
+                              (deposits || []).filter(d => matchesUser(d) && (d.status === 'Approved' || d.status === 'approved')).forEach((d, idx) => {
+                                const t = d.createdAt ? new Date(d.createdAt).getTime() : (d.date ? new Date(d.date).getTime() : (signupDate + 1000 + idx * 100));
+                                events.push({
+                                  timestamp: isNaN(t) ? (signupDate + 1000 + idx * 100) : t,
+                                  dateStr: d.createdAt || d.date || 'Today',
+                                  type: 'Deposit Approved',
+                                  amount: parseFloat(d.amount) || 0,
+                                  amountStr: `+${(parseFloat(d.amount) || 0).toFixed(2)}`,
+                                  gameType: d.method || d.payment_method || 'UPI / PhonePe',
+                                  kind: 'DEPOSIT'
                                 });
                               });
 
-                              return realLedger.map((item, i) => (
+                              // 3. User Bids
+                              (bidsList || []).filter(b => matchesUser(b)).forEach((b, idx) => {
+                                const t = b.rawDate ? new Date(b.rawDate).getTime() : (b.date ? new Date(b.date).getTime() : (signupDate + 2000 + idx * 100));
+                                const bAmt = parseFloat(b.amount) || 10;
+                                events.push({
+                                  timestamp: isNaN(t) ? (signupDate + 2000 + idx * 100) : t,
+                                  dateStr: b.date || 'Today',
+                                  type: 'Bid Place',
+                                  amount: bAmt,
+                                  amountStr: `-${bAmt.toFixed(2)}`,
+                                  gameType: `${b.category || 'Game'} - ${b.gameType || 'Jodi'} (#${b.number})`,
+                                  kind: 'BET'
+                                });
+
+                                if (b.status === 'Won' || b.status === 'won') {
+                                  const winAmt = (parseFloat(b.win_amount || b.winAmount) || (bAmt * 95));
+                                  events.push({
+                                    timestamp: (isNaN(t) ? (signupDate + 2000 + idx * 100) : t) + 50,
+                                    dateStr: b.date || 'Today',
+                                    type: 'Winning Credit',
+                                    amount: winAmt,
+                                    amountStr: `+${winAmt.toFixed(2)}`,
+                                    gameType: `${b.category || 'Game'} - Won 🎉`,
+                                    kind: 'WIN'
+                                  });
+                                }
+                              });
+
+                              // 4. Approved Withdrawals
+                              (withdrawals || []).filter(w => matchesUser(w) && (w.status === 'Approved' || w.status === 'approved')).forEach((w, idx) => {
+                                const t = w.createdAt ? new Date(w.createdAt).getTime() : (w.date ? new Date(w.date).getTime() : (signupDate + 3000 + idx * 100));
+                                const wAmt = parseFloat(w.amount) || 0;
+                                events.push({
+                                  timestamp: isNaN(t) ? (signupDate + 3000 + idx * 100) : t,
+                                  dateStr: w.createdAt || w.date || 'Today',
+                                  type: 'Withdrawal Payout',
+                                  amount: wAmt,
+                                  amountStr: `-${wAmt.toFixed(2)}`,
+                                  gameType: 'Bank / UPI',
+                                  kind: 'WITHDRAW'
+                                });
+                              });
+
+                              // Sort chronological
+                              events.sort((a, b) => a.timestamp - b.timestamp);
+
+                              let runWallet = 0.00;
+                              let runDeposit = 0.00;
+                              let runWinning = 0.00;
+                              let runCommission = 0.00;
+                              let runBonus = 0.00;
+                              let runReferral = 0.00;
+
+                              const calculatedRows: any[] = [];
+
+                              // Calculate initial opening funds if not in deposits array
+                              const userDeps = (deposits || []).filter(d => matchesUser(d) && (d.status === 'Approved' || d.status === 'approved'));
+                              const userBids = (bidsList || []).filter(b => matchesUser(b));
+                              const userWds = (withdrawals || []).filter(w => matchesUser(w) && (w.status === 'Approved' || w.status === 'approved'));
+
+                              const recordedDepSum = userDeps.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+                              const totalBetDepositDeductions = userBids.reduce((sum, b) => sum + ((parseFloat(b.amount) || 10) * 0.9), 0);
+                              const totalWdDepositDeductions = userWds.reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+
+                              const openingDeposit = Math.max(0, (parseFloat(selectedUser.deposit_balance) || 0) + totalBetDepositDeductions + totalWdDepositDeductions - recordedDepSum);
+
+                              if (openingDeposit > 0) {
+                                events.push({
+                                  timestamp: (isNaN(signupDate) ? 0 : signupDate) + 10,
+                                  dateStr: selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : '01:21:00 AM',
+                                  type: 'Opening Balance / Deposit',
+                                  amount: openingDeposit,
+                                  amountStr: `+${openingDeposit.toFixed(2)}`,
+                                  gameType: 'Opening Funds',
+                                  kind: 'DEPOSIT'
+                                });
+                              }
+
+                              // Re-sort after opening deposit
+                              events.sort((a, b) => a.timestamp - b.timestamp);
+
+                              events.forEach(ev => {
+                                const oldBal = {
+                                  wallet: runWallet.toFixed(2),
+                                  deposit: runDeposit.toFixed(2),
+                                  winning: runWinning.toFixed(2),
+                                  commission: runCommission.toFixed(2),
+                                  bonus: runBonus.toFixed(2),
+                                  referral: runReferral.toFixed(2)
+                                };
+
+                                if (ev.kind === 'BONUS') {
+                                  runBonus += ev.amount;
+                                } else if (ev.kind === 'DEPOSIT') {
+                                  runDeposit += ev.amount;
+                                  runWallet += ev.amount;
+                                } else if (ev.kind === 'BET') {
+                                  const bonusDeduct = Math.min(ev.amount * 0.10, runBonus);
+                                  runBonus = parseFloat((runBonus - bonusDeduct).toFixed(2));
+                                  let rem = ev.amount - bonusDeduct;
+
+                                  if (runDeposit >= rem) {
+                                    runDeposit = parseFloat((runDeposit - rem).toFixed(2));
+                                    rem = 0;
+                                  } else {
+                                    rem = parseFloat((rem - runDeposit).toFixed(2));
+                                    runDeposit = 0.00;
+                                    if (runWinning >= rem) {
+                                      runWinning = parseFloat((runWinning - rem).toFixed(2));
+                                      rem = 0;
+                                    } else {
+                                      rem = parseFloat((rem - runWinning).toFixed(2));
+                                      runWinning = 0.00;
+                                    }
+                                  }
+                                  runWallet = parseFloat(Math.max(0, runDeposit + runWinning + runCommission).toFixed(2));
+                                } else if (ev.kind === 'WIN') {
+                                  runWinning = parseFloat((runWinning + ev.amount).toFixed(2));
+                                  runWallet = parseFloat((runDeposit + runWinning + runCommission).toFixed(2));
+                                } else if (ev.kind === 'WITHDRAW') {
+                                  let rem = ev.amount;
+                                  if (runWinning >= rem) {
+                                    runWinning = parseFloat((runWinning - rem).toFixed(2));
+                                  } else {
+                                    rem = parseFloat((rem - runWinning).toFixed(2));
+                                    runWinning = 0.00;
+                                    runDeposit = parseFloat(Math.max(0, runDeposit - rem).toFixed(2));
+                                  }
+                                  runWallet = parseFloat(Math.max(0, runDeposit + runWinning + runCommission).toFixed(2));
+                                }
+
+                                const newBal = {
+                                  wallet: runWallet.toFixed(2),
+                                  deposit: runDeposit.toFixed(2),
+                                  winning: runWinning.toFixed(2),
+                                  commission: runCommission.toFixed(2),
+                                  bonus: runBonus.toFixed(2),
+                                  referral: runReferral.toFixed(2)
+                                };
+
+                                calculatedRows.push({
+                                  amount: ev.amountStr,
+                                  date: ev.dateStr,
+                                  type: ev.type,
+                                  oldBal,
+                                  newBal,
+                                  gameType: ev.gameType
+                                });
+                              });
+
+                              return calculatedRows.reverse().map((item, i) => (
                                 <tr key={i} className="hover:bg-[#F4F6F9] align-top">
                                   <td className="p-2.5 border-r border-[#DEE2E6]">{i + 1}</td>
                                   <td className={`p-2.5 border-r border-[#DEE2E6] font-mono font-bold ${item.amount.startsWith('+') ? 'text-[#28A745]' : 'text-[#DC3545]'}`}>{item.amount}</td>
@@ -2647,23 +3164,33 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block font-bold text-[#212529] mb-1">Start Date</label>
-                      <input
-                        type="text"
-                        value={filterStartDate}
-                        onChange={(e) => setFilterStartDate(e.target.value)}
-                        placeholder="DD-MM-YYYY"
-                        className="w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057]"
-                      />
+                      <div className="relative flex items-center w-full">
+                        <input 
+                          type="date" 
+                          value={filterStartDate} 
+                          onChange={(e)=>setFilterStartDate(e.target.value)} 
+                          onClick={(e) => (e.target as any).showPicker && (e.target as any).showPicker()}
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057] pr-8"
+                        />
+                        <svg className="absolute right-2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                      </div>
                     </div>
                     <div>
                       <label className="block font-bold text-[#212529] mb-1">End Date</label>
-                      <input
-                        type="text"
-                        value={filterEndDate}
-                        onChange={(e) => setFilterEndDate(e.target.value)}
-                        placeholder="DD-MM-YYYY"
-                        className="w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057]"
-                      />
+                      <div className="relative flex items-center w-full">
+                        <input 
+                          type="date" 
+                          value={filterEndDate} 
+                          onChange={(e)=>setFilterEndDate(e.target.value)} 
+                          onClick={(e) => (e.target as any).showPicker && (e.target as any).showPicker()}
+                          className="w-full border border-[#CED4DA] p-2 rounded text-xs text-[#495057] pr-8"
+                        />
+                        <svg className="absolute right-2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-2 pt-1">
@@ -2704,8 +3231,8 @@ export default function App() {
                             userTxns[mob].push({
                               type: 'bid',
                               amount: b.amount,
-                              date: b.date || (b.created_at ? new Date(b.created_at).toISOString() : new Date().toISOString()),
-                              rawDate: b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0),
+                              date: b.date || safeToISO(b.created_at),
+                              rawDate: safeGetTime(b.created_at, safeGetTime(b.date, 0)),
                               original: b
                             });
                           });
@@ -2720,8 +3247,8 @@ export default function App() {
                               userTxns[mob].push({
                                 type: 'deposit',
                                 amount: d.amount,
-                                date: d.date || (d.createdAt ? new Date(d.createdAt).toISOString() : new Date().toISOString()),
-                                rawDate: d.createdAt ? new Date(d.createdAt).getTime() : (d.date ? new Date(d.date).getTime() : 0),
+                                date: d.date || safeToISO(d.createdAt),
+                                rawDate: safeGetTime(d.createdAt, safeGetTime(d.date, 0)),
                                 original: d
                               });
                             }
@@ -2737,8 +3264,8 @@ export default function App() {
                               userTxns[mob].push({
                                 type: 'withdrawal',
                                 amount: w.amount,
-                                date: w.date || (w.createdAt ? new Date(w.createdAt).toISOString() : new Date().toISOString()),
-                                rawDate: w.createdAt ? new Date(w.createdAt).getTime() : (w.date ? new Date(w.date).getTime() : 0),
+                                date: w.date || safeToISO(w.createdAt),
+                                rawDate: safeGetTime(w.createdAt, safeGetTime(w.date, 0)),
                                 original: w
                               });
                             }
@@ -2903,7 +3430,7 @@ export default function App() {
 
                           // Sort ledger items overall by date descending (newest first). If same date, use unique ID descending.
                           ledgerItems.sort((a, b) => {
-                            const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+                            const dateDiff = safeGetTime(b.date) - safeGetTime(a.date);
                             if (dateDiff !== 0) return dateDiff;
                             return b.id.localeCompare(a.id);
                           });
@@ -2923,8 +3450,7 @@ export default function App() {
 
                             const sDate = appliedStartDate || filterStartDate;
                             const eDate = appliedEndDate || filterEndDate;
-                            if (sDate && sDate.trim() && !isDateMatch(item.date, sDate)) return false;
-                            if (eDate && eDate.trim() && !isDateMatch(item.date, eDate)) return false;
+                            if (!isDateInRange(item.date, sDate, eDate)) return false;
 
                             return true;
                           });
@@ -4548,14 +5074,20 @@ export default function App() {
               </div>
 
               {/* MARKET TOTAL BET AMOUNT DISPLAY CARD */}
-              <div className="bg-blue-50 border border-blue-200 p-3 rounded text-center">
-                <p className="text-[11px] text-gray-600 font-medium">Total Amount Beted on Market today:</p>
-                <p className="text-xl font-bold font-mono text-[#007BFF]">₹ {getMarketBetTotal(resultForm.category)}.00</p>
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded space-y-1">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-600 font-medium">Total Bets on {resultForm.resultDate}:</span>
+                  <span className="font-bold font-mono text-base text-[#007BFF]">₹ {getMarketBetTotal(resultForm.category, resultForm.resultDate)}.00</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px] text-gray-500 pt-1 border-t border-blue-200/60">
+                  <span>Lifetime Bets on {resultForm.category}:</span>
+                  <span className="font-mono font-semibold text-gray-700">₹ {getMarketLifetimeTotal(resultForm.category)}.00</span>
+                </div>
               </div>
 
               <div>
                 <label className="block text-[#495057] font-bold mb-1">Result Date *</label>
-                <input type="text" value={resultForm.resultDate} onChange={(e)=>setResultForm({...resultForm, resultDate: e.target.value})} required className="w-full border border-[#CED4DA] p-2 rounded font-bold text-center" />
+                <input type="date" value={resultForm.resultDate} onChange={(e)=>setResultForm({...resultForm, resultDate: e.target.value})} required className="w-full border border-[#CED4DA] p-2 rounded font-bold text-center" />
               </div>
 
               <div>
@@ -4578,6 +5110,34 @@ export default function App() {
       )}
 
       {/* 2. ADD CATEGORY MODAL matching media_1787977958362.png 100%! */}
+      {editingCategory && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-[#DEE2E6] bg-[#F8F9FA]">
+              <h2 className="text-lg font-bold text-[#212529]">Edit Schedule: {editingCategory.name}</h2>
+              <button onClick={() => setEditingCategory(null)} className="text-[#6C757D] hover:text-[#212529] font-bold text-xl">&times;</button>
+            </div>
+            <div className="p-4 bg-white flex-1 space-y-4">
+              <form onSubmit={handleEditScheduleSubmit} className="space-y-4 text-sm">
+                <div>
+                  <label className="block font-bold text-[#212529] mb-1">Open Time</label>
+                  <input type="text" value={editScheduleForm.open} onChange={e=>setEditScheduleForm({...editScheduleForm, open: e.target.value})} placeholder="e.g. 12:00 AM" className="w-full border border-[#CED4DA] rounded p-2 focus:outline-none focus:border-[#007BFF]" />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#212529] mb-1">Close Time</label>
+                  <input type="text" value={editScheduleForm.close} onChange={e=>setEditScheduleForm({...editScheduleForm, close: e.target.value})} placeholder="e.g. 02:00 AM" className="w-full border border-[#CED4DA] rounded p-2 focus:outline-none focus:border-[#007BFF]" />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#212529] mb-1">Result Time</label>
+                  <input type="text" value={editScheduleForm.result} onChange={e=>setEditScheduleForm({...editScheduleForm, result: e.target.value})} placeholder="e.g. 05:00 AM" className="w-full border border-[#CED4DA] rounded p-2 focus:outline-none focus:border-[#007BFF]" />
+                </div>
+                <button type="submit" className="w-full bg-[#28A745] hover:bg-[#218838] text-white font-bold py-2 rounded shadow-sm">Save Schedule</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAddCategoryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-xs">
           <div className="bg-white rounded-lg p-5 w-full max-w-md space-y-4 border border-[#DEE2E6] shadow-xl">
@@ -4994,6 +5554,38 @@ export default function App() {
       )}
 
       {/* 11. MARKET GAME BREAKDOWN MODAL (MATCHING MEDIA_1787981926315.JPG, MEDIA_1787981953977.JPG, MEDIA_1787981960032.JPG 100%) */}
+      {editingResult && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-4 border-b border-[#DEE2E6] bg-[#F8F9FA]">
+              <h2 className="text-lg font-bold text-[#212529]">Edit Result</h2>
+              <button onClick={() => setEditingResult(null)} className="text-[#6C757D] hover:text-[#212529] font-bold text-xl">&times;</button>
+            </div>
+            <div className="p-4 overflow-y-auto bg-white flex-1 space-y-4">
+              <div className="text-sm">
+                <strong>Game:</strong> {editingResult.category} <br/>
+                <strong>Date:</strong> {editingResult.date}
+              </div>
+              <form onSubmit={handleEditResultSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-[#212529] mb-1">New Result Number (00-99)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={editResultNumber}
+                    onChange={e => setEditResultNumber(e.target.value)}
+                    required
+                    className="w-full border border-[#CED4DA] rounded p-2 text-sm focus:outline-none focus:border-[#007BFF]"
+                  />
+                </div>
+                <button type="submit" className="w-full bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold py-2 rounded shadow-sm">Save Changes</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showGameHistoryModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-lg p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl border border-[#DEE2E6] text-xs">
@@ -5016,7 +5608,9 @@ export default function App() {
             </div>
 
             {(() => {
-              const bd = getMarketBreakdown(selectedGameHistoryCategory);
+              const sDate = appliedStartDate || filterStartDate;
+              const eDate = appliedEndDate || filterEndDate;
+              const bd = getMarketBreakdown(selectedGameHistoryCategory, sDate, eDate);
               return (
                 <div className="space-y-6">
 
