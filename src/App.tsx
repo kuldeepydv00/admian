@@ -609,12 +609,12 @@ export default function App() {
         const rData = await resultsRes.json();
         if (Array.isArray(rData)) {
           const mappedResults = rData.map(r => ({
-            id: r._id || r.id,
-            date: r.date || r.created_at ? new Date(r.created_at || r.date).toLocaleDateString() : 'N/A',
-            rawDate: safeToISO(r.created_at || r.date),
+            id: r._id || r.id || `res_${r.category}_${r.date}`,
+            date: r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString() : 'N/A'),
+            rawDate: safeToISO(r.rawDate || r.created_at || r.date),
             category: r.game_name || r.category,
             resultNumber: String(r.number || r.resultNumber || '00').padStart(2, '0'),
-            createdAt: r.created_at ? new Date(r.created_at).toLocaleString() : 'N/A',
+            createdAt: r.createdAt || (r.created_at ? new Date(r.created_at).toLocaleString() : 'N/A'),
             resultBy: r.declared_by || r.resultBy || 'Admin'
           }));
           setResultsList(mappedResults);
@@ -1753,7 +1753,9 @@ export default function App() {
 
                         const sDate = appliedStartDate || filterStartDate;
                         const eDate = appliedEndDate || filterEndDate;
-                        if (!isDateInRange(r.date, sDate, eDate)) return false;
+                        if (sDate || eDate) {
+                          if (!isDateInRange(r.rawDate || r.date, sDate, eDate)) return false;
+                        }
 
                         return true;
                       }).map((r, i) => (
@@ -1771,13 +1773,23 @@ export default function App() {
                         </tr>
                       ))}
                       {resultsList.filter(r => {
-                        if (filterCategory !== 'All' && r.category !== filterCategory) return false;
-                        if (filterSearch.trim()) {
-                          const q = filterSearch.toLowerCase().trim();
-                          return (r.category && r.category.toLowerCase().includes(q)) ||
+                        const targetCat = appliedCategory !== 'All' ? appliedCategory : filterCategory;
+                        if (targetCat !== 'All' && r.category !== targetCat) return false;
+                        
+                        const q = (appliedSearch || filterSearch).toLowerCase().trim();
+                        if (q) {
+                          const matches = (r.category && r.category.toLowerCase().includes(q)) ||
                                  (r.resultNumber && r.resultNumber.includes(q)) ||
                                  (r.resultBy && r.resultBy.toLowerCase().includes(q));
+                          if (!matches) return false;
                         }
+
+                        const sDate = appliedStartDate || filterStartDate;
+                        const eDate = appliedEndDate || filterEndDate;
+                        if (sDate || eDate) {
+                          if (!isDateInRange(r.rawDate || r.date, sDate, eDate)) return false;
+                        }
+
                         return true;
                       }).length === 0 && (
                         <tr><td colSpan={7} className="p-6 text-center text-[#6C757D]">No matching results found</td></tr>
