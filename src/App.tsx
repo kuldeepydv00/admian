@@ -54,14 +54,6 @@ const parseToTimestamp = (d: any, id?: any, _userCreated?: any): number => {
     if (epochSec > 1600000000 && epochSec < 2500000000) return epochSec * 1000;
   }
 
-  if (id) {
-    const numMatch = String(id).match(/(\d{13})/);
-    if (numMatch) {
-      const epoch = parseInt(numMatch[1], 10);
-      if (epoch > 1600000000000 && epoch < 2500000000000) return epoch;
-    }
-  }
-
   return 0;
 };
 
@@ -5724,14 +5716,6 @@ export default function App() {
                         });
 
                         filtered.sort((a, b) => {
-                          const statusA = String(a.status || 'Pending').toLowerCase();
-                          const statusB = String(b.status || 'Pending').toLowerCase();
-                          const isPendingA = statusA === 'pending';
-                          const isPendingB = statusB === 'pending';
-
-                          if (isPendingA && !isPendingB) return -1;
-                          if (!isPendingA && isPendingB) return 1;
-
                           const tsA = parseToTimestamp(a.createdAt || a.created_at || a.date || a.timestamp, a._id || a.id || a.utr);
                           const tsB = parseToTimestamp(b.createdAt || b.created_at || b.date || b.timestamp, b._id || b.id || b.utr);
                           return tsB - tsA;
@@ -6078,14 +6062,6 @@ export default function App() {
                       <tbody>
                         {(() => {
                           filteredWithdrawals.sort((a, b) => {
-                            const statusA = String(a.status || 'Pending').toLowerCase();
-                            const statusB = String(b.status || 'Pending').toLowerCase();
-                            const isPendingA = statusA === 'pending';
-                            const isPendingB = statusB === 'pending';
-
-                            if (isPendingA && !isPendingB) return -1;
-                            if (!isPendingA && isPendingB) return 1;
-
                             const tsA = parseToTimestamp(a.createdAt || a.created_at || a.date || a.timestamp, a._id || a.id);
                             const tsB = parseToTimestamp(b.createdAt || b.created_at || b.date || b.timestamp, b._id || b.id);
                             return tsB - tsA;
