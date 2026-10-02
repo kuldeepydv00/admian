@@ -5723,7 +5723,19 @@ export default function App() {
                             statusStr.includes(q);
                         });
 
-                        filtered.sort((a, b) => parseToTimestamp(b.createdAt || b.created_at || b.date || b.timestamp, b._id || b.id || b.utr) - parseToTimestamp(a.createdAt || a.created_at || a.date || a.timestamp, a._id || a.id || a.utr));
+                        filtered.sort((a, b) => {
+                          const statusA = String(a.status || 'Pending').toLowerCase();
+                          const statusB = String(b.status || 'Pending').toLowerCase();
+                          const isPendingA = statusA === 'pending';
+                          const isPendingB = statusB === 'pending';
+
+                          if (isPendingA && !isPendingB) return -1;
+                          if (!isPendingA && isPendingB) return 1;
+
+                          const tsA = parseToTimestamp(a.createdAt || a.created_at || a.date || a.timestamp, a._id || a.id || a.utr);
+                          const tsB = parseToTimestamp(b.createdAt || b.created_at || b.date || b.timestamp, b._id || b.id || b.utr);
+                          return tsB - tsA;
+                        });
 
                         if (filtered.length === 0) {
                           return (
@@ -6065,7 +6077,19 @@ export default function App() {
                       </thead>
                       <tbody>
                         {(() => {
-                          filteredWithdrawals.sort((a, b) => parseToTimestamp(b.createdAt || b.created_at || b.date || b.timestamp, b._id || b.id) - parseToTimestamp(a.createdAt || a.created_at || a.date || a.timestamp, a._id || a.id));
+                          filteredWithdrawals.sort((a, b) => {
+                            const statusA = String(a.status || 'Pending').toLowerCase();
+                            const statusB = String(b.status || 'Pending').toLowerCase();
+                            const isPendingA = statusA === 'pending';
+                            const isPendingB = statusB === 'pending';
+
+                            if (isPendingA && !isPendingB) return -1;
+                            if (!isPendingA && isPendingB) return 1;
+
+                            const tsA = parseToTimestamp(a.createdAt || a.created_at || a.date || a.timestamp, a._id || a.id);
+                            const tsB = parseToTimestamp(b.createdAt || b.created_at || b.date || b.timestamp, b._id || b.id);
+                            return tsB - tsA;
+                          });
 
                           if (filteredWithdrawals.length === 0) {
                             return (
