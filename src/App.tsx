@@ -54,6 +54,14 @@ const parseToTimestamp = (d: any, id?: any, _userCreated?: any): number => {
     if (epochSec > 1600000000 && epochSec < 2500000000) return epochSec * 1000;
   }
 
+  if (id) {
+    const numMatch = String(id).match(/(\d{13})/);
+    if (numMatch) {
+      const epoch = parseInt(numMatch[1], 10);
+      if (epoch > 1600000000000 && epoch < 2500000000000) return epoch;
+    }
+  }
+
   return 0;
 };
 
@@ -195,8 +203,18 @@ function CanvasChart({ title, color, dataPoints, chartType, labels }: { title: s
 export default function App() {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('admin_authenticated') === 'true';
+    return localStorage.getItem('admin_authenticated') === 'true' && !!localStorage.getItem('admin_token');
   });
+
+  // Server rejected our admin token (expired / invalid) -> back to login
+  useEffect(() => {
+    const onExpired = () => {
+      setIsAuthenticated(false);
+      setLoginStep(1);
+    };
+    window.addEventListener('admin-auth-expired', onExpired);
+    return () => window.removeEventListener('admin-auth-expired', onExpired);
+  }, []);
   const [loginStep, setLoginStep] = useState<1 | 2>(1);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -338,34 +356,6 @@ export default function App() {
     }
     
     return true;
-  };
-
-  const getISTCalendarDate = (dVal: any): string | null => {
-    if (!dVal) return null;
-    try {
-      const ts = typeof dVal === 'number' ? (dVal < 10000000000 ? dVal * 1000 : dVal) : (parseToTimestamp(dVal) || new Date(dVal).getTime());
-      if (!ts || isNaN(ts)) return null;
-      const d = new Date(ts);
-      const utcMs = d.getTime() + (d.getTimezoneOffset() * 60000);
-      const ist = new Date(utcMs + (5.5 * 60 * 60 * 1000));
-      const y = ist.getFullYear();
-      const m = String(ist.getMonth() + 1).padStart(2, '0');
-      const day = String(ist.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    } catch (e) {
-      return null;
-    }
-  };
-
-  const isBetInDateRange = (b: any, startDateStr?: string, endDateStr?: string) => {
-    if (!startDateStr && !endDateStr) return true;
-    const cycleDateStr = b.cycleDate || b.rawDate || b.date_key;
-    const createdISTDate = getISTCalendarDate(b.created_at || b.date);
-
-    const matchesCycle = cycleDateStr ? isDateInRange(cycleDateStr, startDateStr, endDateStr) : false;
-    const matchesCreated = createdISTDate ? isDateInRange(createdISTDate, startDateStr, endDateStr) : false;
-
-    return matchesCycle || matchesCreated;
   };
 
   // Applied Active Filter States (Triggered by clicking Search button or submitting filter form)
@@ -762,18 +752,16 @@ export default function App() {
     let jodiTotal = 0;
     let crossTotal = 0;
     let haroofTotal = 0;
+    let bonusTotal = 0;
 
     bidsList.forEach(b => {
-      const isCatMatch = (b.category === categoryName) ||
-        (categoryName === 'Desawar' && b.category === 'Disawer') ||
-        (categoryName === 'Disawer' && b.category === 'Desawar') ||
-        (categoryName === 'Shree Ganesh' && b.category === 'Shri Ganesh') ||
-        (categoryName === 'Shri Ganesh' && b.category === 'Shree Ganesh');
-      if (isCatMatch) {
+      if (b.category === categoryName) {
         if (startDate || endDate) {
-          if (!isBetInDateRange(b, startDate, endDate)) return;
+          const bDate = b.rawDate || b.date || safeToISO(b.created_at);
+          if (!isDateInRange(bDate, startDate, endDate)) return;
         }
         const amt = parseFloat(b.amount) || 0;
+        bonusTotal += parseFloat(b.bonus_deducted) || 0;
         const gType = (b.gameType || '').toUpperCase();
         const isHar = gType.includes('HAROOF') || gType.includes('HAROP') || gType.includes('HROPE') || gType.includes('ANDER') || gType.includes('BAHAR') || gType.includes('HARUF');
         const numStr = isHar ? String(b.number !== undefined ? b.number : '0') : String(b.number !== undefined ? b.number : '00').padStart(2, '0');
@@ -840,6 +828,7 @@ export default function App() {
       crossTotal,
       haroofTotal,
       totalInvestment,
+      bonusTotal,
       winningNumStr,
       winningAnderDigit,
       winningBaharDigit,
@@ -858,15 +847,16 @@ export default function App() {
     const ADMIN_PHONE = '7206561420';
 
     try {
-      const res = await fetch(`${API_BASE}/api/user/verify-otp`, {
+      const res = await fetch(`${API_BASE}/api/admin/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile: ADMIN_PHONE, otp: loginOtp })
       });
       const data = await res.json();
-      if (res.ok && data.success !== false) {
-        setIsAuthenticated(true);
+      if (res.ok && data.success !== false && data.token) {
+        localStorage.setItem('admin_token', data.token);
         localStorage.setItem('admin_authenticated', 'true');
+        setIsAuthenticated(true);
         setStatusMessage('Welcome back, Admin!');
       } else {
         setAuthError(data.message || 'Invalid OTP. Please check your SMS.');
@@ -881,6 +871,7 @@ export default function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('admin_authenticated');
+    localStorage.removeItem('admin_token');
     setLoginStep(1);
   };
 
@@ -1105,6 +1096,7 @@ export default function App() {
               potential_payout: b.potential_payout,
               win_amount: b.win_amount || b.winAmount || 0,
               winAmount: b.win_amount || b.winAmount || 0,
+              bonus_deducted: parseFloat(b.bonus_deducted) || 0,
               status: b.status === 'won' ? 'Won' : (b.status === 'lost' ? 'Lost' : 'Pending')
             };
           });
@@ -2472,7 +2464,7 @@ export default function App() {
                           // Date check
                           const sDate = appliedStartDate || filterStartDate;
                           const eDate = appliedEndDate || filterEndDate;
-                          if (!isBetInDateRange(b, sDate, eDate)) return false;
+                          if (!isDateInRange(b.rawDate || b.date, sDate, eDate)) return false;
 
                           return true;
                         });
@@ -2531,7 +2523,7 @@ export default function App() {
                       }
                       const sDate = appliedStartDate || filterStartDate;
                       const eDate = appliedEndDate || filterEndDate;
-                      if (!isBetInDateRange(b, sDate, eDate)) return false;
+                      if (!isDateInRange(b.rawDate || b.date, sDate, eDate)) return false;
                       return true;
                     }).length,
                     betsPageSize,
@@ -2883,7 +2875,7 @@ export default function App() {
                         const sDate = appliedStartDate || filterStartDate;
                         const eDate = appliedEndDate || filterEndDate;
                         const bd = getMarketBreakdown(c.name, sDate, eDate);
-                        const bonusAmt = (bd.totalInvestment * 0.0005).toFixed(2);
+                        const bonusAmt = (bd.bonusTotal || 0).toFixed(2);
                         
                         let displayDate = 'All Time';
                         if (sDate && eDate && sDate === eDate) displayDate = sDate;
@@ -2927,6 +2919,7 @@ export default function App() {
                   {(() => {
                     let totalBet = 0;
                     let totalWin = 0;
+                    let totalBonus = 0;
                     categoriesList.forEach(c => {
                       const targetCat = appliedCategory !== 'All' ? appliedCategory : filterCategory;
                       if (targetCat !== 'All' && c.name !== targetCat) return;
@@ -2935,9 +2928,9 @@ export default function App() {
                       const bd = getMarketBreakdown(c.name, sDate, eDate);
                       totalBet += bd.totalInvestment;
                       totalWin += bd.totalWinningAmount;
+                      totalBonus += bd.bonusTotal || 0;
                     });
                     const totalComm = totalBet * 0.04;
-                    const totalBonus = totalBet * 0.0005;
                     const netAmt = totalBet - totalWin - totalComm;
 
                     return (
@@ -5748,6 +5741,14 @@ export default function App() {
                         });
 
                         filtered.sort((a, b) => {
+                          const statusA = String(a.status || 'Pending').toLowerCase();
+                          const statusB = String(b.status || 'Pending').toLowerCase();
+                          const isPendingA = statusA === 'pending';
+                          const isPendingB = statusB === 'pending';
+
+                          if (isPendingA && !isPendingB) return -1;
+                          if (!isPendingA && isPendingB) return 1;
+
                           const tsA = parseToTimestamp(a.createdAt || a.created_at || a.date || a.timestamp, a._id || a.id || a.utr);
                           const tsB = parseToTimestamp(b.createdAt || b.created_at || b.date || b.timestamp, b._id || b.id || b.utr);
                           return tsB - tsA;
@@ -6094,6 +6095,14 @@ export default function App() {
                       <tbody>
                         {(() => {
                           filteredWithdrawals.sort((a, b) => {
+                            const statusA = String(a.status || 'Pending').toLowerCase();
+                            const statusB = String(b.status || 'Pending').toLowerCase();
+                            const isPendingA = statusA === 'pending';
+                            const isPendingB = statusB === 'pending';
+
+                            if (isPendingA && !isPendingB) return -1;
+                            if (!isPendingA && isPendingB) return 1;
+
                             const tsA = parseToTimestamp(a.createdAt || a.created_at || a.date || a.timestamp, a._id || a.id);
                             const tsB = parseToTimestamp(b.createdAt || b.created_at || b.date || b.timestamp, b._id || b.id);
                             return tsB - tsA;
@@ -8131,7 +8140,8 @@ export default function App() {
                   if (!isCategoryMatch) return false;
 
                   if (sDate || eDate) {
-                    if (!isBetInDateRange(b, sDate, eDate)) return false;
+                    const bDate = b.rawDate || b.date || safeToISO(b.created_at);
+                    if (!isDateInRange(bDate, sDate, eDate)) return false;
                   }
 
                   const gType = (b.gameType || '').toUpperCase();
