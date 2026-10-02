@@ -340,6 +340,34 @@ export default function App() {
     return true;
   };
 
+  const getISTCalendarDate = (dVal: any): string | null => {
+    if (!dVal) return null;
+    try {
+      const ts = typeof dVal === 'number' ? (dVal < 10000000000 ? dVal * 1000 : dVal) : (parseToTimestamp(dVal) || new Date(dVal).getTime());
+      if (!ts || isNaN(ts)) return null;
+      const d = new Date(ts);
+      const utcMs = d.getTime() + (d.getTimezoneOffset() * 60000);
+      const ist = new Date(utcMs + (5.5 * 60 * 60 * 1000));
+      const y = ist.getFullYear();
+      const m = String(ist.getMonth() + 1).padStart(2, '0');
+      const day = String(ist.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const isBetInDateRange = (b: any, startDateStr?: string, endDateStr?: string) => {
+    if (!startDateStr && !endDateStr) return true;
+    const cycleDateStr = b.cycleDate || b.rawDate || b.date_key;
+    const createdISTDate = getISTCalendarDate(b.created_at || b.date);
+
+    const matchesCycle = cycleDateStr ? isDateInRange(cycleDateStr, startDateStr, endDateStr) : false;
+    const matchesCreated = createdISTDate ? isDateInRange(createdISTDate, startDateStr, endDateStr) : false;
+
+    return matchesCycle || matchesCreated;
+  };
+
   // Applied Active Filter States (Triggered by clicking Search button or submitting filter form)
   const [appliedCategory, setAppliedCategory] = useState('All');
   const [appliedSearch, setAppliedSearch] = useState('');
@@ -736,10 +764,14 @@ export default function App() {
     let haroofTotal = 0;
 
     bidsList.forEach(b => {
-      if (b.category === categoryName) {
+      const isCatMatch = (b.category === categoryName) ||
+        (categoryName === 'Desawar' && b.category === 'Disawer') ||
+        (categoryName === 'Disawer' && b.category === 'Desawar') ||
+        (categoryName === 'Shree Ganesh' && b.category === 'Shri Ganesh') ||
+        (categoryName === 'Shri Ganesh' && b.category === 'Shree Ganesh');
+      if (isCatMatch) {
         if (startDate || endDate) {
-          const bDate = b.rawDate || b.date || safeToISO(b.created_at);
-          if (!isDateInRange(bDate, startDate, endDate)) return;
+          if (!isBetInDateRange(b, startDate, endDate)) return;
         }
         const amt = parseFloat(b.amount) || 0;
         const gType = (b.gameType || '').toUpperCase();
@@ -2440,7 +2472,7 @@ export default function App() {
                           // Date check
                           const sDate = appliedStartDate || filterStartDate;
                           const eDate = appliedEndDate || filterEndDate;
-                          if (!isDateInRange(b.rawDate || b.date, sDate, eDate)) return false;
+                          if (!isBetInDateRange(b, sDate, eDate)) return false;
 
                           return true;
                         });
@@ -2499,7 +2531,7 @@ export default function App() {
                       }
                       const sDate = appliedStartDate || filterStartDate;
                       const eDate = appliedEndDate || filterEndDate;
-                      if (!isDateInRange(b.rawDate || b.date, sDate, eDate)) return false;
+                      if (!isBetInDateRange(b, sDate, eDate)) return false;
                       return true;
                     }).length,
                     betsPageSize,
@@ -8099,8 +8131,7 @@ export default function App() {
                   if (!isCategoryMatch) return false;
 
                   if (sDate || eDate) {
-                    const bDate = b.rawDate || b.date || safeToISO(b.created_at);
-                    if (!isDateInRange(bDate, sDate, eDate)) return false;
+                    if (!isBetInDateRange(b, sDate, eDate)) return false;
                   }
 
                   const gType = (b.gameType || '').toUpperCase();
