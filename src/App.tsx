@@ -2004,17 +2004,30 @@ export default function App() {
   const handleRejectDeposit = async (depId: string) => {
     if (processingReqIds.has(depId)) return;
     setProcessingReqIds(prev => new Set(prev).add(depId));
+
+    // Optimistic UI update
+    setDeposits(prev => prev.map(d => {
+      const match = (d._id && String(d._id) === depId) ||
+                    (d.id && String(d.id) === depId) ||
+                    (d.utr && String(d.utr) === depId) ||
+                    (d.utr_number && String(d.utr_number) === depId) ||
+                    (d.client_txn_id && String(d.client_txn_id) === depId);
+      return match ? { ...d, status: 'Rejected' } : d;
+    }));
+
     try {
       const res = await fetch(`${API_BASE}/api/admin/deposits/${depId}/reject`, { method: 'POST' });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success !== false) {
-        setStatusMessage(`❌ Deposit #${depId} Rejected.`);
+        setStatusMessage(`❌ Deposit #${depId} Rejected permanently.`);
         fetchLiveData();
       } else {
         alert(data.message || 'Failed to reject deposit');
+        fetchLiveData();
       }
     } catch (err: any) {
       alert('Error rejecting deposit: ' + (err.message || 'Connection failed'));
+      fetchLiveData();
     } finally {
       setProcessingReqIds(prev => {
         const next = new Set(prev);
